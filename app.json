@@ -1,18 +1,26 @@
 {
   "expo": {
-    "name": "allblue-temp",
-    "slug": "allblue-temp",
+    "name": "AllBlue",
+    "slug": "allblue",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "allbluetemp",
+    "scheme": "allblue",
     "userInterfaceStyle": "automatic",
+    "backgroundColor": "#144A84",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.rumbaugh.allblue",
+      "backgroundColor": "#144A84",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
+      "package": "com.rumbaugh.allblue",
+      "backgroundColor": "#144A84",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#035491",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -24,6 +32,15 @@
       "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/c5245e84-3569-4e55-b9d3-b1a3375569e9",
+      "enabled": true,
+      "fallbackToCacheTimeout": 3000,
+      "checkAutomatically": "ON_LOAD"
+    },
     "plugins": [
       "expo-router",
       [
@@ -31,12 +48,26 @@
         {
           "image": "./assets/images/splash-icon.png",
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
+          "backgroundColor": "#144A84"
         }
-      ]
+      ],
+      [
+        "expo-system-ui",
+        {
+          "backgroundColor": "#144A84"
+        }
+      ],
+      "expo-asset"
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "c5245e84-3569-4e55-b9d3-b1a3375569e9"
+      }
+    },
+    "owner": "rumbaugh"
   }
 }
