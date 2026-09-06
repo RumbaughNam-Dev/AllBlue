@@ -2,10 +2,11 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
 const LEVEL_CONFIG: Record<string, { label: string; bg: string; color: string }> = {
-  '1': { label: '프', bg: '#F5F5F5', color: '#333333' },
+  '0': { label: '0', bg: '#ADB5BD', color: '#FFFFFF' },
+  '1': { label: '프', bg: '#E53030', color: '#FFFFFF' },
   '2': { label: '1', bg: '#FFE500', color: '#333333' },
   '3': { label: '2', bg: '#33CC33', color: '#FFFFFF' },
-  '4': { label: '3', bg: '#E53030', color: '#FFFFFF' },
+  '4': { label: '3', bg: '#F5F5F5', color: '#333333' },
   '5': { label: 'I', bg: '#3B92C5', color: '#FFFFFF' },
   'A': { label: 'A', bg: '#7B2FBE', color: '#FFFFFF' },
 };
@@ -16,7 +17,7 @@ type Props = {
 };
 
 export default function LevelBadge({ level, size = 22 }: Props) {
-  if (level === null || level === undefined || level === 0) return null;
+  if (level === null || level === undefined) return null;
 
   const key = String(level);
   const config = LEVEL_CONFIG[key];

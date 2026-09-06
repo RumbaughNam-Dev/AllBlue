@@ -5,20 +5,21 @@ import Colors from '@/constants/Colors';
 import Calendar from '@/components/Calendar';
 import { api, Schedule } from '@/services/api';
 
-const CATEGORY_COLORS: Record<string, string> = {
-  EXPERIENCE: '#4DA8FF',
-  CERTIFICATION: '#FFD43B',
-  LECTURE: '#63E6BE',
-  TRAINING: '#FF8787',
-  FUN_DIVE: '#DA77F2',
-  ETC: '#ADB5BD',
+const LEVEL_COLORS: Record<string, string> = {
+  '0': '#ADB5BD',
+  '1': '#E53030',
+  '2': '#FFE500',
+  '3': '#33CC33',
+  '4': '#F5F5F5',
+  '5': '#3B92C5',
+  'A': '#7B2FBE',
 };
 
 function schedulesToEvents(schedules: Schedule[]) {
   return schedules.map((s) => ({
     date: s.scheduleDate,
     title: s.title,
-    color: CATEGORY_COLORS[s.categoryCode] ?? CATEGORY_COLORS.ETC,
+    color: LEVEL_COLORS[String(s.minLevel ?? '')] ?? 'rgba(255,255,255,0.3)',
   }));
 }
 

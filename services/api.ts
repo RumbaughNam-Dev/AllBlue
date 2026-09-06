@@ -110,6 +110,7 @@ export type Schedule = {
   participantCount: number;
   participantNames: string[];
   participants?: ScheduleParticipantSummary[];
+  minLevel?: string | number | null;
 };
 
 export type ScheduleParticipant = {
@@ -188,6 +189,25 @@ export type DebriefingItem = {
   content: string;
   createdByName: string;
   createdAt: string;
+};
+
+export type DiveBuddy = {
+  userId: string;
+  nickname: string;
+  name?: string;
+  level?: string | number | null;
+  lastDiveDate: string;
+  memo?: string;
+};
+
+export type CloseFriend = {
+  userId: string;
+  nickname: string;
+  name?: string;
+  level?: string | number | null;
+  memo?: string;
+  pinned?: boolean;
+  licenseName?: string;
 };
 
 export type CertRequest = {
@@ -382,6 +402,62 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify(data),
     });
+  },
+
+  // 친한친구
+  getCloseFriends() {
+    return request<{ friends: CloseFriend[] }>('/friends/close');
+  },
+
+  addCloseFriend(friendId: string) {
+    return request<{ success: boolean; message?: string }>('/friends/close', {
+      method: 'POST',
+      body: JSON.stringify({ friendId }),
+    });
+  },
+
+  removeCloseFriend(friendId: string) {
+    return request<{ success: boolean }>(`/friends/close/${friendId}`, { method: 'DELETE' });
+  },
+
+  toggleCloseFriendPin(friendId: string, pinned: boolean) {
+    return request<{ success: boolean }>(`/friends/close/${friendId}/pin`, {
+      method: 'PATCH',
+      body: JSON.stringify({ pinned }),
+    });
+  },
+
+  updateCloseFriendMemo(friendId: string, memo: string) {
+    return request<{ success: boolean }>(`/friends/close/${friendId}/memo`, {
+      method: 'PATCH',
+      body: JSON.stringify({ memo }),
+    });
+  },
+
+  // 함께한친구 (dive buddy)
+  getDiveBuddies(page: number = 1, limit: number = 20) {
+    return request<{ buddies: DiveBuddy[]; hasMore: boolean }>(`/friends/buddies?page=${page}&limit=${limit}`);
+  },
+
+  // 교육생/강사
+  getStudents() {
+    return request<{ students: CloseFriend[] }>('/friends/students');
+  },
+
+  getInstructors() {
+    return request<{ instructors: CloseFriend[] }>('/friends/instructors');
+  },
+
+  // 차단
+  blockUser(blockedId: string) {
+    return request<{ success: boolean }>('/friends/block', {
+      method: 'POST',
+      body: JSON.stringify({ blockedId }),
+    });
+  },
+
+  unblockUser(blockedId: string) {
+    return request<{ success: boolean }>(`/friends/block/${blockedId}`, { method: 'DELETE' });
   },
 
   register(

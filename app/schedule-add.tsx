@@ -10,6 +10,7 @@ import { StatusBar } from 'expo-status-bar';
 import Colors from '@/constants/Colors';
 import { api } from '@/services/api';
 import BottomSheet from '@/components/BottomSheet';
+import DatePickerSheet from '@/components/DatePickerSheet';
 import LevelBadge from '@/components/LevelBadge';
 import Spinner from '@/components/Spinner';
 
@@ -37,9 +38,11 @@ export default function ScheduleAddScreen() {
   const { date, id } = useLocalSearchParams<{ date: string; id?: string }>();
   const isEditMode = !!id;
 
-  const dateObj = date ? new Date(date + 'T00:00:00') : new Date();
+  const [scheduleDate, setScheduleDate] = useState(date || new Date().toISOString().split('T')[0]);
+  const dateObj = new Date(scheduleDate + 'T00:00:00');
   const month = dateObj.getMonth() + 1;
   const day = dateObj.getDate();
+  const hasDateParam = !!date;
 
   const [title, setTitle] = useState('');
   const [selectedPool, setSelectedPool] = useState<Pool | null>(null);
@@ -63,6 +66,7 @@ export default function ScheduleAddScreen() {
   const [showHourPicker, setShowHourPicker] = useState(false);
   const [showMinutePicker, setShowMinutePicker] = useState(false);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchInputRef = useRef<TextInput>(null);
@@ -214,7 +218,7 @@ export default function ScheduleAddScreen() {
       const guestUsers = participants.filter((p) => p.isGuest);
       const payload = {
         title: title.trim(),
-        scheduleDate: date ?? new Date().toISOString().split('T')[0],
+        scheduleDate: scheduleDate,
         startHour: hour,
         startMinute: minute,
         poolId: selectedPool?.id ?? null,
@@ -286,7 +290,7 @@ export default function ScheduleAddScreen() {
           </Pressable>
         )}
         <Text style={styles.headerTitle}>
-          {participantMode ? participantLabel : isEditMode ? '일정 수정' : `${month}월 ${day}일`}
+          {participantMode ? participantLabel : isEditMode ? '일정 수정' : '다이빙 만들기'}
         </Text>
         {participantMode ? (
           <Pressable onPress={cancelParticipantMode} style={({ pressed }) => [styles.closeButton, pressed && { opacity: 0.6 }]}>
@@ -320,6 +324,17 @@ export default function ScheduleAddScreen() {
                 </Text>
                 <Text style={styles.pickerArrow}>▼</Text>
               </Pressable>
+
+              {/* 날짜 */}
+              {!isEditMode && (
+                <>
+                  <Text style={styles.label}>날짜</Text>
+                  <Pressable style={styles.dateInputRow} onPress={() => { Keyboard.dismiss(); setShowDatePicker(true); }}>
+                    <Text style={styles.pickerText}>{dateObj.getFullYear()}년 {month}월 {day}일</Text>
+                    <Text style={styles.calendarIcon}>📅</Text>
+                  </Pressable>
+                </>
+              )}
 
               {/* 시간 */}
               <Text style={styles.label}>시간</Text>
@@ -371,120 +386,122 @@ export default function ScheduleAddScreen() {
         {/* 참석자 모드 영역 */}
         {participantMode && (
           <Animated.View style={[styles.participantArea, { flex: 1, opacity: modeAnim }]}>
-            {/* 검색 입력 */}
-            <TextInput
-              ref={searchInputRef}
-              style={styles.input}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholder="이름, 전화번호로 검색"
-              placeholderTextColor="rgba(255,255,255,0.25)"
-            />
+            <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+              {/* 검색 입력 */}
+              <TextInput
+                ref={searchInputRef}
+                style={styles.input}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                placeholder="이름, 전화번호로 검색"
+                placeholderTextColor="rgba(255,255,255,0.25)"
+              />
 
-            {/* 선택된 참가자 태그 */}
-            {participants.length > 0 && (
-              <View style={{ marginTop: 16, gap: 8 }}>
-                {participants.map((p) => (
-                  <View key={p.id} style={styles.participantCard}>
-                    <View style={{ flex: 1 }}>
-                      <View style={styles.searchNameRow}>
-                        <Text style={styles.tagText}>{p.nickname}{p.name ? ` (${p.name})` : ''}</Text>
-                        {p.isGuest
-                          ? <View style={styles.guestBadge}><Text style={styles.guestBadgeText}>미사용자</Text></View>
-                          : <LevelBadge level={p.level} size={18} />
-                        }
+              {/* 선택된 참가자 태그 */}
+              {participants.length > 0 && (
+                <View style={{ marginTop: 16, gap: 8 }}>
+                  {participants.map((p) => (
+                    <View key={p.id} style={styles.participantCard}>
+                      <View style={{ flex: 1 }}>
+                        <View style={styles.searchNameRow}>
+                          <Text style={styles.tagText}>{p.nickname}{p.name ? ` (${p.name})` : ''}</Text>
+                          {p.isGuest
+                            ? <View style={styles.guestBadge}><Text style={styles.guestBadgeText}>미사용자</Text></View>
+                            : <LevelBadge level={p.level} size={18} />
+                          }
+                        </View>
+                        {p.phone ? <Text style={styles.searchSub}>{maskPhone(p.phone)}</Text> : null}
                       </View>
-                      {p.phone ? <Text style={styles.searchSub}>{maskPhone(p.phone)}</Text> : null}
+                      <Pressable onPress={() => removeParticipant(p.id)} style={styles.removeButton}>
+                        <Text style={styles.tagRemove}>✕</Text>
+                      </Pressable>
                     </View>
-                    <Pressable onPress={() => removeParticipant(p.id)} style={styles.removeButton}>
-                      <Text style={styles.tagRemove}>✕</Text>
-                    </Pressable>
-                  </View>
-                ))}
-              </View>
-            )}
-
-            {/* 검색 결과 / 게스트 등록 */}
-            <ScrollView style={{ flex: 1, marginTop: 8 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-              {searching && (
-                <View style={styles.searchLoading}>
-                  <ActivityIndicator size="small" color="rgba(255,255,255,0.5)" />
+                  ))}
                 </View>
               )}
-              {guestMode ? (
-                <View style={styles.guestForm}>
-                  <Text style={styles.guestFormTitle}>앱 미사용자 등록</Text>
-                  <View style={styles.guestInputGroup}>
-                    <Text style={styles.guestInputLabel}>이름</Text>
-                    <TextInput
-                      style={styles.input}
-                      value={guestNickname}
-                      onChangeText={setGuestNickname}
-                      placeholder="이름을 입력해주세요"
-                      placeholderTextColor="rgba(255,255,255,0.25)"
-                    />
+
+              {/* 검색 결과 / 게스트 등록 */}
+              <View style={{ marginTop: 8 }}>
+                {searching && (
+                  <View style={styles.searchLoading}>
+                    <ActivityIndicator size="small" color="rgba(255,255,255,0.5)" />
                   </View>
-                  <View style={styles.guestInputGroup}>
-                    <Text style={styles.guestInputLabel}>전화번호 (선택)</Text>
-                    <TextInput
-                      style={styles.input}
-                      value={guestPhone}
-                      onChangeText={(t) => setGuestPhone(formatPhone(t))}
-                      placeholder="010-0000-0000"
-                      placeholderTextColor="rgba(255,255,255,0.25)"
-                      keyboardType="phone-pad"
-                      maxLength={13}
-                    />
-                  </View>
-                  <View style={styles.guestButtons}>
-                    <Pressable
-                      style={({ pressed }) => [styles.guestCancelButton, pressed && { opacity: 0.7 }]}
-                      onPress={() => setGuestMode(false)}
-                    >
-                      <Text style={styles.guestCancelText}>취소</Text>
-                    </Pressable>
-                    <Pressable
-                      style={({ pressed }) => [styles.guestAddButton, pressed && { opacity: 0.85 }]}
-                      onPress={addGuestParticipant}
-                    >
-                      <Text style={styles.guestAddText}>등록</Text>
-                    </Pressable>
-                  </View>
-                </View>
-              ) : (
-                <>
-                  {searchResults.length > 0 && (
-                    <View style={styles.searchResults}>
-                      {searchResults.map((user) => (
-                        <Pressable
-                          key={user.id}
-                          style={({ pressed }) => [styles.searchItem, pressed && { opacity: 0.6 }]}
-                          onPress={() => addParticipant(user)}
-                        >
-                          <View style={{ flex: 1 }}>
-                            <View style={styles.searchNameRow}>
-                              <Text style={styles.searchName}>
-                                {user.nickname}{user.name ? ` (${user.name})` : ''}
-                              </Text>
-                              <LevelBadge level={user.level} size={18} />
-                            </View>
-                            {user.phone ? <Text style={styles.searchSub}>{maskPhone(user.phone)}</Text> : null}
-                          </View>
-                        </Pressable>
-                      ))}
+                )}
+                {guestMode ? (
+                  <View style={styles.guestForm}>
+                    <Text style={styles.guestFormTitle}>앱 미사용자 등록</Text>
+                    <View style={styles.guestInputGroup}>
+                      <Text style={styles.guestInputLabel}>이름</Text>
+                      <TextInput
+                        style={styles.input}
+                        value={guestNickname}
+                        onChangeText={setGuestNickname}
+                        placeholder="이름을 입력해주세요"
+                        placeholderTextColor="rgba(255,255,255,0.25)"
+                      />
                     </View>
-                  )}
-                  {searchQuery.trim().length > 0 && !searching && (
-                    <Pressable
-                      style={({ pressed }) => [styles.guestEntry, pressed && { opacity: 0.6 }]}
-                      onPress={enterGuestMode}
-                    >
-                      <Text style={styles.guestEntryText}>앱 미사용자 등록</Text>
-                      <Text style={styles.guestEntryArrow}>{'>'}</Text>
-                    </Pressable>
+                    <View style={styles.guestInputGroup}>
+                      <Text style={styles.guestInputLabel}>전화번호 (선택)</Text>
+                      <TextInput
+                        style={styles.input}
+                        value={guestPhone}
+                        onChangeText={(t) => setGuestPhone(formatPhone(t))}
+                        placeholder="010-0000-0000"
+                        placeholderTextColor="rgba(255,255,255,0.25)"
+                        keyboardType="phone-pad"
+                        maxLength={13}
+                      />
+                    </View>
+                    <View style={styles.guestButtons}>
+                      <Pressable
+                        style={({ pressed }) => [styles.guestCancelButton, pressed && { opacity: 0.7 }]}
+                        onPress={() => setGuestMode(false)}
+                      >
+                        <Text style={styles.guestCancelText}>취소</Text>
+                      </Pressable>
+                      <Pressable
+                        style={({ pressed }) => [styles.guestAddButton, pressed && { opacity: 0.85 }]}
+                        onPress={addGuestParticipant}
+                      >
+                        <Text style={styles.guestAddText}>등록</Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                ) : (
+                  <>
+                    {searchResults.length > 0 && (
+                      <View style={styles.searchResults}>
+                        {searchResults.map((user) => (
+                          <Pressable
+                            key={user.id}
+                            style={({ pressed }) => [styles.searchItem, pressed && { opacity: 0.6 }]}
+                            onPress={() => addParticipant(user)}
+                          >
+                            <View style={{ flex: 1 }}>
+                              <View style={styles.searchNameRow}>
+                                <Text style={styles.searchName}>
+                                  {user.nickname}{user.name ? ` (${user.name})` : ''}
+                                </Text>
+                                <LevelBadge level={user.level} size={18} />
+                              </View>
+                              {user.phone ? <Text style={styles.searchSub}>{maskPhone(user.phone)}</Text> : null}
+                            </View>
+                          </Pressable>
+                        ))}
+                      </View>
+                    )}
+                    {searchQuery.trim().length > 0 && !searching && (
+                      <Pressable
+                        style={({ pressed }) => [styles.guestEntry, pressed && { opacity: 0.6 }]}
+                        onPress={enterGuestMode}
+                      >
+                        <Text style={styles.guestEntryText}>앱 미사용자 등록</Text>
+                        <Text style={styles.guestEntryArrow}>{'>'}</Text>
+                      </Pressable>
                   )}
                 </>
               )}
+              </View>
             </ScrollView>
 
             {/* 완료 버튼 */}
@@ -518,6 +535,12 @@ export default function ScheduleAddScreen() {
       )}
 
       {/* Picker Modals */}
+      <DatePickerSheet
+        visible={showDatePicker}
+        onClose={() => setShowDatePicker(false)}
+        selectedDate={scheduleDate}
+        onSelect={(v) => setScheduleDate(v)}
+      />
       <BottomSheet
         visible={showPoolPicker} onClose={() => setShowPoolPicker(false)} title="장소 선택"
         items={pools.map((p) => ({ label: p.name, value: p }))}
@@ -568,7 +591,7 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   backArrow: { fontFamily: 'SUIT-Bold', fontSize: 16, color: Colors.brand.white, marginRight: 1 },
-  headerTitle: { fontFamily: 'SUIT-Bold', fontSize: 22, color: Colors.brand.white },
+  headerTitle: { fontFamily: 'SUIT-Bold', fontSize: 18, color: Colors.brand.white },
   scrollContent: { paddingHorizontal: 24, paddingBottom: 20 },
   label: {
     fontFamily: 'SUIT-SemiBold', fontSize: 14, color: Colors.brand.white,
@@ -579,6 +602,15 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12,
     paddingHorizontal: 16, paddingVertical: 14,
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+  },
+  dateInputRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12,
+    paddingHorizontal: 16, paddingVertical: 14,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+  },
+  calendarIcon: {
+    fontSize: 18,
   },
   pickerButton: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',

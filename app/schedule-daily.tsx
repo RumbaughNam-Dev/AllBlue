@@ -141,7 +141,7 @@ export default function ScheduleDailyScreen() {
           style={({ pressed }) => [styles.addButton, pressed && { opacity: 0.85 }]}
           onPress={() => router.push({ pathname: '/schedule-add', params: { date: date ?? '' } })}
         >
-          <Text style={styles.addButtonText}>일정 추가</Text>
+          <Text style={styles.addButtonText}>다이빙 만들기</Text>
         </Pressable>
       </View>
     </View>
