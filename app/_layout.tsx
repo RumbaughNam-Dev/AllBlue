@@ -35,7 +35,7 @@ function RootLayoutNav() {
       router.replace('/onboarding');
     } else if (hasSeenOnboarding && !isLoggedIn && !inLogin && !inRegister) {
       router.replace('/login');
-    } else if (isLoggedIn && !inApp && !['profile','profile-edit','cert-upload','cert-manage','schedule-daily','schedule-detail','schedule-add','achievement','debriefing'].includes(segments[0] as string)) {
+    } else if (isLoggedIn && !inApp && !['profile','profile-edit','profile-view','cert-upload','cert-manage','schedule-daily','schedule-detail','schedule-add','achievement','debriefing','blocked-users'].includes(segments[0] as string)) {
       router.replace('/(tabs)');
     }
 
@@ -71,8 +71,10 @@ function RootLayoutNav() {
         <Stack.Screen name="schedule-daily" options={{ gestureEnabled: true }} />
         <Stack.Screen name="schedule-detail" options={{ gestureEnabled: true }} />
         <Stack.Screen name="schedule-add" options={{ gestureEnabled: true }} />
+        <Stack.Screen name="profile-view" options={{ presentation: 'fullScreenModal' }} />
         <Stack.Screen name="achievement" options={{ gestureEnabled: true }} />
         <Stack.Screen name="debriefing" options={{ gestureEnabled: true }} />
+        <Stack.Screen name="blocked-users" options={{ gestureEnabled: true }} />
       </Stack>
     </View>
   );

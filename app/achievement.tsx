@@ -61,11 +61,13 @@ export default function AchievementScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user } = useAuth();
-  const { participantId, participantName, participantLevel } = useLocalSearchParams<{
+  const { participantId, participantName, participantLevel, modal } = useLocalSearchParams<{
     participantId: string;
     participantName: string;
     participantLevel?: string;
+    modal?: string;
   }>();
+  const isModal = modal === '1';
 
   const [licenses, setLicenses] = useState<UserLicense[]>([]);
   const [loading, setLoading] = useState(true);
@@ -234,20 +236,30 @@ export default function AchievementScreen() {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+    <View style={[styles.container, { paddingTop: isModal ? 16 : insets.top, paddingBottom: insets.bottom }]}>
       <StatusBar style="light" />
 
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.6 }]}>
-          <View style={styles.backCircle}>
-            <Text style={styles.backArrow}>{'<'}</Text>
-          </View>
-        </Pressable>
+        {isModal ? (
+          <View style={{ width: 36 }} />
+        ) : (
+          <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.6 }]}>
+            <View style={styles.backCircle}>
+              <Text style={styles.backArrow}>{'<'}</Text>
+            </View>
+          </Pressable>
+        )}
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>{participantName}</Text>
           {participantLevel ? <LevelBadge level={participantLevel} size={20} /> : null}
         </View>
-        <View style={{ width: 36 }} />
+        {isModal ? (
+          <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.closeButton, pressed && { opacity: 0.6 }]}>
+            <Text style={styles.closeX}>✕</Text>
+          </Pressable>
+        ) : (
+          <View style={{ width: 36 }} />
+        )}
       </View>
 
       {loading ? (
@@ -321,6 +333,8 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   backArrow: { fontFamily: 'SUIT-Bold', fontSize: 16, color: Colors.brand.white, marginRight: 1 },
+  closeButton: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
+  closeX: { fontSize: 20, color: Colors.brand.white },
   headerCenter: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   headerTitle: { fontFamily: 'SUIT-Bold', fontSize: 18, color: Colors.brand.white },
   loadingArea: { flex: 1, alignItems: 'center', justifyContent: 'center' },

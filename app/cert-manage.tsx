@@ -14,11 +14,11 @@ import { api, CertRequest } from '@/services/api';
 import Spinner from '@/components/Spinner';
 
 const LEVEL_OPTIONS = [
-  { label: '프린이', value: '1' },
-  { label: 'Lv.1', value: '2' },
-  { label: 'Lv.2', value: '3' },
-  { label: 'Lv.3', value: '4' },
-  { label: '강사(I)', value: '5' },
+  { label: 'Level 1', value: '1' },
+  { label: 'Level 2', value: '2' },
+  { label: 'Level 3', value: '3' },
+  { label: 'Master', value: '4' },
+  { label: 'Instructor', value: '5' },
 ];
 
 export default function CertManageScreen() {
@@ -46,7 +46,7 @@ export default function CertManageScreen() {
   const handleApprove = (item: CertRequest) => {
     Alert.alert(
       '레벨 선택',
-      `${item.userName}님의 레벨을 선택해주세요.`,
+      '레벨을 선택해주세요.',
       [
         ...LEVEL_OPTIONS.map((opt) => ({
           text: opt.label,

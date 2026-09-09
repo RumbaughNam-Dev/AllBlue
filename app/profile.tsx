@@ -180,6 +180,7 @@ export default function ProfileScreen() {
                 </View>
               </Pressable>
             )}
+            {/* 자격증 등록 요청 - 햄버거 메뉴로 이동
             {profile?.level !== 5 && (
               <Pressable
                 style={({ pressed }) => [styles.certButton, pressed && { opacity: 0.85 }]}
@@ -198,7 +199,7 @@ export default function ProfileScreen() {
               >
                 <Text style={styles.certButtonText}>자격증 등록 요청</Text>
               </Pressable>
-            )}
+            )} */}
             <Pressable
               style={({ pressed }) => [styles.editButton, pressed && { opacity: 0.85 }]}
               onPress={() => router.push('/profile-edit')}

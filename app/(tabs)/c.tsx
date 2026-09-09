@@ -1,8 +1,10 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, FlatList, Pressable, Alert, Modal, TextInput,
-  ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView,
+  ActivityIndicator, Platform, ScrollView, Animated, Easing,
+  useWindowDimensions, Keyboard,
 } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/Colors';
@@ -33,6 +35,55 @@ export default function TabC() {
 
   // 친한친구 등록 검색
   const [searchModalVisible, setSearchModalVisible] = useState(false);
+  const [searchModalMounted, setSearchModalMounted] = useState(false);
+  const keyboardAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const showSub = Keyboard.addListener(showEvent, (e) => {
+      Animated.timing(keyboardAnim, {
+        toValue: e.endCoordinates.height,
+        duration: Platform.OS === 'ios' ? e.duration : 250,
+        useNativeDriver: false,
+      }).start();
+    });
+    const hideSub = Keyboard.addListener(hideEvent, (e) => {
+      Animated.timing(keyboardAnim, {
+        toValue: 0,
+        duration: Platform.OS === 'ios' ? (e.duration ?? 250) : 250,
+        useNativeDriver: false,
+      }).start();
+    });
+    return () => { showSub.remove(); hideSub.remove(); };
+  }, []);
+  const { height: screenHeight } = useWindowDimensions();
+  const searchBlurAnim = useRef(new Animated.Value(0)).current;
+  const searchSlideAnim = useRef(new Animated.Value(0)).current; // 0 = hidden, 1 = shown
+
+  const openSearchModal = () => {
+    setSearchModalMounted(true);
+    setSearchModalVisible(true);
+    Animated.parallel([
+      Animated.timing(searchBlurAnim, { toValue: 1, duration: 300, useNativeDriver: false }),
+      Animated.timing(searchSlideAnim, { toValue: 1, duration: 300, easing: Easing.out(Easing.cubic), useNativeDriver: false }),
+    ]).start(() => {
+      searchInputRef.current?.focus();
+    });
+  };
+
+  const closeSearchModal = () => {
+    setSearchModalVisible(false);
+    Keyboard.dismiss();
+    Animated.parallel([
+      Animated.timing(searchBlurAnim, { toValue: 0, duration: 250, useNativeDriver: false }),
+      Animated.timing(searchSlideAnim, { toValue: 0, duration: 250, easing: Easing.in(Easing.cubic), useNativeDriver: false }),
+    ]).start(() => {
+      setSearchModalMounted(false);
+      setSearchQuery('');
+      setSearchResults([]);
+    });
+  };
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<{ id: number; nickname: string; name?: string; phone: string; level?: string | number | null; userId?: string }[]>([]);
   const [searching, setSearching] = useState(false);
@@ -47,14 +98,20 @@ export default function TabC() {
   const tabs: { key: TabType; label: string }[] = [
     { key: 'close', label: '친한친구' },
     { key: 'buddy', label: '함께한친구' },
-    { key: 'student', label: thirdTabLabel },
+    ...(isInstructor ? [{ key: 'student' as TabType, label: '교육생' }] : []),
   ];
+
+  const switchTab = (tab: TabType) => {
+    setFriends([]);
+    setActiveTab(tab);
+  };
 
   const fetchFriends = useCallback(async () => {
     setLoading(true);
     try {
       if (activeTab === 'close') {
         const res = await api.getCloseFriends();
+        console.log('[CloseFriends] response:', JSON.stringify(res));
         setFriends(res.friends ?? []);
       } else if (activeTab === 'buddy') {
         const res = await api.getDiveBuddies(1, 50);
@@ -74,7 +131,9 @@ export default function TabC() {
           setFriends(res.instructors ?? []);
         }
       }
-    } catch {}
+    } catch (e) {
+      console.log('[Friends] fetch error:', e);
+    }
     setLoading(false);
   }, [activeTab]);
 
@@ -96,10 +155,11 @@ export default function TabC() {
       setSearching(true);
       try {
         const res = await api.searchUsers(text.trim());
-        // 이미 친한친구인 사람 제외
-        const existingIds = new Set(friends.map((f) => f.nickname));
+        console.log('[FriendSearch] results:', res.users?.length);
         setSearchResults(res.users ?? []);
-      } catch {}
+      } catch (e) {
+        console.log('[FriendSearch] error:', e);
+      }
       setSearching(false);
     }, 300);
   };
@@ -114,9 +174,7 @@ export default function TabC() {
         Alert.alert('알림', res.message || '추가에 실패했습니다.');
       } else {
         Alert.alert('알림', `${user.nickname}님을 친한친구로 추가했습니다.`);
-        setSearchModalVisible(false);
-        setSearchQuery('');
-        setSearchResults([]);
+        closeSearchModal();
         fetchFriends();
       }
     } catch {
@@ -195,18 +253,23 @@ export default function TabC() {
     ]);
   };
 
+  const memoTargetRef = useRef<CloseFriend | null>(null);
+
   const handleMemoEdit = () => {
     if (!selectedFriend) return;
-    closeMenu();
+    memoTargetRef.current = selectedFriend;
     setMemoText(selectedFriend.memo || '');
-    setMemoModalVisible(true);
+    closeMenu();
+    setTimeout(() => setMemoModalVisible(true), 100);
   };
 
   const saveMemo = async () => {
-    if (!selectedFriend) return;
+    const target = memoTargetRef.current;
+    if (!target) return;
     try {
-      await api.updateCloseFriendMemo(selectedFriend.userId, memoText.trim());
+      await api.updateCloseFriendMemo(target.userId, memoText.trim());
       setMemoModalVisible(false);
+      memoTargetRef.current = null;
       fetchFriends();
     } catch {
       Alert.alert('오류', '메모 저장에 실패했습니다.');
@@ -217,9 +280,19 @@ export default function TabC() {
     if (!selectedFriend) return [];
 
     const items: { label: string; onPress: () => void; danger?: boolean }[] = [
-      { label: '프로필 보기', onPress: () => { closeMenu(); /* TODO */ } },
+      { label: '프로필 보기', onPress: () => { closeMenu(); router.push({ pathname: '/profile-view', params: { userId: selectedFriend.userId } }); } },
       { label: '메모수정', onPress: handleMemoEdit },
-      { label: '일정만들기', onPress: () => { closeMenu(); router.push({ pathname: '/schedule-add', params: { date: '' } }); } },
+      { label: '일정만들기', onPress: () => {
+        const f = selectedFriend;
+        closeMenu();
+        router.push({
+          pathname: '/schedule-add',
+          params: {
+            date: '',
+            prefillParticipant: JSON.stringify({ id: 0, nickname: f.nickname, name: f.name, level: f.level, userId: f.userId }),
+          },
+        });
+      } },
     ];
 
     if (activeTab === 'close') {
@@ -237,8 +310,7 @@ export default function TabC() {
   const renderFriendCard = ({ item }: { item: CloseFriend }) => (
     <Pressable
       style={styles.friendCard}
-      onLongPress={() => handleLongPress(item)}
-      delayLongPress={300}
+      onPress={() => handleLongPress(item)}
     >
       <View style={styles.profileCircle}>
         <Text style={styles.profileInitial}>{item.nickname.charAt(0)}</Text>
@@ -250,12 +322,12 @@ export default function TabC() {
             {item.nickname}{item.name ? ` | ${item.name}` : ''}
           </Text>
           <LevelBadge level={item.level} size={18} />
-          {item.pinned && <Text style={styles.pinIcon}>📌</Text>}
         </View>
         <Text style={styles.friendMemo} numberOfLines={1}>
           {item.memo || '메모를 남겨주세요.'}
         </Text>
       </View>
+      {item.pinned && <Text style={styles.pinIcon}>📌</Text>}
     </Pressable>
   );
 
@@ -276,7 +348,7 @@ export default function TabC() {
             <Pressable
               key={tab.key}
               style={[styles.segmentItem, activeTab === tab.key && styles.segmentItemActive]}
-              onPress={() => setActiveTab(tab.key)}
+              onPress={() => switchTab(tab.key)}
             >
               <Text style={[styles.segmentText, activeTab === tab.key && styles.segmentTextActive]}>
                 {tab.label}
@@ -286,7 +358,14 @@ export default function TabC() {
         </View>
         <Pressable
           style={({ pressed }) => [styles.settingsButton, pressed && { opacity: 0.6 }]}
-          onPress={() => Alert.alert('알림', '준비 중입니다.')}
+          onPress={() => {
+            Alert.alert('설정', '', [
+              { text: '그룹 관리', onPress: () => Alert.alert('알림', '준비 중입니다.') },
+              { text: '친한친구 관리', onPress: () => Alert.alert('알림', '준비 중입니다.') },
+              { text: '차단 관리', onPress: () => router.push('/blocked-users') },
+              { text: '취소', style: 'cancel' },
+            ]);
+          }}
         >
           <Ionicons name="settings-outline" size={22} color="rgba(255,255,255,0.5)" />
         </Pressable>
@@ -317,12 +396,7 @@ export default function TabC() {
         <View style={[styles.bottomButtonArea, { bottom: bottomSpace }]}>
           <Pressable
             style={({ pressed }) => [styles.addButton, pressed && { opacity: 0.85 }]}
-            onPress={() => {
-              setSearchQuery('');
-              setSearchResults([]);
-              setSearchModalVisible(true);
-              setTimeout(() => searchInputRef.current?.focus(), 300);
-            }}
+            onPress={openSearchModal}
           >
             <Text style={styles.addButtonText}>친한친구 등록</Text>
           </Pressable>
@@ -389,66 +463,82 @@ export default function TabC() {
         </Pressable>
       </Modal>
 
-      {/* 친한친구 등록 검색 모달 */}
-      <Modal visible={searchModalVisible} transparent animationType="slide" onRequestClose={() => setSearchModalVisible(false)}>
-        <KeyboardAvoidingView style={styles.searchModalWrap} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-          <Pressable style={styles.searchModalBackdrop} onPress={() => setSearchModalVisible(false)} />
-          <View style={[styles.searchModalContent, { paddingBottom: insets.bottom + 16 }]}>
-            {/* 헤더 */}
-            <View style={styles.searchModalHeader}>
-              <Text style={styles.searchModalTitle}>친한친구 등록</Text>
-              <Pressable onPress={() => setSearchModalVisible(false)} style={({ pressed }) => [pressed && { opacity: 0.6 }]}>
-                <Ionicons name="close" size={24} color="rgba(255,255,255,0.6)" />
-              </Pressable>
-            </View>
+      {/* 친한친구 등록 검색 오버레이 */}
+      {searchModalMounted && (
+        <View style={StyleSheet.absoluteFill} pointerEvents={searchModalVisible ? 'auto' : 'none'}>
+          {/* 블러 배경 */}
+          <Animated.View style={[StyleSheet.absoluteFill, { opacity: searchBlurAnim }]}>
+            <Pressable style={StyleSheet.absoluteFill} onPress={closeSearchModal}>
+              <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFill} />
+            </Pressable>
+          </Animated.View>
 
-            {/* 검색 입력 */}
-            <TextInput
-              ref={searchInputRef}
-              style={styles.searchInput}
-              value={searchQuery}
-              onChangeText={onSearchChange}
-              placeholder="이름, 전화번호, 닉네임으로 검색"
-              placeholderTextColor="rgba(255,255,255,0.25)"
-            />
-
-            {/* 검색 결과 */}
-            <ScrollView style={styles.searchResultsScroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-              {searching && (
-                <View style={styles.searchLoadingArea}>
-                  <ActivityIndicator size="small" color="rgba(255,255,255,0.5)" />
-                </View>
-              )}
-              {searchResults.map((user) => (
-                <Pressable
-                  key={user.id}
-                  style={({ pressed }) => [styles.searchResultItem, pressed && { opacity: 0.7 }]}
-                  onPress={() => handleSearchAdd(user)}
-                  disabled={addingId !== null}
-                >
-                  <View style={styles.searchResultInfo}>
-                    <View style={styles.searchResultNameRow}>
-                      <Text style={styles.searchResultName}>
-                        {user.nickname}{user.name ? ` | ${user.name}` : ''}
-                      </Text>
-                      <LevelBadge level={user.level} size={18} />
-                    </View>
-                    {user.phone ? <Text style={styles.searchResultSub}>{maskPhone(user.phone)}</Text> : null}
-                  </View>
-                  {addingId === user.id ? (
-                    <ActivityIndicator size="small" color="rgba(255,255,255,0.5)" />
-                  ) : (
-                    <Ionicons name="person-add-outline" size={18} color="rgba(255,255,255,0.4)" />
-                  )}
+          {/* 바텀시트 */}
+          <View style={styles.searchModalWrap}>
+            <View style={{ flex: 1 }} />
+            <Animated.View style={[
+              styles.searchModalContent,
+              {
+                paddingBottom: Animated.add(keyboardAnim, insets.bottom + 16),
+                transform: [{ translateY: searchSlideAnim.interpolate({ inputRange: [0, 1], outputRange: [500, 0] }) }],
+              },
+            ]}>
+              {/* 헤더 */}
+              <View style={styles.searchModalHeader}>
+                <Text style={styles.searchModalTitle}>친한친구 등록</Text>
+                <Pressable onPress={closeSearchModal} style={({ pressed }) => [pressed && { opacity: 0.6 }]}>
+                  <Ionicons name="close" size={24} color="rgba(255,255,255,0.6)" />
                 </Pressable>
-              ))}
-              {searchQuery.trim().length > 0 && !searching && searchResults.length === 0 && (
-                <Text style={styles.searchNoResult}>검색 결과가 없습니다.</Text>
-              )}
-            </ScrollView>
+              </View>
+
+              {/* 검색 입력 */}
+              <TextInput
+                ref={searchInputRef}
+                style={styles.searchInput}
+                value={searchQuery}
+                onChangeText={onSearchChange}
+                placeholder="이름, 전화번호, 닉네임으로 검색"
+                placeholderTextColor="rgba(255,255,255,0.25)"
+              />
+
+              {/* 검색 결과 */}
+              <ScrollView style={styles.searchResultsScroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+                {searching && (
+                  <View style={styles.searchLoadingArea}>
+                    <ActivityIndicator size="small" color="rgba(255,255,255,0.5)" />
+                  </View>
+                )}
+                {searchResults.map((user) => (
+                  <Pressable
+                    key={user.id}
+                    style={({ pressed }) => [styles.searchResultItem, pressed && { opacity: 0.7 }]}
+                    onPress={() => handleSearchAdd(user)}
+                    disabled={addingId !== null}
+                  >
+                    <View style={styles.searchResultInfo}>
+                      <View style={styles.searchResultNameRow}>
+                        <Text style={styles.searchResultName}>
+                          {user.nickname}{user.name ? ` | ${user.name}` : ''}
+                        </Text>
+                        <LevelBadge level={user.level} size={18} />
+                      </View>
+                      {user.phone ? <Text style={styles.searchResultSub}>{maskPhone(user.phone)}</Text> : null}
+                    </View>
+                    {addingId === user.id ? (
+                      <ActivityIndicator size="small" color="rgba(255,255,255,0.5)" />
+                    ) : (
+                      <Ionicons name="person-add-outline" size={18} color="rgba(255,255,255,0.4)" />
+                    )}
+                  </Pressable>
+                ))}
+                {searchQuery.trim().length > 0 && !searching && searchResults.length === 0 && (
+                  <Text style={styles.searchNoResult}>검색 결과가 없습니다.</Text>
+                )}
+              </ScrollView>
+            </Animated.View>
           </View>
-        </KeyboardAvoidingView>
-      </Modal>
+        </View>
+      )}
     </View>
   );
 }
@@ -536,6 +626,7 @@ const styles = StyleSheet.create({
   },
   pinIcon: {
     fontSize: 12,
+    marginLeft: 8,
   },
   friendMemo: {
     fontFamily: 'SUIT-Regular',
@@ -666,16 +757,11 @@ const styles = StyleSheet.create({
   searchModalWrap: {
     flex: 1,
   },
-  searchModalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-  },
   searchModalContent: {
     backgroundColor: Colors.brand.primary,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingHorizontal: 20,
-    maxHeight: '75%',
   },
   searchModalHeader: {
     flexDirection: 'row',
@@ -702,7 +788,8 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   searchResultsScroll: {
-    flex: 1,
+    flexGrow: 0,
+    flexShrink: 1,
   },
   searchLoadingArea: {
     paddingVertical: 16,

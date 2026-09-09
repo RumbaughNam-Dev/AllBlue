@@ -208,6 +208,8 @@ export type CloseFriend = {
   memo?: string;
   pinned?: boolean;
   licenseName?: string;
+  phone?: string;
+  email?: string;
 };
 
 export type CertRequest = {
@@ -223,6 +225,7 @@ export type CertRequest = {
 export type ProfileResponse = {
   user: { id: number; name?: string; nickname: string; profileImage?: string };
   profile: Profile | null;
+  isMyStudent?: boolean;
 };
 
 export const api = {
@@ -239,11 +242,12 @@ export const api = {
 
   async uploadProfileImage(uri: string) {
     const token = await AsyncStorage.getItem('authToken');
-    const formData = new FormData();
+    const response = await fetch(uri);
+    const blob = await response.blob();
     const filename = uri.split('/').pop() ?? 'photo.jpg';
-    const match = /\.(\w+)$/.exec(filename);
-    const type = match ? `image/${match[1]}` : 'image/jpeg';
-    formData.append('file', { uri, name: filename, type } as any);
+
+    const formData = new FormData();
+    formData.append('file', blob, filename);
 
     const res = await fetch(`${BASE_URL}/profile/image`, {
       method: 'POST',
@@ -373,11 +377,14 @@ export const api = {
 
   async uploadCertImage(uri: string) {
     const token = await AsyncStorage.getItem('authToken');
-    const formData = new FormData();
+    const response = await fetch(uri);
+    const blob = await response.blob();
     const filename = uri.split('/').pop() ?? 'cert.jpg';
     const match = /\.(\w+)$/.exec(filename);
     const type = match ? `image/${match[1]}` : 'image/jpeg';
-    formData.append('file', { uri, name: filename, type } as any);
+
+    const formData = new FormData();
+    formData.append('file', blob, filename);
 
     const res = await fetch(`${BASE_URL}/cert/upload`, {
       method: 'POST',
@@ -402,6 +409,11 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify(data),
     });
+  },
+
+  // 다른 유저 프로필 조회
+  getUserProfile(userId: string) {
+    return request<ProfileResponse>(`/profile/${userId}`);
   },
 
   // 친한친구
@@ -458,6 +470,27 @@ export const api = {
 
   unblockUser(blockedId: string) {
     return request<{ success: boolean }>(`/friends/block/${blockedId}`, { method: 'DELETE' });
+  },
+
+  getBlockedUsers() {
+    return request<{ users: { userId: string; nickname: string; name?: string; level?: string | number | null }[] }>('/friends/blocked');
+  },
+
+  // SMS 인증
+  sendVerificationCode(phone: string, tempToken: string) {
+    return request<{ success: boolean; message?: string }>('/auth/send-code', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tempToken}` },
+      body: JSON.stringify({ phone }),
+    });
+  },
+
+  verifyCode(phone: string, code: string, tempToken: string) {
+    return request<{ success: boolean; message?: string }>('/auth/verify-code', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tempToken}` },
+      body: JSON.stringify({ phone, code }),
+    });
   },
 
   register(

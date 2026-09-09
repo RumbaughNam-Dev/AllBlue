@@ -7,12 +7,14 @@ import {
   Animated,
   useWindowDimensions,
   BackHandler,
+  Alert,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Colors from '@/constants/Colors';
 import { useAuth } from '@/contexts/AuthContext';
+import { api } from '@/services/api';
 
 type Props = {
   visible: boolean;
@@ -20,6 +22,7 @@ type Props = {
 };
 
 const MENU_ITEMS = [
+  { key: 'cert', label: '자격증 등록 요청' },
   { key: 'instructor', label: '강사등록' },
   { key: 'inquiry', label: '문의하기' },
   { key: 'withdraw', label: '회원탈퇴' },
@@ -79,7 +82,21 @@ export default function SideSheet({ visible, onClose }: Props) {
     return () => handler.remove();
   }, [visible, onClose]);
 
-  const handleMenuPress = (key: string) => {
+  const handleMenuPress = async (key: string) => {
+    if (key === 'cert') {
+      onClose();
+      try {
+        const res = await api.checkCertPending();
+        if (res.pending) {
+          Alert.alert('알림', '이미 신청한 등록요청이 있습니다.\n요청 처리가 끝날때까지 기다려주세요.');
+          return;
+        }
+        setTimeout(() => router.push('/cert-upload'), 300);
+      } catch (e: any) {
+        if (!e._handled) setTimeout(() => router.push('/cert-upload'), 300);
+      }
+      return;
+    }
     onClose();
     console.log('메뉴 선택:', key);
   };

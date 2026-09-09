@@ -13,6 +13,7 @@ import BottomSheet from '@/components/BottomSheet';
 import DatePickerSheet from '@/components/DatePickerSheet';
 import LevelBadge from '@/components/LevelBadge';
 import Spinner from '@/components/Spinner';
+import { api as friendApi, CloseFriend } from '@/services/api';
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 const MINUTES = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
@@ -35,7 +36,7 @@ export default function ScheduleAddScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const navigation = useNavigation();
-  const { date, id } = useLocalSearchParams<{ date: string; id?: string }>();
+  const { date, id, prefillParticipant } = useLocalSearchParams<{ date: string; id?: string; prefillParticipant?: string }>();
   const isEditMode = !!id;
 
   const [scheduleDate, setScheduleDate] = useState(date || new Date().toISOString().split('T')[0]);
@@ -51,6 +52,7 @@ export default function ScheduleAddScreen() {
   const [minute, setMinute] = useState(0);
   const [categoryCode, setCategoryCode] = useState('');
   const [participants, setParticipants] = useState<UserResult[]>([]);
+  const prefillDone = useRef(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<UserResult[]>([]);
   const [searching, setSearching] = useState(false);
@@ -71,6 +73,9 @@ export default function ScheduleAddScreen() {
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchInputRef = useRef<TextInput>(null);
   const [participantMode, setParticipantMode] = useState(false);
+  const [participantTab, setParticipantTab] = useState<'search' | 'friends'>('search');
+  const [closeFriends, setCloseFriends] = useState<CloseFriend[]>([]);
+  const [friendsLoading, setFriendsLoading] = useState(false);
   const modeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -105,6 +110,25 @@ export default function ScheduleAddScreen() {
         }
       })
       .catch(() => {});
+
+    // prefill: 친구 목록에서 일정만들기로 진입 시
+    if (prefillParticipant && !prefillDone.current) {
+      prefillDone.current = true;
+      try {
+        const p = JSON.parse(prefillParticipant);
+        if (p.nickname) {
+          api.searchUsers(p.nickname).then((res) => {
+            const found = (res.users ?? []).find((u: any) =>
+              (p.userId && String(u.id) === String(p.userId)) ||
+              u.nickname === p.nickname
+            );
+            if (found) {
+              setParticipants([found]);
+            }
+          }).catch(() => {});
+        }
+      } catch {}
+    }
   }, []);
 
   useEffect(() => {
@@ -141,6 +165,28 @@ export default function ScheduleAddScreen() {
     setSearchResults([]);
   };
 
+  const fetchCloseFriends = async () => {
+    setFriendsLoading(true);
+    try {
+      const res = await friendApi.getCloseFriends();
+      setCloseFriends(res.friends ?? []);
+    } catch {}
+    setFriendsLoading(false);
+  };
+
+  const addFriendAsParticipant = async (friend: CloseFriend) => {
+    // 이미 추가된 참가자인지 확인
+    if (participants.some((p) => p.nickname === friend.nickname)) return;
+    // 검색 API로 INT id를 가져옴
+    try {
+      const res = await api.searchUsers(friend.nickname);
+      const found = (res.users ?? []).find((u) => u.nickname === friend.nickname);
+      if (found) {
+        addParticipant(found);
+      }
+    } catch {}
+  };
+
   const addGuestParticipant = () => {
     if (!guestNickname.trim()) {
       Alert.alert('알림', '이름을 입력해주세요.');
@@ -165,7 +211,9 @@ export default function ScheduleAddScreen() {
   const enterParticipantMode = () => {
     participantsBackup.current = [...participants];
     setParticipantMode(true);
+    setParticipantTab('search');
     navigation.setOptions({ gestureEnabled: false });
+    fetchCloseFriends();
     Animated.timing(modeAnim, {
       toValue: 1, duration: 300, easing: Easing.out(Easing.cubic), useNativeDriver: false,
     }).start(() => {
@@ -268,6 +316,14 @@ export default function ScheduleAddScreen() {
     if (d.length === 11) return `${d.slice(0, 3)}-****-${d.slice(7)}`;
     if (d.length === 10) return `${d.slice(0, 3)}-***-${d.slice(6)}`;
     return p;
+  };
+
+  const maskEmail = (e?: string) => {
+    if (!e) return '';
+    const [local, domain] = e.split('@');
+    if (!domain) return e;
+    const masked = local.length <= 2 ? local : local.slice(0, 2) + '***';
+    return `${masked}@${domain}`;
   };
 
   return (
@@ -386,6 +442,46 @@ export default function ScheduleAddScreen() {
         {/* 참석자 모드 영역 */}
         {participantMode && (
           <Animated.View style={[styles.participantArea, { flex: 1, opacity: modeAnim }]}>
+            {/* 탭: 사용자 검색 / 친한친구 */}
+            <View style={styles.participantTabRow}>
+              <Pressable
+                style={[styles.participantTabItem, participantTab === 'search' && styles.participantTabItemActive]}
+                onPress={() => setParticipantTab('search')}
+              >
+                <Text style={[styles.participantTabText, participantTab === 'search' && styles.participantTabTextActive]}>사용자 검색</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.participantTabItem, participantTab === 'friends' && styles.participantTabItemActive]}
+                onPress={() => setParticipantTab('friends')}
+              >
+                <Text style={[styles.participantTabText, participantTab === 'friends' && styles.participantTabTextActive]}>친한친구</Text>
+              </Pressable>
+            </View>
+
+            {/* 선택된 참가자 태그 */}
+            {participants.length > 0 && (
+              <View style={{ marginBottom: 8, gap: 8 }}>
+                {participants.map((p) => (
+                  <View key={p.id} style={styles.participantCard}>
+                    <View style={{ flex: 1 }}>
+                      <View style={styles.searchNameRow}>
+                        <Text style={styles.tagText}>{p.nickname}{p.name ? ` (${p.name})` : ''}</Text>
+                        {p.isGuest
+                          ? <View style={styles.guestBadge}><Text style={styles.guestBadgeText}>미사용자</Text></View>
+                          : <LevelBadge level={p.level} size={18} />
+                        }
+                      </View>
+                      {p.phone ? <Text style={styles.searchSub}>{maskPhone(p.phone)}</Text> : null}
+                    </View>
+                    <Pressable onPress={() => removeParticipant(p.id)} style={styles.removeButton}>
+                      <Text style={styles.tagRemove}>✕</Text>
+                    </Pressable>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {participantTab === 'search' ? (
             <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               {/* 검색 입력 */}
               <TextInput
@@ -397,29 +493,6 @@ export default function ScheduleAddScreen() {
                 placeholderTextColor="rgba(255,255,255,0.25)"
               />
 
-              {/* 선택된 참가자 태그 */}
-              {participants.length > 0 && (
-                <View style={{ marginTop: 16, gap: 8 }}>
-                  {participants.map((p) => (
-                    <View key={p.id} style={styles.participantCard}>
-                      <View style={{ flex: 1 }}>
-                        <View style={styles.searchNameRow}>
-                          <Text style={styles.tagText}>{p.nickname}{p.name ? ` (${p.name})` : ''}</Text>
-                          {p.isGuest
-                            ? <View style={styles.guestBadge}><Text style={styles.guestBadgeText}>미사용자</Text></View>
-                            : <LevelBadge level={p.level} size={18} />
-                          }
-                        </View>
-                        {p.phone ? <Text style={styles.searchSub}>{maskPhone(p.phone)}</Text> : null}
-                      </View>
-                      <Pressable onPress={() => removeParticipant(p.id)} style={styles.removeButton}>
-                        <Text style={styles.tagRemove}>✕</Text>
-                      </Pressable>
-                    </View>
-                  ))}
-                </View>
-              )}
-
               {/* 검색 결과 / 게스트 등록 */}
               <View style={{ marginTop: 8 }}>
                 {searching && (
@@ -427,6 +500,7 @@ export default function ScheduleAddScreen() {
                     <ActivityIndicator size="small" color="rgba(255,255,255,0.5)" />
                   </View>
                 )}
+                {/* TODO: 앱 미사용자 등록 - 주석 처리
                 {guestMode ? (
                   <View style={styles.guestForm}>
                     <Text style={styles.guestFormTitle}>앱 미사용자 등록</Text>
@@ -467,29 +541,29 @@ export default function ScheduleAddScreen() {
                       </Pressable>
                     </View>
                   </View>
-                ) : (
-                  <>
-                    {searchResults.length > 0 && (
-                      <View style={styles.searchResults}>
-                        {searchResults.map((user) => (
-                          <Pressable
-                            key={user.id}
-                            style={({ pressed }) => [styles.searchItem, pressed && { opacity: 0.6 }]}
-                            onPress={() => addParticipant(user)}
-                          >
-                            <View style={{ flex: 1 }}>
-                              <View style={styles.searchNameRow}>
-                                <Text style={styles.searchName}>
-                                  {user.nickname}{user.name ? ` (${user.name})` : ''}
-                                </Text>
-                                <LevelBadge level={user.level} size={18} />
-                              </View>
-                              {user.phone ? <Text style={styles.searchSub}>{maskPhone(user.phone)}</Text> : null}
+                ) : ( */}
+                  {searchResults.length > 0 && (
+                    <View style={styles.searchResults}>
+                      {searchResults.map((user) => (
+                        <Pressable
+                          key={user.id}
+                          style={({ pressed }) => [styles.searchItem, pressed && { opacity: 0.6 }]}
+                          onPress={() => addParticipant(user)}
+                        >
+                          <View style={{ flex: 1 }}>
+                            <View style={styles.searchNameRow}>
+                              <Text style={styles.searchName}>
+                                {user.nickname}{user.name ? ` (${user.name})` : ''}
+                              </Text>
+                              <LevelBadge level={user.level} size={18} />
                             </View>
-                          </Pressable>
-                        ))}
-                      </View>
-                    )}
+                            {user.phone ? <Text style={styles.searchSub}>{maskPhone(user.phone)}</Text> : null}
+                          </View>
+                        </Pressable>
+                      ))}
+                    </View>
+                  )}
+                {/* 앱 미사용자 등록 버튼 - 주석 처리
                     {searchQuery.trim().length > 0 && !searching && (
                       <Pressable
                         style={({ pressed }) => [styles.guestEntry, pressed && { opacity: 0.6 }]}
@@ -500,9 +574,48 @@ export default function ScheduleAddScreen() {
                       </Pressable>
                   )}
                 </>
-              )}
+              )} */}
               </View>
             </ScrollView>
+            ) : (
+            /* 친한친구 목록 */
+            <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+              {friendsLoading ? (
+                <View style={{ paddingVertical: 20, alignItems: 'center' }}>
+                  <ActivityIndicator size="small" color="rgba(255,255,255,0.5)" />
+                </View>
+              ) : closeFriends.length === 0 ? (
+                <Text style={{ fontFamily: 'SUIT-Regular', fontSize: 14, color: 'rgba(255,255,255,0.3)', textAlign: 'center', paddingTop: 20 }}>
+                  친한친구가 없습니다.
+                </Text>
+              ) : (
+                closeFriends
+                  .filter((f) => !participants.some((p) => p.nickname === f.nickname))
+                  .map((friend) => (
+                    <Pressable
+                      key={friend.userId}
+                      style={({ pressed }) => [styles.searchItem, pressed && { opacity: 0.6 }]}
+                      onPress={() => addFriendAsParticipant(friend)}
+                    >
+                      <View style={{ flex: 1 }}>
+                        <View style={styles.searchNameRow}>
+                          <Text style={styles.searchName}>
+                            {friend.nickname}{friend.name ? ` (${friend.name})` : ''}
+                          </Text>
+                          <LevelBadge level={friend.level} size={18} />
+                        </View>
+                        {(friend.phone || friend.email) && (
+                          <Text style={styles.searchSub}>
+                            {friend.phone ? maskPhone(friend.phone) : ''}{friend.phone && friend.email ? '  ' : ''}{friend.email ? maskEmail(friend.email) : ''}
+                          </Text>
+                        )}
+                      </View>
+                      {friend.pinned && <Text style={{ fontSize: 12, marginLeft: 8 }}>📌</Text>}
+                    </Pressable>
+                  ))
+              )}
+            </ScrollView>
+            )}
 
             {/* 완료 버튼 */}
             <View style={styles.confirmArea}>
@@ -646,6 +759,30 @@ const styles = StyleSheet.create({
   },
   removeButton: {
     width: 28, height: 28, alignItems: 'center', justifyContent: 'center', marginLeft: 8,
+  },
+  participantTabRow: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 10,
+    marginBottom: 14,
+    overflow: 'hidden',
+  },
+  participantTabItem: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: 'center',
+    borderRadius: 10,
+  },
+  participantTabItemActive: {
+    backgroundColor: 'rgba(255,255,255,0.15)',
+  },
+  participantTabText: {
+    fontFamily: 'SUIT-SemiBold',
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.35)',
+  },
+  participantTabTextActive: {
+    color: Colors.brand.white,
   },
   participantArea: {
     paddingHorizontal: 24,
