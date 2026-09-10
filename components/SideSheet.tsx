@@ -23,7 +23,6 @@ type Props = {
 
 const MENU_ITEMS = [
   { key: 'cert', label: '자격증 등록 요청' },
-  { key: 'instructor', label: '강사등록' },
   { key: 'inquiry', label: '문의하기' },
   { key: 'withdraw', label: '회원탈퇴' },
 ];
@@ -83,6 +82,11 @@ export default function SideSheet({ visible, onClose }: Props) {
   }, [visible, onClose]);
 
   const handleMenuPress = async (key: string) => {
+    if (key === 'inquiry') {
+      onClose();
+      setTimeout(() => router.push('/inquiry'), 300);
+      return;
+    }
     if (key === 'cert') {
       onClose();
       try {

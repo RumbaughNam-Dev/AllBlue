@@ -476,6 +476,22 @@ export const api = {
     return request<{ users: { userId: string; nickname: string; name?: string; level?: string | number | null }[] }>('/friends/blocked');
   },
 
+  // 문의
+  getInquiries() {
+    return request<{ inquiries: { id: number; title: string; content: string; status: 'PENDING' | 'ANSWERED'; createdAt: string }[] }>('/inquiries');
+  },
+
+  getInquiryDetail(id: number) {
+    return request<{ inquiry: { id: number; title: string; content: string; status: 'PENDING' | 'ANSWERED'; answer?: string; answeredAt?: string; createdAt: string } }>(`/inquiries/${id}`);
+  },
+
+  createInquiry(title: string, content: string) {
+    return request<{ success: boolean }>('/inquiries', {
+      method: 'POST',
+      body: JSON.stringify({ title, content }),
+    });
+  },
+
   // SMS 인증
   sendVerificationCode(phone: string, tempToken: string) {
     return request<{ success: boolean; message?: string }>('/auth/send-code', {

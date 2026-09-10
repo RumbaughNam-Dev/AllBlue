@@ -35,7 +35,7 @@ function RootLayoutNav() {
       router.replace('/onboarding');
     } else if (hasSeenOnboarding && !isLoggedIn && !inLogin && !inRegister) {
       router.replace('/login');
-    } else if (isLoggedIn && !inApp && !['profile','profile-edit','profile-view','cert-upload','cert-manage','schedule-daily','schedule-detail','schedule-add','achievement','debriefing','blocked-users'].includes(segments[0] as string)) {
+    } else if (isLoggedIn && !inApp && !['profile','profile-edit','profile-view','cert-upload','cert-manage','schedule-daily','schedule-detail','schedule-add','achievement','debriefing','blocked-users','inquiry','inquiry-write','inquiry-detail'].includes(segments[0] as string)) {
       router.replace('/(tabs)');
     }
 
@@ -75,6 +75,9 @@ function RootLayoutNav() {
         <Stack.Screen name="achievement" options={{ gestureEnabled: true }} />
         <Stack.Screen name="debriefing" options={{ gestureEnabled: true }} />
         <Stack.Screen name="blocked-users" options={{ gestureEnabled: true }} />
+        <Stack.Screen name="inquiry" options={{ gestureEnabled: true }} />
+        <Stack.Screen name="inquiry-write" options={{ gestureEnabled: true }} />
+        <Stack.Screen name="inquiry-detail" options={{ gestureEnabled: true }} />
       </Stack>
     </View>
   );
