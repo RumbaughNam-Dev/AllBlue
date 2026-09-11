@@ -30,6 +30,7 @@ export default function ProfileScreen() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [pendingCount, setPendingCount] = useState(0);
+  const [inquiryPendingCount, setInquiryPendingCount] = useState(0);
 
   useFocusEffect(
     useCallback(() => {
@@ -49,6 +50,9 @@ export default function ProfileScreen() {
         .finally(() => setLoading(false));
       api.getCertPendingCount()
         .then((res) => setPendingCount(res.count))
+        .catch(() => {});
+      api.getInquiryPendingCount()
+        .then((res) => setInquiryPendingCount(res.count))
         .catch(() => {});
     }, [])
   );
@@ -168,17 +172,30 @@ export default function ProfileScreen() {
           {/* Bottom Buttons */}
           <View style={styles.bottomArea}>
             {profile?.level === 'A' && (
-              <Pressable
-                style={({ pressed }) => [styles.certButton, pressed && { opacity: 0.85 }]}
-                onPress={() => router.push('/cert-manage')}
-              >
-                <View style={styles.certButtonInner}>
-                  <Text style={styles.certButtonText}>자격증 등록 처리</Text>
-                  {pendingCount > 0 && (
-                    <Text style={styles.certCount}>{pendingCount}건</Text>
-                  )}
-                </View>
-              </Pressable>
+              <>
+                <Pressable
+                  style={({ pressed }) => [styles.certButton, pressed && { opacity: 0.85 }]}
+                  onPress={() => router.push('/inquiry-manage')}
+                >
+                  <View style={styles.certButtonInner}>
+                    <Text style={styles.certButtonText}>문의 요청 처리</Text>
+                    {inquiryPendingCount > 0 && (
+                      <Text style={styles.certCount}>{inquiryPendingCount}건</Text>
+                    )}
+                  </View>
+                </Pressable>
+                <Pressable
+                  style={({ pressed }) => [styles.certButton, pressed && { opacity: 0.85 }]}
+                  onPress={() => router.push('/cert-manage')}
+                >
+                  <View style={styles.certButtonInner}>
+                    <Text style={styles.certButtonText}>자격증 등록 처리</Text>
+                    {pendingCount > 0 && (
+                      <Text style={styles.certCount}>{pendingCount}건</Text>
+                    )}
+                  </View>
+                </Pressable>
+              </>
             )}
             {/* 자격증 등록 요청 - 햄버거 메뉴로 이동
             {profile?.level !== 5 && (

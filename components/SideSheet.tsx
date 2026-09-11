@@ -24,6 +24,7 @@ type Props = {
 const MENU_ITEMS = [
   { key: 'cert', label: '자격증 등록 요청' },
   { key: 'inquiry', label: '문의하기' },
+  { key: 'blocked', label: '차단 사용자 관리' },
   { key: 'withdraw', label: '회원탈퇴' },
 ];
 
@@ -101,8 +102,17 @@ export default function SideSheet({ visible, onClose }: Props) {
       }
       return;
     }
+    if (key === 'blocked') {
+      onClose();
+      setTimeout(() => router.push('/blocked-users'), 300);
+      return;
+    }
+    if (key === 'withdraw') {
+      onClose();
+      setTimeout(() => router.push('/withdraw'), 300);
+      return;
+    }
     onClose();
-    console.log('메뉴 선택:', key);
   };
 
   const handleLogout = () => {

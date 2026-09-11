@@ -1,5 +1,6 @@
 import { Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { File, UploadType } from 'expo-file-system';
 
 const BASE_URL = 'https://api.rumbaugh.co.kr/allblue';
 
@@ -242,27 +243,24 @@ export const api = {
 
   async uploadProfileImage(uri: string) {
     const token = await AsyncStorage.getItem('authToken');
-    const response = await fetch(uri);
-    const blob = await response.blob();
     const filename = uri.split('/').pop() ?? 'photo.jpg';
 
-    const formData = new FormData();
-    formData.append('file', blob, filename);
-
-    const res = await fetch(`${BASE_URL}/profile/image`, {
-      method: 'POST',
+    const file = new File(uri);
+    const result = await file.upload(`${BASE_URL}/profile/image`, {
+      uploadType: UploadType.MULTIPART,
+      fieldName: 'file',
+      mimeType: 'image/jpeg',
       headers: {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
-      body: formData,
     });
-    const data = await res.json();
-    if (!res.ok) {
-      if (res.status === 401) {
+    const data = JSON.parse(result.body);
+    if (result.status < 200 || result.status >= 300) {
+      if (result.status === 401) {
         handleUnauthorized();
         throw { status: 401, message: '세션 만료', _handled: true };
       }
-      throw { status: res.status, ...data };
+      throw { status: result.status, ...data };
     }
     return data as { success: boolean; profileImage: string };
   },
@@ -377,29 +375,24 @@ export const api = {
 
   async uploadCertImage(uri: string) {
     const token = await AsyncStorage.getItem('authToken');
-    const response = await fetch(uri);
-    const blob = await response.blob();
     const filename = uri.split('/').pop() ?? 'cert.jpg';
-    const match = /\.(\w+)$/.exec(filename);
-    const type = match ? `image/${match[1]}` : 'image/jpeg';
 
-    const formData = new FormData();
-    formData.append('file', blob, filename);
-
-    const res = await fetch(`${BASE_URL}/cert/upload`, {
-      method: 'POST',
+    const file = new File(uri);
+    const result = await file.upload(`${BASE_URL}/cert/upload`, {
+      uploadType: UploadType.MULTIPART,
+      fieldName: 'file',
+      mimeType: 'image/jpeg',
       headers: {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
-      body: formData,
     });
-    const data = await res.json();
-    if (!res.ok) {
-      if (res.status === 401) {
+    const data = JSON.parse(result.body);
+    if (result.status < 200 || result.status >= 300) {
+      if (result.status === 401) {
         handleUnauthorized();
         throw { status: 401, message: '세션 만료', _handled: true };
       }
-      throw { status: res.status, ...data };
+      throw { status: result.status, ...data };
     }
     return data as { success: boolean };
   },
@@ -482,14 +475,101 @@ export const api = {
   },
 
   getInquiryDetail(id: number) {
-    return request<{ inquiry: { id: number; title: string; content: string; status: 'PENDING' | 'ANSWERED'; answer?: string; answeredAt?: string; createdAt: string } }>(`/inquiries/${id}`);
+    return request<{ inquiry: { id: number; title: string; content: string; status: 'PENDING' | 'ANSWERED'; answer?: string; answeredAt?: string; createdAt: string; attachment?: { id: number; fileUrl: string; fileName: string; fileSize: number; mimeType: string } } }>(`/inquiries/${id}`);
   },
 
-  createInquiry(title: string, content: string) {
-    return request<{ success: boolean }>('/inquiries', {
-      method: 'POST',
-      body: JSON.stringify({ title, content }),
+  async createInquiry(title: string, content: string, attachment?: { uri: string; name: string; type: string }) {
+    if (!attachment) {
+      return request<{ success: boolean }>('/inquiries', {
+        method: 'POST',
+        body: JSON.stringify({ title, content }),
+      });
+    }
+
+    const token = await AsyncStorage.getItem('authToken');
+
+    console.log('[API] POST /inquiries (multipart)', { fileName: attachment.name, type: attachment.type });
+    const file = new File(attachment.uri);
+    const result = await file.upload(`${BASE_URL}/inquiries`, {
+      uploadType: UploadType.MULTIPART,
+      fieldName: 'file',
+      mimeType: attachment.type,
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      parameters: { title, content },
     });
+    const data = JSON.parse(result.body);
+    console.log('[API] POST /inquiries response:', result.status, data);
+    if (result.status < 200 || result.status >= 300) {
+      if (result.status === 401) {
+        handleUnauthorized();
+        throw { status: 401, message: '세션 만료', _handled: true };
+      }
+      throw new Error(data?.message || '문의 등록 실패');
+    }
+    return data as { success: boolean };
+  },
+
+  // 문의 관리 (admin)
+  getInquiryPendingCount() {
+    return request<{ count: number }>('/inquiries/pending-count');
+  },
+
+  getAllInquiries() {
+    return request<{ inquiries: { id: number; userId: string; userName: string; title: string; status: 'PENDING' | 'ANSWERED'; createdAt: string }[] }>('/inquiries/all');
+  },
+
+  answerInquiry(id: number, answer: string) {
+    return request<{ success: boolean }>(`/inquiries/${id}/answer`, {
+      method: 'PATCH',
+      body: JSON.stringify({ answer }),
+    });
+  },
+
+  // 회원탈퇴
+  withdrawAccount() {
+    return request<{ success: boolean }>('/auth/withdraw', {
+      method: 'DELETE',
+    });
+  },
+
+  // 그룹 관리
+  getFriendGroups() {
+    return request<{ groups: { id: number; name: string; memberCount: number }[] }>('/friends/groups');
+  },
+
+  createFriendGroup(name: string) {
+    return request<{ success: boolean; group: { id: number; name: string } }>('/friends/groups', {
+      method: 'POST',
+      body: JSON.stringify({ name }),
+    });
+  },
+
+  renameFriendGroup(groupId: number, name: string) {
+    return request<{ success: boolean }>(`/friends/groups/${groupId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ name }),
+    });
+  },
+
+  deleteFriendGroup(groupId: number) {
+    return request<{ success: boolean }>(`/friends/groups/${groupId}`, { method: 'DELETE' });
+  },
+
+  getFriendGroupMembers(groupId: number) {
+    return request<{ members: CloseFriend[] }>(`/friends/groups/${groupId}/members`);
+  },
+
+  addToFriendGroup(groupId: number, userId: string) {
+    return request<{ success: boolean }>(`/friends/groups/${groupId}/members`, {
+      method: 'POST',
+      body: JSON.stringify({ userId }),
+    });
+  },
+
+  removeFromFriendGroup(groupId: number, userId: string) {
+    return request<{ success: boolean }>(`/friends/groups/${groupId}/members/${userId}`, { method: 'DELETE' });
   },
 
   // SMS 인증

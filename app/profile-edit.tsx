@@ -125,6 +125,7 @@ export default function ProfileEditScreen() {
         { text: '확인', onPress: () => router.back() },
       ]);
     } catch (e: any) {
+      console.log('[프로필] 저장 에러:', JSON.stringify(e), e?.message, e?.stack);
       if (!e._handled) {
         Alert.alert('저장 실패', e.message ?? '잠시 후 다시 시도해주세요.');
       }

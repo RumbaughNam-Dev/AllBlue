@@ -14,7 +14,9 @@ import { api, CloseFriend, DiveBuddy } from '@/services/api';
 
 const TAB_BAR_HEIGHT = 56;
 
-type TabType = 'close' | 'buddy' | 'student';
+type TabType = string; // 'close' | 'buddy' | 'student' | 'group_{id}'
+type FriendGroup = { id: number; name: string; memberCount: number };
+const FIXED_TABS = ['close', 'buddy', 'student'];
 
 export default function TabC() {
   const router = useRouter();
@@ -24,6 +26,17 @@ export default function TabC() {
   const [activeTab, setActiveTab] = useState<TabType>('close');
   const [friends, setFriends] = useState<CloseFriend[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // 그룹
+  const [groups, setGroups] = useState<FriendGroup[]>([]);
+  const [groupModalVisible, setGroupModalVisible] = useState(false);
+  const [groupName, setGroupName] = useState('');
+  const [groupCreating, setGroupCreating] = useState(false);
+  const [editingGroupId, setEditingGroupId] = useState<number | null>(null);
+
+  // 그룹 선택 (내 그룹에 추가)
+  const [groupSelectVisible, setGroupSelectVisible] = useState(false);
+  const [groupSelectTarget, setGroupSelectTarget] = useState<CloseFriend | null>(null);
 
   // 컨텍스트 메뉴
   const [menuVisible, setMenuVisible] = useState(false);
@@ -93,25 +106,38 @@ export default function TabC() {
 
   // TODO: 강사 여부
   const isInstructor = true;
-  const thirdTabLabel = isInstructor ? '교육생' : '강사';
 
-  const tabs: { key: TabType; label: string }[] = [
+  const fixedTabs: { key: TabType; label: string }[] = [
     { key: 'close', label: '친한친구' },
     { key: 'buddy', label: '함께한친구' },
-    ...(isInstructor ? [{ key: 'student' as TabType, label: '교육생' }] : []),
+    ...(isInstructor ? [{ key: 'student', label: '교육생' }] : []),
   ];
+
+  const allTabs = [
+    ...fixedTabs,
+    ...groups.map((g) => ({ key: `group_${g.id}`, label: g.name })),
+  ];
+
+  const isFixedTab = FIXED_TABS.includes(activeTab);
+  const activeGroupId = activeTab.startsWith('group_') ? Number(activeTab.replace('group_', '')) : null;
 
   const switchTab = (tab: TabType) => {
     setFriends([]);
     setActiveTab(tab);
   };
 
+  const fetchGroups = useCallback(async () => {
+    try {
+      const res = await api.getFriendGroups();
+      setGroups(res.groups ?? []);
+    } catch {}
+  }, []);
+
   const fetchFriends = useCallback(async () => {
     setLoading(true);
     try {
       if (activeTab === 'close') {
         const res = await api.getCloseFriends();
-        console.log('[CloseFriends] response:', JSON.stringify(res));
         setFriends(res.friends ?? []);
       } else if (activeTab === 'buddy') {
         const res = await api.getDiveBuddies(1, 50);
@@ -122,7 +148,7 @@ export default function TabC() {
           level: b.level,
           memo: b.lastDiveDate ? `마지막 다이빙: ${b.lastDiveDate}` : undefined,
         })));
-      } else {
+      } else if (activeTab === 'student') {
         if (isInstructor) {
           const res = await api.getStudents();
           setFriends(res.students ?? []);
@@ -130,18 +156,68 @@ export default function TabC() {
           const res = await api.getInstructors();
           setFriends(res.instructors ?? []);
         }
+      } else if (activeGroupId) {
+        const res = await api.getFriendGroupMembers(activeGroupId);
+        setFriends(res.members ?? []);
       }
     } catch (e) {
       console.log('[Friends] fetch error:', e);
     }
     setLoading(false);
-  }, [activeTab]);
+  }, [activeTab, activeGroupId]);
 
   useFocusEffect(
     useCallback(() => {
+      fetchGroups();
       fetchFriends();
-    }, [fetchFriends])
+    }, [fetchGroups, fetchFriends])
   );
+
+  const handleCreateGroup = async () => {
+    if (!groupName.trim()) return;
+    setGroupCreating(true);
+    try {
+      if (editingGroupId) {
+        await api.renameFriendGroup(editingGroupId, groupName.trim());
+      } else {
+        await api.createFriendGroup(groupName.trim());
+      }
+      setGroupModalVisible(false);
+      setGroupName('');
+      setEditingGroupId(null);
+      fetchGroups();
+    } catch (e: any) {
+      console.log('[그룹 에러]', JSON.stringify(e), e?.message);
+      Alert.alert('오류', e?.message || (editingGroupId ? '그룹 수정에 실패했습니다.' : '그룹 생성에 실패했습니다.'));
+    } finally {
+      setGroupCreating(false);
+    }
+  };
+
+  const handleAddToGroup = (friend: CloseFriend) => {
+    if (groups.length === 0) {
+      Alert.alert('알림', '먼저 그룹을 추가해주세요.');
+      return;
+    }
+    setGroupSelectTarget(friend);
+    closeMenu();
+    setTimeout(() => setGroupSelectVisible(true), 100);
+  };
+
+  const handleGroupSelect = async (groupId: number) => {
+    if (!groupSelectTarget) return;
+    setGroupSelectVisible(false);
+    try {
+      const res = await api.addToFriendGroup(groupId, groupSelectTarget.userId);
+      if (res.success) {
+        Alert.alert('알림', '그룹에 추가되었습니다.');
+      }
+    } catch {
+      Alert.alert('오류', '그룹 추가에 실패했습니다.');
+    } finally {
+      setGroupSelectTarget(null);
+    }
+  };
 
   // 검색 로직
   const onSearchChange = (text: string) => {
@@ -302,6 +378,9 @@ export default function TabC() {
       items.push({ label: '친한친구추가', onPress: handleAddClose });
     }
 
+    if (isFixedTab) {
+      items.push({ label: '내 그룹에 추가', onPress: () => handleAddToGroup(selectedFriend) });
+    }
     items.push({ label: '차단', onPress: handleBlock, danger: true });
 
     return items;
@@ -341,34 +420,67 @@ export default function TabC() {
 
   return (
     <View style={styles.container}>
-      {/* 탭 세그먼트 + 설정 */}
+      {/* 탭 세그먼트 (가로 스크롤) */}
       <View style={styles.tabRow}>
-        <View style={styles.segmentWrap}>
-          {tabs.map((tab) => (
-            <Pressable
-              key={tab.key}
-              style={[styles.segmentItem, activeTab === tab.key && styles.segmentItemActive]}
-              onPress={() => switchTab(tab.key)}
-            >
-              <Text style={[styles.segmentText, activeTab === tab.key && styles.segmentTextActive]}>
-                {tab.label}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-        <Pressable
-          style={({ pressed }) => [styles.settingsButton, pressed && { opacity: 0.6 }]}
-          onPress={() => {
-            Alert.alert('설정', '', [
-              { text: '그룹 관리', onPress: () => Alert.alert('알림', '준비 중입니다.') },
-              { text: '친한친구 관리', onPress: () => Alert.alert('알림', '준비 중입니다.') },
-              { text: '차단 관리', onPress: () => router.push('/blocked-users') },
-              { text: '취소', style: 'cancel' },
-            ]);
-          }}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.segmentScroll}
         >
-          <Ionicons name="settings-outline" size={22} color="rgba(255,255,255,0.5)" />
-        </Pressable>
+          {allTabs.map((tab) => {
+            const isActive = activeTab === tab.key;
+            const isCustomGroup = !FIXED_TABS.includes(tab.key);
+            return (
+              <Pressable
+                key={tab.key}
+                style={[styles.segmentItem, isActive && styles.segmentItemActive]}
+                onPress={() => switchTab(tab.key)}
+              >
+                <View style={styles.segmentInner}>
+                  <Text style={[styles.segmentText, isActive && styles.segmentTextActive]}>
+                    {tab.label}
+                  </Text>
+                  {isActive && isCustomGroup && (
+                    <Pressable
+                      onPress={() => {
+                        const gId = Number(tab.key.replace('group_', ''));
+                        Alert.alert(tab.label, '', [
+                          { text: '그룹이름 수정', onPress: () => {
+                            setGroupName(tab.label);
+                            setEditingGroupId(gId);
+                            setGroupModalVisible(true);
+                          }},
+                          { text: '그룹 삭제', style: 'destructive', onPress: () => {
+                            Alert.alert('확인', `"${tab.label}" 그룹을 삭제할까요?`, [
+                              { text: '취소' },
+                              { text: '삭제', style: 'destructive', onPress: async () => {
+                                try {
+                                  await api.deleteFriendGroup(gId);
+                                  switchTab('close');
+                                  fetchGroups();
+                                } catch {}
+                              }},
+                            ]);
+                          }},
+                          { text: '취소', style: 'cancel' },
+                        ]);
+                      }}
+                      hitSlop={4}
+                    >
+                      <Ionicons name="settings-outline" size={14} color="rgba(255,255,255,0.5)" style={{ marginLeft: 4 }} />
+                    </Pressable>
+                  )}
+                </View>
+              </Pressable>
+            );
+          })}
+          <Pressable
+            style={({ pressed }) => [styles.segmentAddButton, pressed && { opacity: 0.6 }]}
+            onPress={() => setGroupModalVisible(true)}
+          >
+            <Text style={styles.segmentAddText}>+</Text>
+          </Pressable>
+        </ScrollView>
       </View>
 
       {/* 친구 목록 */}
@@ -381,7 +493,8 @@ export default function TabC() {
             <Text style={styles.emptyText}>
               {activeTab === 'close' ? '친한친구가 없습니다.\n아래 버튼으로 등록해보세요.' :
                activeTab === 'buddy' ? '함께 다이빙한 친구가 없습니다.' :
-               isInstructor ? '교육생이 없습니다.' : '강사가 없습니다.'}
+               activeTab === 'student' ? (isInstructor ? '교육생이 없습니다.' : '강사가 없습니다.') :
+               '그룹에 멤버가 없습니다.'}
             </Text>
           </View>
         }
@@ -459,6 +572,71 @@ export default function TabC() {
                 </Pressable>
               </View>
             </Pressable>
+          </View>
+        </Pressable>
+      </Modal>
+
+      {/* 그룹 생성 모달 */}
+      <Modal visible={groupModalVisible} transparent animationType="fade" onRequestClose={() => setGroupModalVisible(false)}>
+        <Pressable style={styles.menuBackdrop} onPress={() => setGroupModalVisible(false)}>
+          <View style={styles.memoModalContainer}>
+            <Pressable style={styles.memoModalCard} onPress={() => {}}>
+              <Text style={styles.memoModalTitle}>{editingGroupId ? '그룹이름 수정' : '그룹 추가'}</Text>
+              <TextInput
+                style={styles.groupNameInput}
+                value={groupName}
+                onChangeText={setGroupName}
+                placeholder="그룹명을 입력해주세요"
+                placeholderTextColor="rgba(255,255,255,0.25)"
+                maxLength={20}
+                autoFocus
+              />
+              <View style={styles.memoButtons}>
+                <Pressable
+                  style={({ pressed }) => [styles.memoCancelButton, pressed && { opacity: 0.7 }]}
+                  onPress={() => { setGroupModalVisible(false); setGroupName(''); setEditingGroupId(null); }}
+                >
+                  <Text style={styles.memoCancelText}>취소</Text>
+                </Pressable>
+                <Pressable
+                  style={({ pressed }) => [styles.memoSaveButton, pressed && { opacity: 0.85 }, groupCreating && { opacity: 0.5 }]}
+                  onPress={handleCreateGroup}
+                  disabled={groupCreating}
+                >
+                  {groupCreating ? (
+                    <ActivityIndicator size="small" color={Colors.brand.primary} />
+                  ) : (
+                    <Text style={styles.memoSaveText}>확인</Text>
+                  )}
+                </Pressable>
+              </View>
+            </Pressable>
+          </View>
+        </Pressable>
+      </Modal>
+
+      {/* 그룹 선택 모달 */}
+      <Modal visible={groupSelectVisible} transparent animationType="fade" onRequestClose={() => setGroupSelectVisible(false)}>
+        <Pressable style={styles.menuBackdrop} onPress={() => setGroupSelectVisible(false)}>
+          <View style={styles.menuContainer}>
+            <View style={styles.menuCard}>
+              <View style={styles.groupSelectHeader}>
+                <Text style={styles.groupSelectTitle}>그룹 선택</Text>
+              </View>
+              {groups.map((g, index) => (
+                <Pressable
+                  key={g.id}
+                  style={({ pressed }) => [
+                    styles.menuItem,
+                    index < groups.length - 1 && styles.menuItemBorder,
+                    pressed && { backgroundColor: 'rgba(255,255,255,0.05)' },
+                  ]}
+                  onPress={() => handleGroupSelect(g.id)}
+                >
+                  <Text style={styles.menuText}>{g.name}</Text>
+                </Pressable>
+              ))}
+            </View>
           </View>
         </Pressable>
       </Modal>
@@ -551,25 +729,30 @@ const styles = StyleSheet.create({
   tabRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
     paddingVertical: 12,
-    gap: 10,
+    paddingLeft: 20,
+    paddingRight: 8,
+    gap: 8,
   },
-  segmentWrap: {
-    flex: 1,
+  segmentScroll: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 10,
-    overflow: 'hidden',
+    alignItems: 'center',
+    gap: 6,
   },
   segmentItem: {
-    flex: 1,
     paddingVertical: 8,
+    paddingHorizontal: 16,
     alignItems: 'center',
+    justifyContent: 'center',
     borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  segmentInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   segmentItemActive: {
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: 'rgba(255,255,255,0.2)',
   },
   segmentText: {
     fontFamily: 'SUIT-SemiBold',
@@ -579,11 +762,48 @@ const styles = StyleSheet.create({
   segmentTextActive: {
     color: Colors.brand.white,
   },
-  settingsButton: {
-    width: 36,
-    height: 36,
+  segmentAddButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.15)',
+    borderStyle: 'dashed',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  segmentAddText: {
+    fontFamily: 'SUIT-Bold',
+    fontSize: 18,
+    color: 'rgba(255,255,255,0.3)',
+  },
+  gearButton: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  groupSelectHeader: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.06)',
+  },
+  groupSelectTitle: {
+    fontFamily: 'SUIT-Bold',
+    fontSize: 15,
+    color: Colors.brand.white,
+    textAlign: 'center',
+  },
+  groupNameInput: {
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontFamily: 'SUIT-Regular',
+    fontSize: 15,
+    color: Colors.brand.white,
+    marginBottom: 14,
   },
   listContent: {
     paddingHorizontal: 20,

@@ -156,7 +156,7 @@ export default function ScheduleDetailScreen() {
             <Text style={styles.emptyText}>{participantLabel}가 없습니다</Text>
           ) : (
             schedule.participants.map((p) => (
-              <View key={p.id} style={styles.participantCard}>
+              <View key={`${p.isGuest ? 'g' : 'u'}_${p.id}`} style={styles.participantCard}>
                 <View style={styles.participantNameRow}>
                   <Text style={styles.participantName}>
                     {p.nickname}{p.name ? ` (${p.name})` : ''}

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Pressable,
+  Image, useWindowDimensions, Linking, Alert,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -8,6 +9,14 @@ import { StatusBar } from 'expo-status-bar';
 import Colors from '@/constants/Colors';
 import Spinner from '@/components/Spinner';
 import { api } from '@/services/api';
+
+type AttachmentInfo = {
+  id: number;
+  fileUrl: string;
+  fileName: string;
+  fileSize: number;
+  mimeType: string;
+};
 
 type InquiryDetail = {
   id: number;
@@ -17,6 +26,7 @@ type InquiryDetail = {
   answer?: string;
   answeredAt?: string;
   createdAt: string;
+  attachment?: AttachmentInfo;
 };
 
 function formatDateTime(dateStr: string): string {
@@ -24,9 +34,16 @@ function formatDateTime(dateStr: string): string {
   return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
+function formatSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes}B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)}KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
+}
+
 export default function InquiryDetailScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { width: screenWidth } = useWindowDimensions();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [inquiry, setInquiry] = useState<InquiryDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -38,6 +55,17 @@ export default function InquiryDetailScreen() {
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [id]);
+
+  const isImageAttachment = inquiry?.attachment?.mimeType?.startsWith('image/');
+
+  const handleDownload = async () => {
+    if (!inquiry?.attachment) return;
+    try {
+      await Linking.openURL(inquiry.attachment.fileUrl);
+    } catch {
+      Alert.alert('오류', '파일을 열 수 없습니다.');
+    }
+  };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
@@ -56,40 +84,68 @@ export default function InquiryDetailScreen() {
       {loading ? (
         <View style={styles.loadingArea}><Spinner /></View>
       ) : inquiry ? (
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-          {/* 상태 + 날짜 */}
-          <View style={styles.metaRow}>
-            <View style={[styles.statusBadge, inquiry.status === 'ANSWERED' ? styles.statusAnswered : styles.statusPending]}>
-              <Text style={[styles.statusText, inquiry.status === 'ANSWERED' ? styles.statusTextAnswered : styles.statusTextPending]}>
-                {inquiry.status === 'ANSWERED' ? '답변완료' : '답변대기'}
-              </Text>
-            </View>
-            <Text style={styles.date}>{formatDateTime(inquiry.createdAt)}</Text>
-          </View>
-
-          {/* 제목 */}
-          <Text style={styles.title}>{inquiry.title}</Text>
-
-          <View style={styles.divider} />
-
-          {/* 내용 */}
-          <Text style={styles.content}>{inquiry.content}</Text>
-
-          {/* 답변 */}
-          {inquiry.status === 'ANSWERED' && inquiry.answer && (
-            <>
-              <View style={styles.divider} />
-              <View style={styles.answerSection}>
-                <View style={styles.answerHeader}>
-                  <Text style={styles.answerLabel}>답변</Text>
-                  {inquiry.answeredAt && (
-                    <Text style={styles.answerDate}>{formatDateTime(inquiry.answeredAt)}</Text>
-                  )}
-                </View>
-                <Text style={styles.answerContent}>{inquiry.answer}</Text>
-              </View>
-            </>
+        <ScrollView showsVerticalScrollIndicator={false}>
+          {/* 사진 첨부: 상단 큰 이미지 */}
+          {inquiry.attachment && isImageAttachment && (
+            <Image
+              source={{ uri: inquiry.attachment.fileUrl }}
+              style={[styles.heroImage, { width: screenWidth, height: screenWidth * 0.65 }]}
+              resizeMode="cover"
+            />
           )}
+
+          <View style={styles.scrollContent}>
+            {/* 상태 + 날짜 */}
+            <View style={styles.metaRow}>
+              <View style={[styles.statusBadge, inquiry.status === 'ANSWERED' ? styles.statusAnswered : styles.statusPending]}>
+                <Text style={[styles.statusText, inquiry.status === 'ANSWERED' ? styles.statusTextAnswered : styles.statusTextPending]}>
+                  {inquiry.status === 'ANSWERED' ? '답변완료' : '답변대기'}
+                </Text>
+              </View>
+              <Text style={styles.date}>{formatDateTime(inquiry.createdAt)}</Text>
+            </View>
+
+            {/* 제목 */}
+            <Text style={styles.title}>{inquiry.title}</Text>
+
+            <View style={styles.divider} />
+
+            {/* 내용 */}
+            <Text style={styles.content}>{inquiry.content}</Text>
+
+            {/* 파일 첨부: 다운로드 버튼 */}
+            {inquiry.attachment && !isImageAttachment && (
+              <Pressable
+                style={({ pressed }) => [styles.fileDownload, pressed && { opacity: 0.7 }]}
+                onPress={handleDownload}
+              >
+                <View style={styles.fileIcon}>
+                  <Text style={styles.fileIconText}>F</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.fileName} numberOfLines={1}>{inquiry.attachment.fileName}</Text>
+                  <Text style={styles.fileSize}>{formatSize(inquiry.attachment.fileSize)}</Text>
+                </View>
+                <Text style={styles.downloadText}>다운로드</Text>
+              </Pressable>
+            )}
+
+            {/* 답변 */}
+            {inquiry.status === 'ANSWERED' && inquiry.answer && (
+              <>
+                <View style={styles.divider} />
+                <View style={styles.answerSection}>
+                  <View style={styles.answerHeader}>
+                    <Text style={styles.answerLabel}>답변</Text>
+                    {inquiry.answeredAt && (
+                      <Text style={styles.answerDate}>{formatDateTime(inquiry.answeredAt)}</Text>
+                    )}
+                  </View>
+                  <Text style={styles.answerContent}>{inquiry.answer}</Text>
+                </View>
+              </>
+            )}
+          </View>
         </ScrollView>
       ) : (
         <View style={styles.loadingArea}>
@@ -116,6 +172,7 @@ const styles = StyleSheet.create({
   headerTitle: { fontFamily: 'SUIT-Bold', fontSize: 18, color: Colors.brand.white },
   loadingArea: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   emptyText: { fontFamily: 'SUIT-Regular', fontSize: 15, color: 'rgba(255,255,255,0.35)' },
+  heroImage: { backgroundColor: 'rgba(0,0,0,0.2)' },
   scrollContent: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 40 },
   metaRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
@@ -134,6 +191,21 @@ const styles = StyleSheet.create({
     fontFamily: 'SUIT-Regular', fontSize: 15, color: 'rgba(255,255,255,0.75)',
     lineHeight: 24,
   },
+  fileDownload: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 12,
+    paddingHorizontal: 12, paddingVertical: 10, gap: 10,
+    marginTop: 16,
+  },
+  fileIcon: {
+    width: 40, height: 40, borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  fileIconText: { fontFamily: 'SUIT-Bold', fontSize: 16, color: 'rgba(255,255,255,0.5)' },
+  fileName: { fontFamily: 'SUIT-Medium', fontSize: 13, color: Colors.brand.white },
+  fileSize: { fontFamily: 'SUIT-Regular', fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 2 },
+  downloadText: { fontFamily: 'SUIT-SemiBold', fontSize: 13, color: Colors.brand.warning },
   answerSection: {},
   answerHeader: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
