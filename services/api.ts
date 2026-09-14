@@ -303,6 +303,7 @@ export const api = {
     startMinute: number;
     poolId: number | null;
     categoryCode: string;
+    visibility: 'public' | 'private';
     participantIds: number[];
     guests?: { nickname: string; phone?: string }[];
   }) {
@@ -323,6 +324,7 @@ export const api = {
     startMinute: number;
     poolId: number | null;
     categoryCode: string;
+    visibility: 'public' | 'private';
     participantIds: number[];
     guests?: { nickname: string; phone?: string }[];
   }) {
@@ -362,8 +364,9 @@ export const api = {
     return request<{ schedules: Schedule[] }>(`/schedule/daily?date=${date}`);
   },
 
-  getMonthlySchedules(year: number, month: number) {
-    return request<{ schedules: Schedule[] }>(`/schedule/monthly?year=${year}&month=${month}`);
+  getMonthlySchedules(year: number, month: number, filter?: string) {
+    const params = `year=${year}&month=${month}${filter && filter !== 'mine' ? `&filter=${filter}` : ''}`;
+    return request<{ schedules: Schedule[] }>(`/schedule/monthly?${params}`);
   },
 
   rejectCert(requestId: number, reason?: string) {
@@ -570,6 +573,18 @@ export const api = {
 
   removeFromFriendGroup(groupId: number, userId: string) {
     return request<{ success: boolean }>(`/friends/groups/${groupId}/members/${userId}`, { method: 'DELETE' });
+  },
+
+  // 사용자 설정
+  getUserSettings() {
+    return request<{ settings: { schedulePublic: string } }>('/user/settings');
+  },
+
+  updateUserSetting(key: string, value: string) {
+    return request<{ success: boolean }>('/user/settings', {
+      method: 'PATCH',
+      body: JSON.stringify({ key, value }),
+    });
   },
 
   // SMS 인증

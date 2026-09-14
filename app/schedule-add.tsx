@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TextInput, StyleSheet, Pressable, ScrollView,
   Alert, Platform, KeyboardAvoidingView, ActivityIndicator, Keyboard,
-  Animated, Easing, LayoutAnimation,
+  Animated, Easing, LayoutAnimation, Switch,
 } from 'react-native';
 import { useLocalSearchParams, useRouter, useNavigation } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -62,6 +62,7 @@ export default function ScheduleAddScreen() {
   const [guestPhone, setGuestPhone] = useState('');
   const guestIdCounter = useRef(-1);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const [visibility, setVisibility] = useState<'public' | 'private'>('private');
 
   // Picker modals
   const [showPoolPicker, setShowPoolPicker] = useState(false);
@@ -79,6 +80,15 @@ export default function ScheduleAddScreen() {
   const modeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    // 신규 등록 시 schedulePublic 설정값으로 기본 공개여부 세팅
+    if (!isEditMode) {
+      api.getUserSettings()
+        .then((res) => {
+          setVisibility(res.settings.schedulePublic === 'Y' ? 'public' : 'private');
+        })
+        .catch(() => {});
+    }
+
     api.getDivingPools()
       .then((res) => {
         const sortedPools = (res.pools ?? []).sort((a, b) => a.id - b.id);
@@ -93,6 +103,7 @@ export default function ScheduleAddScreen() {
             setHour(s.startHour);
             setMinute(s.startMinute);
             setCategoryCode(s.categoryCode);
+            setVisibility(s.visibility || 'private');
             if (s.poolName) {
               const found = sortedPools.find((p) => p.name === s.poolName);
               if (found) setSelectedPool(found);
@@ -271,6 +282,7 @@ export default function ScheduleAddScreen() {
         startMinute: minute,
         poolId: selectedPool?.id ?? null,
         categoryCode,
+        visibility,
         participantIds: appUsers.map((p) => p.id),
         guests: guestUsers.map((p) => ({ nickname: p.nickname, phone: p.phone || undefined })),
       };
@@ -415,6 +427,29 @@ export default function ScheduleAddScreen() {
                 </Text>
                 <Text style={styles.pickerArrow}>▼</Text>
               </Pressable>
+
+              {/* 공개여부 */}
+              <Text style={styles.label}>공개여부</Text>
+              <View style={styles.visibilityRow}>
+                <Text style={styles.visibilityText}>
+                  {visibility === 'public' ? '공개' : '비공개'}
+                </Text>
+                <Switch
+                  value={visibility === 'public'}
+                  onValueChange={(v) => setVisibility(v ? 'public' : 'private')}
+                  trackColor={{ false: 'rgba(255,255,255,0.15)', true: 'rgba(52,199,89,0.5)' }}
+                  thumbColor={visibility === 'public' ? Colors.brand.success : 'rgba(255,255,255,0.6)'}
+                  style={{ transform: [{ scaleX: 0.85 }, { scaleY: 0.85 }] }}
+                />
+              </View>
+              <Text style={styles.visibilityDesc}>
+                {visibility === 'public'
+                  ? '모든 사용자가 이 일정을 볼 수 있습니다.'
+                  : '친한친구만 이 일정을 볼 수 있습니다.'}
+              </Text>
+              <Text style={styles.visibilityDesc}>
+                일정 공개여부 기본 설정은 홈 화면 우측 상단 메뉴 {'>'} 일정 설정에서 변경할 수 있습니다.
+              </Text>
 
               <View style={styles.divider} />
 
@@ -743,6 +778,19 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
   },
   timeLabel: { fontFamily: 'SUIT-Regular', fontSize: 16, color: 'rgba(255,255,255,0.6)' },
+  visibilityRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12,
+    paddingHorizontal: 16, height: 50,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+  },
+  visibilityText: {
+    fontFamily: 'SUIT-SemiBold', fontSize: 15, color: Colors.brand.white,
+  },
+  visibilityDesc: {
+    fontFamily: 'SUIT-Regular', fontSize: 12, color: 'rgba(255,255,255,0.35)',
+    marginTop: 6, paddingHorizontal: 4,
+  },
   divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.08)', marginTop: 24 },
   tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
   tag: {

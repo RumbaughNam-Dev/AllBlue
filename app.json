@@ -9,7 +9,7 @@
     "userInterfaceStyle": "automatic",
     "backgroundColor": "#144A84",
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "com.rumbaugh.allblue",
       "backgroundColor": "#144A84",
       "infoPlist": {
@@ -57,7 +57,9 @@
           "backgroundColor": "#144A84"
         }
       ],
-      "expo-asset"
+      "expo-asset",
+      "expo-image",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true

@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, Pressable, useWindowDimensions, LayoutChangeEvent, PanResponder, Animated, Easing } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, useWindowDimensions, LayoutChangeEvent, PanResponder, Animated, Easing } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/Colors';
 import MonthPicker from '@/components/MonthPicker';
@@ -14,13 +14,25 @@ type Event = {
   color: string;
 };
 
+type FilterOption = { key: string; label: string };
+
 type Props = {
   events?: Event[];
   onDatePress?: (date: string) => void;
   onMonthChange?: (year: number, month: number) => void;
+  scheduleFilter?: string;
+  onFilterChange?: (filter: string) => void;
+  filterOptions?: FilterOption[];
 };
 
-export default function Calendar({ events = [], onDatePress, onMonthChange }: Props) {
+const DEFAULT_FILTERS: FilterOption[] = [
+  { key: 'mine', label: '내 일정' },
+  { key: 'instructor', label: '강사 일정' },
+  { key: 'closeFriend', label: '친한친구 일정' },
+];
+
+export default function Calendar({ events = [], onDatePress, onMonthChange, scheduleFilter = 'mine', onFilterChange, filterOptions }: Props) {
+  const filters = filterOptions ?? DEFAULT_FILTERS;
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const TAB_BAR_HEIGHT = 56 + insets.bottom / 2 + 4 + 16; // tabRow + padding + extra
@@ -172,6 +184,26 @@ export default function Calendar({ events = [], onDatePress, onMonthChange }: Pr
         </Pressable>
       </View>
 
+      {/* Schedule Filter */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.filterRow}
+        style={styles.filterScroll}
+      >
+        {filters.map((opt) => (
+          <Pressable
+            key={opt.key}
+            style={[styles.filterItem, scheduleFilter === opt.key && styles.filterItemActive]}
+            onPress={() => onFilterChange?.(opt.key)}
+          >
+            <Text style={[styles.filterText, scheduleFilter === opt.key && styles.filterTextActive]}>
+              {opt.label}
+            </Text>
+          </Pressable>
+        ))}
+      </ScrollView>
+
       {/* Weekday Headers */}
       <View style={styles.weekdayRow}>
         {WEEKDAYS.map((day, i) => (
@@ -276,6 +308,34 @@ const styles = StyleSheet.create({
   monthText: {
     fontFamily: 'SUIT-Bold',
     fontSize: 28,
+    color: Colors.brand.white,
+  },
+  filterScroll: {
+    flexGrow: 0,
+  },
+  filterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingLeft: 16,
+    paddingRight: 16,
+    paddingBottom: 10,
+  },
+  filterItem: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  filterItemActive: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+  },
+  filterText: {
+    fontFamily: 'SUIT-SemiBold',
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.35)',
+  },
+  filterTextActive: {
     color: Colors.brand.white,
   },
   weekdayRow: {

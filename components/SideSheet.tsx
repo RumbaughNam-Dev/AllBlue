@@ -25,7 +25,7 @@ const MENU_ITEMS = [
   { key: 'cert', label: '자격증 등록 요청' },
   { key: 'inquiry', label: '문의하기' },
   { key: 'blocked', label: '차단 사용자 관리' },
-  { key: 'withdraw', label: '회원탈퇴' },
+  { key: 'schedule-settings', label: '일정 설정' },
 ];
 
 export default function SideSheet({ visible, onClose }: Props) {
@@ -107,6 +107,11 @@ export default function SideSheet({ visible, onClose }: Props) {
       setTimeout(() => router.push('/blocked-users'), 300);
       return;
     }
+    if (key === 'schedule-settings') {
+      onClose();
+      setTimeout(() => router.push('/schedule-settings'), 300);
+      return;
+    }
     if (key === 'withdraw') {
       onClose();
       setTimeout(() => router.push('/withdraw'), 300);
@@ -170,12 +175,18 @@ export default function SideSheet({ visible, onClose }: Props) {
           ))}
         </View>
 
-        {/* Logout */}
+        {/* Logout & Withdraw */}
         <Pressable
           style={({ pressed }) => [styles.logoutButton, pressed && { opacity: 0.6 }]}
           onPress={handleLogout}
         >
           <Text style={styles.logoutText}>로그아웃</Text>
+        </Pressable>
+        <Pressable
+          style={({ pressed }) => [styles.withdrawButton, pressed && { opacity: 0.6 }]}
+          onPress={() => handleMenuPress('withdraw')}
+        >
+          <Text style={styles.withdrawText}>회원탈퇴</Text>
         </Pressable>
       </Animated.View>
     </View>
@@ -249,5 +260,13 @@ const styles = StyleSheet.create({
     fontFamily: 'SUIT-Regular',
     fontSize: 14,
     color: 'rgba(255,255,255,0.45)',
+  },
+  withdrawButton: {
+    paddingVertical: 12,
+  },
+  withdrawText: {
+    fontFamily: 'SUIT-Regular',
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.25)',
   },
 });
