@@ -122,12 +122,16 @@ export type ScheduleParticipant = {
   isGuest?: boolean;
   hasInProgressLicense?: boolean;
   debriefingDone?: boolean;
+  categoryCode?: string;
+  participantLicenses?: { userLicenseId: number; code: string; nameKo: string }[];
   waiverSigned: boolean;
   medicalSigned: boolean;
   waiverUrl?: string;
   medicalUrl?: string;
   waiverUuid?: string;
   medicalUuid?: string;
+  waiverReused?: boolean;
+  medicalReused?: boolean;
 };
 
 export type ScheduleDetail = {
@@ -140,9 +144,35 @@ export type ScheduleDetail = {
   categoryCode: string;
   categoryName: string;
   instructorName: string;
+  visibility?: string;
   isOwner: boolean;
   myParticipantId?: number;
   participants: ScheduleParticipant[];
+};
+
+export type InProgressLicense = {
+  userLicenseId: number;
+  licenseId: number;
+  code: string;
+  name: string;
+  nameKo: string;
+  levelOrder: number;
+  associationId: number;
+  associationName: string;
+};
+
+export type AvailableLicense = {
+  licenseId: number;
+  code: string;
+  name: string;
+  nameKo: string;
+  levelOrder: number;
+  isInstructor: number;
+};
+
+export type Association = {
+  id: number;
+  name: string;
 };
 
 export type AchievementRequirement = {
@@ -304,8 +334,14 @@ export const api = {
     poolId: number | null;
     categoryCode: string;
     visibility: 'public' | 'private';
-    participantIds: number[];
-    guests?: { nickname: string; phone?: string }[];
+    participants: {
+      userId?: number;
+      guestNickname?: string;
+      guestPhone?: string;
+      categoryCode: string;
+      userLicenseIds?: number[];
+      newLicenses?: number[];
+    }[];
   }) {
     return request<{ success: boolean; scheduleId: number }>('/schedule', {
       method: 'POST',
@@ -325,8 +361,14 @@ export const api = {
     poolId: number | null;
     categoryCode: string;
     visibility: 'public' | 'private';
-    participantIds: number[];
-    guests?: { nickname: string; phone?: string }[];
+    participants: {
+      userId?: number;
+      guestNickname?: string;
+      guestPhone?: string;
+      categoryCode: string;
+      userLicenseIds?: number[];
+      newLicenses?: number[];
+    }[];
   }) {
     return request<{ success: boolean }>(`/schedule/${id}`, {
       method: 'PUT',
@@ -573,6 +615,19 @@ export const api = {
 
   removeFromFriendGroup(groupId: number, userId: string) {
     return request<{ success: boolean }>(`/friends/groups/${groupId}/members/${userId}`, { method: 'DELETE' });
+  },
+
+  // 자격증 관련
+  getInProgressLicenses(userId: number) {
+    return request<{ licenses: InProgressLicense[] }>(`/user/${userId}/in-progress-licenses`);
+  },
+
+  getAvailableLicenses(userId: number, associationId: number) {
+    return request<{ licenses: AvailableLicense[] }>(`/licenses/available?userId=${userId}&associationId=${associationId}`);
+  },
+
+  getAssociations() {
+    return request<{ associations: Association[] }>('/licenses/associations');
   },
 
   // 사용자 설정

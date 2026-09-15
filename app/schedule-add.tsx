@@ -1,22 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TextInput, StyleSheet, Pressable, ScrollView,
-  Alert, Platform, KeyboardAvoidingView, ActivityIndicator, Keyboard,
-  Animated, Easing, LayoutAnimation, Switch,
+  Alert, Platform, KeyboardAvoidingView, ActivityIndicator, Keyboard, Switch,
 } from 'react-native';
 import { useLocalSearchParams, useRouter, useNavigation } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import Colors from '@/constants/Colors';
-import { api } from '@/services/api';
+import { api, InProgressLicense, AvailableLicense, Association } from '@/services/api';
 import BottomSheet from '@/components/BottomSheet';
 import DatePickerSheet from '@/components/DatePickerSheet';
 import LevelBadge from '@/components/LevelBadge';
 import Spinner from '@/components/Spinner';
-import { api as friendApi, CloseFriend } from '@/services/api';
-
-const HOURS = Array.from({ length: 24 }, (_, i) => i);
-const MINUTES = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
+import { CloseFriend } from '@/services/api';
 
 const CATEGORIES = [
   { code: 'EXPERIENCE', label: '체험교육' },
@@ -28,9 +24,19 @@ const CATEGORIES = [
 ];
 
 const STUDENT_CATEGORIES = ['EXPERIENCE', 'CERTIFICATION', 'LECTURE'];
+const HOURS = Array.from({ length: 24 }, (_, i) => i);
+const MINUTES = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
 
 type Pool = { id: number; name: string };
 type UserResult = { id: number; nickname: string; name?: string; phone: string; birthDate?: string; level?: string | number | null; isGuest?: boolean };
+type ParticipantEntry = {
+  user: UserResult;
+  categoryCode: string;
+  selectedLicenseIds: number[];
+  newLicenses: { licenseId: number; code: string; nameKo: string }[];
+};
+
+type Step = 'info' | 'participant';
 
 export default function ScheduleAddScreen() {
   const insets = useSafeAreaInsets();
@@ -39,53 +45,107 @@ export default function ScheduleAddScreen() {
   const { date, id, prefillParticipant } = useLocalSearchParams<{ date: string; id?: string; prefillParticipant?: string }>();
   const isEditMode = !!id;
 
+  // Step
+  const [step, setStep] = useState<Step>('info');
+
+  // Schedule info
   const [scheduleDate, setScheduleDate] = useState(date || new Date().toISOString().split('T')[0]);
   const dateObj = new Date(scheduleDate + 'T00:00:00');
   const month = dateObj.getMonth() + 1;
   const day = dateObj.getDate();
-  const hasDateParam = !!date;
-
   const [title, setTitle] = useState('');
   const [selectedPool, setSelectedPool] = useState<Pool | null>(null);
   const [pools, setPools] = useState<Pool[]>([]);
-  const [hour, setHour] = useState(9);
-  const [minute, setMinute] = useState(0);
+  const [hour, setHour] = useState(() => {
+    if (id) return 9; // 수정 모드는 기존 값 로드
+    const now = new Date();
+    const totalMin = now.getHours() * 60 + now.getMinutes() + 30;
+    const snapped = Math.ceil(totalMin / 5) * 5;
+    return Math.floor(snapped / 60) % 24;
+  });
+  const [minute, setMinute] = useState(() => {
+    if (id) return 0;
+    const now = new Date();
+    const totalMin = now.getHours() * 60 + now.getMinutes() + 30;
+    const snapped = Math.ceil(totalMin / 5) * 5;
+    return snapped % 60;
+  });
   const [categoryCode, setCategoryCode] = useState('');
-  const [participants, setParticipants] = useState<UserResult[]>([]);
-  const prefillDone = useRef(false);
+  const [visibility, setVisibility] = useState<'public' | 'private'>('private');
+
+  // Confirmed participants
+  const [participants, setParticipants] = useState<ParticipantEntry[]>([]);
+
+  // Current participant editing
+  const [currentUser, setCurrentUser] = useState<UserResult | null>(null);
+  const [currentCategory, setCurrentCategory] = useState('');
+  const [currentSelectedLicenseIds, setCurrentSelectedLicenseIds] = useState<number[]>([]);
+  const [currentNewLicenses, setCurrentNewLicenses] = useState<{ licenseId: number; code: string; nameKo: string }[]>([]);
+  const [inProgressLicenses, setInProgressLicenses] = useState<InProgressLicense[]>([]);
+  const [licensesLoading, setLicensesLoading] = useState(false);
+
+  // Search
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<UserResult[]>([]);
   const [searching, setSearching] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [guestMode, setGuestMode] = useState(false);
-  const [guestNickname, setGuestNickname] = useState('');
-  const [guestPhone, setGuestPhone] = useState('');
-  const guestIdCounter = useRef(-1);
-  const [loadingDetail, setLoadingDetail] = useState(false);
-  const [visibility, setVisibility] = useState<'public' | 'private'>('private');
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchInputRef = useRef<TextInput>(null);
+  const [participantTab, setParticipantTab] = useState<'search' | 'friends'>('search');
+  const [closeFriends, setCloseFriends] = useState<CloseFriend[]>([]);
+  const [friendsLoading, setFriendsLoading] = useState(false);
 
-  // Picker modals
+  // License addition
+  const [associations, setAssociations] = useState<Association[]>([]);
+  const [showAssociationPicker, setShowAssociationPicker] = useState(false);
+  const [availableLicenses, setAvailableLicenses] = useState<AvailableLicense[]>([]);
+  const [showAvailableLicensePicker, setShowAvailableLicensePicker] = useState(false);
+
+  // Pickers
   const [showPoolPicker, setShowPoolPicker] = useState(false);
   const [showHourPicker, setShowHourPicker] = useState(false);
   const [showMinutePicker, setShowMinutePicker] = useState(false);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showParticipantCategoryPicker, setShowParticipantCategoryPicker] = useState(false);
 
-  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const searchInputRef = useRef<TextInput>(null);
-  const [participantMode, setParticipantMode] = useState(false);
-  const [participantTab, setParticipantTab] = useState<'search' | 'friends'>('search');
-  const [closeFriends, setCloseFriends] = useState<CloseFriend[]>([]);
-  const [friendsLoading, setFriendsLoading] = useState(false);
-  const modeAnim = useRef(new Animated.Value(0)).current;
+  // Other
+  const [saving, setSaving] = useState(false);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+
+  const selectedCategory = CATEGORIES.find((c) => c.code === categoryCode);
+  const participantCategoryLabel = CATEGORIES.find((c) => c.code === currentCategory)?.label ?? '';
+  const isStudentType = STUDENT_CATEGORIES.includes(categoryCode);
+  const participantLabel = isStudentType ? '교육생' : '참석자';
+
+  // Block back navigation (button + swipe) when there's unsaved input
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('beforeRemove', (e: any) => {
+      if (step === 'participant') {
+        e.preventDefault();
+        setStep('info');
+        return;
+      }
+      if (!isEditMode && (title.trim() !== '' || selectedPool !== null || categoryCode !== '' || participants.length > 0 || currentUser !== null)) {
+        e.preventDefault();
+        Alert.alert(
+          '확인',
+          '등록된 다이빙 일정 정보가 사라집니다.\n취소하시겠어요?',
+          [
+            { text: '아니오', style: 'cancel' },
+            { text: '예', style: 'destructive', onPress: () => navigation.dispatch(e.data.action) },
+          ],
+        );
+      }
+    });
+    return unsubscribe;
+  }, [navigation, step, title, selectedPool, categoryCode, participants, currentUser, isEditMode]);
+
+  // --- Effects ---
 
   useEffect(() => {
-    // 신규 등록 시 schedulePublic 설정값으로 기본 공개여부 세팅
     if (!isEditMode) {
       api.getUserSettings()
-        .then((res) => {
-          setVisibility(res.settings.schedulePublic === 'Y' ? 'public' : 'private');
-        })
+        .then((res) => setVisibility(res.settings.schedulePublic === 'Y' ? 'public' : 'private'))
         .catch(() => {});
     }
 
@@ -94,7 +154,6 @@ export default function ScheduleAddScreen() {
         const sortedPools = (res.pools ?? []).sort((a, b) => a.id - b.id);
         setPools(sortedPools);
 
-        // 수정 모드: 기존 데이터 로드
         if (isEditMode) {
           setLoadingDetail(true);
           api.getScheduleDetail(Number(id)).then((res) => {
@@ -103,18 +162,17 @@ export default function ScheduleAddScreen() {
             setHour(s.startHour);
             setMinute(s.startMinute);
             setCategoryCode(s.categoryCode);
-            setVisibility(s.visibility || 'private');
+            setVisibility((s.visibility as 'public' | 'private') || 'private');
             if (s.poolName) {
               const found = sortedPools.find((p) => p.name === s.poolName);
               if (found) setSelectedPool(found);
             }
             setParticipants(
               s.participants.map((p) => ({
-                id: p.id,
-                nickname: p.nickname,
-                name: p.name,
-                phone: '',
-                isGuest: p.isGuest,
+                user: { id: p.id, nickname: p.nickname, name: p.name, phone: '', level: p.level, isGuest: p.isGuest },
+                categoryCode: p.categoryCode || s.categoryCode,
+                selectedLicenseIds: (p.participantLicenses || []).map((l) => l.userLicenseId),
+                newLicenses: [],
               }))
             );
           }).catch(() => {}).finally(() => setLoadingDetail(false));
@@ -122,19 +180,21 @@ export default function ScheduleAddScreen() {
       })
       .catch(() => {});
 
-    // prefill: 친구 목록에서 일정만들기로 진입 시
-    if (prefillParticipant && !prefillDone.current) {
-      prefillDone.current = true;
+    if (prefillParticipant) {
       try {
         const p = JSON.parse(prefillParticipant);
         if (p.nickname) {
           api.searchUsers(p.nickname).then((res) => {
             const found = (res.users ?? []).find((u: any) =>
-              (p.userId && String(u.id) === String(p.userId)) ||
-              u.nickname === p.nickname
+              (p.userId && String(u.id) === String(p.userId)) || u.nickname === p.nickname
             );
             if (found) {
-              setParticipants([found]);
+              setParticipants([{
+                user: found,
+                categoryCode: categoryCode || 'TRAINING',
+                selectedLicenseIds: [],
+                newLicenses: [],
+              }]);
             }
           }).catch(() => {});
         }
@@ -142,184 +202,232 @@ export default function ScheduleAddScreen() {
     }
   }, []);
 
+  // Search debounce
   useEffect(() => {
-    if (searchQuery.trim().length === 0) {
-      setSearchResults([]);
-      return;
-    }
+    if (searchQuery.trim().length === 0) { setSearchResults([]); return; }
     if (searchTimer.current) clearTimeout(searchTimer.current);
     searchTimer.current = setTimeout(async () => {
       setSearching(true);
       try {
         const res = await api.searchUsers(searchQuery.trim());
-        const filtered = (res.users ?? []).filter(
-          (u) => !participants.some((p) => p.id === u.id)
-        );
-        setSearchResults(filtered);
+        const existingIds = [...participants.map((p) => p.user.id), ...(currentUser ? [currentUser.id] : [])];
+        setSearchResults((res.users ?? []).filter((u) => !existingIds.includes(u.id)));
       } catch {}
       setSearching(false);
     }, 300);
-  }, [searchQuery, participants]);
+  }, [searchQuery, participants, currentUser]);
 
-  const addParticipant = (user: UserResult) => {
-    setParticipants((prev) => [...prev, user]);
-    setSearchQuery('');
-    setSearchResults([]);
-    setGuestMode(false);
-  };
-
-  const enterGuestMode = () => {
-    setGuestNickname(searchQuery.trim());
-    setGuestPhone('');
-    setGuestMode(true);
-    setSearchQuery('');
-    setSearchResults([]);
-  };
+  // --- Handlers ---
 
   const fetchCloseFriends = async () => {
     setFriendsLoading(true);
     try {
-      const res = await friendApi.getCloseFriends();
+      const res = await api.getCloseFriends();
       setCloseFriends(res.friends ?? []);
     } catch {}
     setFriendsLoading(false);
   };
 
-  const addFriendAsParticipant = async (friend: CloseFriend) => {
-    // 이미 추가된 참가자인지 확인
-    if (participants.some((p) => p.nickname === friend.nickname)) return;
-    // 검색 API로 INT id를 가져옴
+  const handleNextStep = () => {
+    if (!title.trim()) { Alert.alert('알림', '제목을 입력해주세요.'); return; }
+    if (!categoryCode) { Alert.alert('알림', '분류를 선택해주세요.'); return; }
+    setCurrentCategory(categoryCode);
+    setStep('participant');
+    fetchCloseFriends();
+    setTimeout(() => searchInputRef.current?.focus(), 300);
+  };
+
+  const handleSelectUser = async (user: UserResult) => {
+    setCurrentUser(user);
+    setSearchQuery('');
+    setSearchResults([]);
+    Keyboard.dismiss();
+    if (currentCategory === 'CERTIFICATION') {
+      fetchLicensesForUser(user.id);
+    }
+  };
+
+  const handleSelectFriend = async (friend: CloseFriend) => {
+    const existingIds = participants.map((p) => p.user.id);
     try {
       const res = await api.searchUsers(friend.nickname);
       const found = (res.users ?? []).find((u) => u.nickname === friend.nickname);
       if (found) {
-        addParticipant(found);
+        if (existingIds.includes(found.id)) return;
+        handleSelectUser(found);
       }
     } catch {}
   };
 
-  const addGuestParticipant = () => {
-    if (!guestNickname.trim()) {
-      Alert.alert('알림', '이름을 입력해주세요.');
+  const handleRemoveCurrentUser = () => {
+    setCurrentUser(null);
+    setCurrentSelectedLicenseIds([]);
+    setCurrentNewLicenses([]);
+    setInProgressLicenses([]);
+  };
+
+  const handleCurrentCategoryChange = (code: string) => {
+    setCurrentCategory(code);
+    setCurrentSelectedLicenseIds([]);
+    setCurrentNewLicenses([]);
+    if (code === 'CERTIFICATION' && currentUser) {
+      fetchLicensesForUser(currentUser.id);
+    }
+  };
+
+  const fetchLicensesForUser = async (userId: number) => {
+    setLicensesLoading(true);
+    try {
+      const res = await api.getInProgressLicenses(userId);
+      const licenses = res.licenses ?? [];
+      setInProgressLicenses(licenses);
+      setCurrentSelectedLicenseIds(licenses.map((l) => l.userLicenseId));
+    } catch {}
+    setLicensesLoading(false);
+  };
+
+  const toggleLicenseId = (id: number) => {
+    setCurrentSelectedLicenseIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const handleAddLicense = async () => {
+    if (associations.length === 0) {
+      try {
+        const res = await api.getAssociations();
+        setAssociations(res.associations ?? []);
+      } catch {}
+    }
+    setShowAssociationPicker(true);
+  };
+
+  const handleSelectAssociation = async (associationId: number) => {
+    if (!currentUser) return;
+    try {
+      const res = await api.getAvailableLicenses(currentUser.id, associationId);
+      const existing = currentNewLicenses.map((l) => l.licenseId);
+      setAvailableLicenses((res.licenses ?? []).filter((l) => !existing.includes(l.licenseId)));
+      setShowAvailableLicensePicker(true);
+    } catch {
+      Alert.alert('오류', '자격증 목록을 불러올 수 없습니다.');
+    }
+  };
+
+  const handleSelectNewLicense = (lic: AvailableLicense) => {
+    setCurrentNewLicenses((prev) => [...prev, { licenseId: lic.licenseId, code: lic.code, nameKo: lic.nameKo }]);
+  };
+
+  const removeNewLicense = (licenseId: number) => {
+    setCurrentNewLicenses((prev) => prev.filter((l) => l.licenseId !== licenseId));
+  };
+
+  const addParticipantAndContinue = () => {
+    if (!validateCurrentParticipant()) return;
+    setParticipants((prev) => [...prev, buildCurrentEntry()!]);
+    resetCurrentParticipant();
+    setTimeout(() => searchInputRef.current?.focus(), 200);
+  };
+
+  const removeParticipant = (index: number) => {
+    setParticipants((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const validateCurrentParticipant = () => {
+    if (!currentUser) return false;
+    if (!currentCategory) { Alert.alert('알림', '분류를 선택해주세요.'); return false; }
+    if (currentCategory === 'CERTIFICATION' && currentSelectedLicenseIds.length === 0 && currentNewLicenses.length === 0) {
+      Alert.alert('알림', '자격증 과정을 하나 이상 선택해주세요.');
+      return false;
+    }
+    return true;
+  };
+
+  const buildCurrentEntry = (): ParticipantEntry | null => {
+    if (!currentUser) return null;
+    return {
+      user: currentUser,
+      categoryCode: currentCategory,
+      selectedLicenseIds: currentCategory === 'CERTIFICATION' ? currentSelectedLicenseIds : [],
+      newLicenses: currentCategory === 'CERTIFICATION' ? currentNewLicenses : [],
+    };
+  };
+
+  const resetCurrentParticipant = () => {
+    setCurrentUser(null);
+    setCurrentCategory(categoryCode);
+    setCurrentSelectedLicenseIds([]);
+    setCurrentNewLicenses([]);
+    setInProgressLicenses([]);
+    setSearchQuery('');
+    setSearchResults([]);
+  };
+
+  const handleSave = () => {
+    const allParticipants = [...participants];
+    if (currentUser) {
+      if (!validateCurrentParticipant()) return;
+      allParticipants.push(buildCurrentEntry()!);
+    }
+
+    if (isEditMode) {
+      doSave(allParticipants);
       return;
     }
-    const id = guestIdCounter.current--;
-    addParticipant({
-      id,
-      nickname: guestNickname.trim(),
-      phone: guestPhone.replace(/\D/g, ''),
-      isGuest: true,
-    });
-    setGuestMode(false);
+
+    // 확인 Alert with summary
+    const dateStr = `${dateObj.getFullYear()}년 ${month}월 ${day}일 ${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+    const catLabel = getCategoryLabel(categoryCode);
+    const participantSummary = allParticipants.length > 0
+      ? allParticipants.map((p) => `  - ${p.user.nickname} (${getCategoryLabel(p.categoryCode)})`).join('\n')
+      : '  없음';
+
+    Alert.alert(
+      '다이빙을 등록하시겠어요?',
+      `${title.trim()}\n${dateStr}\n${catLabel}${selectedPool ? ` · ${selectedPool.name}` : ''}\n\n${participantLabel} ${allParticipants.length}명\n${participantSummary}`,
+      [
+        { text: '취소', style: 'cancel' },
+        { text: '등록할게요', onPress: () => doSave(allParticipants) },
+      ],
+    );
   };
 
-  const removeParticipant = (id: number) => {
-    setParticipants((prev) => prev.filter((p) => p.id !== id));
-  };
-
-  const participantsBackup = useRef<UserResult[]>([]);
-
-  const enterParticipantMode = () => {
-    participantsBackup.current = [...participants];
-    setParticipantMode(true);
-    setParticipantTab('search');
-    navigation.setOptions({ gestureEnabled: false });
-    fetchCloseFriends();
-    Animated.timing(modeAnim, {
-      toValue: 1, duration: 300, easing: Easing.out(Easing.cubic), useNativeDriver: false,
-    }).start(() => {
-      searchInputRef.current?.focus();
-    });
-  };
-
-  const cancelParticipantMode = () => {
-    Keyboard.dismiss();
-    setParticipants(participantsBackup.current);
-    setSearchQuery('');
-    setSearchResults([]);
-    setGuestMode(false);
-    Animated.timing(modeAnim, {
-      toValue: 0, duration: 250, easing: Easing.in(Easing.cubic), useNativeDriver: false,
-    }).start(() => {
-      setParticipantMode(false);
-      navigation.setOptions({ gestureEnabled: true });
-    });
-  };
-
-  const confirmParticipantMode = () => {
-    Keyboard.dismiss();
-    setSearchQuery('');
-    setSearchResults([]);
-    setGuestMode(false);
-    Animated.timing(modeAnim, {
-      toValue: 0, duration: 250, easing: Easing.in(Easing.cubic), useNativeDriver: false,
-    }).start(() => {
-      setParticipantMode(false);
-      navigation.setOptions({ gestureEnabled: true });
-    });
-  };
-
-  const selectedCategory = CATEGORIES.find((c) => c.code === categoryCode);
-  const isStudentType = STUDENT_CATEGORIES.includes(categoryCode);
-  const participantLabel = isStudentType ? '교육생' : '참석자';
-
-  const formOpacity = modeAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] });
-  const formHeight = modeAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] });
-  const participantFlex = modeAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 1] });
-
-  const handleSave = async () => {
-    if (!title.trim()) { Alert.alert('알림', '제목을 입력해주세요.'); return; }
-    if (!categoryCode) { Alert.alert('알림', '분류를 선택해주세요.'); return; }
+  const doSave = async (allParticipants: ParticipantEntry[]) => {
+    const payload = {
+      title: title.trim(),
+      scheduleDate,
+      startHour: hour,
+      startMinute: minute,
+      poolId: selectedPool?.id ?? null,
+      categoryCode,
+      visibility,
+      participants: allParticipants.map((p) => ({
+        userId: p.user.id,
+        categoryCode: p.categoryCode,
+        ...(p.categoryCode === 'CERTIFICATION' ? {
+          userLicenseIds: p.selectedLicenseIds,
+          newLicenses: p.newLicenses.map((l) => l.licenseId),
+        } : {}),
+      })),
+    };
 
     try {
       setSaving(true);
-      const appUsers = participants.filter((p) => !p.isGuest);
-      const guestUsers = participants.filter((p) => p.isGuest);
-      const payload = {
-        title: title.trim(),
-        scheduleDate: scheduleDate,
-        startHour: hour,
-        startMinute: minute,
-        poolId: selectedPool?.id ?? null,
-        categoryCode,
-        visibility,
-        participantIds: appUsers.map((p) => p.id),
-        guests: guestUsers.map((p) => ({ nickname: p.nickname, phone: p.phone || undefined })),
-      };
-
       if (isEditMode) {
         await api.updateSchedule(Number(id), payload);
-        Alert.alert('알림', '일정이 수정되었습니다.', [
-          { text: '확인', onPress: () => router.back() },
-        ]);
+        router.back();
       } else {
-        await api.createSchedule(payload);
-        Alert.alert('알림', '일정이 등록되었습니다.', [
-          { text: '확인', onPress: () => router.back() },
-        ]);
+        const res = await api.createSchedule(payload);
+        router.back();
+        setTimeout(() => {
+          router.push({ pathname: '/schedule-detail', params: { id: String(res.scheduleId) } });
+        }, 100);
       }
     } catch (e: any) {
       if (!e._handled) Alert.alert(isEditMode ? '수정 실패' : '등록 실패', e.message ?? '잠시 후 다시 시도해주세요.');
     } finally {
       setSaving(false);
     }
-  };
-
-  const formatBirthDate = (bd?: string) => {
-    if (!bd) return '';
-    const parts = bd.split('-');
-    if (parts.length === 3) {
-      return `${Number(parts[0])}년 ${Number(parts[1])}월 ${Number(parts[2])}일`;
-    }
-    return bd;
-  };
-
-  const formatPhone = (p?: string) => {
-    if (!p) return '';
-    const d = p.replace(/\D/g, '');
-    if (d.length === 11) return `${d.slice(0, 3)}-${d.slice(3, 7)}-${d.slice(7)}`;
-    if (d.length === 10) return `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}`;
-    return p;
   };
 
   const maskPhone = (p?: string) => {
@@ -330,13 +438,13 @@ export default function ScheduleAddScreen() {
     return p;
   };
 
-  const maskEmail = (e?: string) => {
-    if (!e) return '';
-    const [local, domain] = e.split('@');
-    if (!domain) return e;
-    const masked = local.length <= 2 ? local : local.slice(0, 2) + '***';
-    return `${masked}@${domain}`;
+  const getCategoryLabel = (code: string) => CATEGORIES.find((c) => c.code === code)?.label ?? code;
+
+  const handleBack = () => {
+    router.back();
   };
+
+  // --- Render ---
 
   return (
     <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
@@ -348,339 +456,335 @@ export default function ScheduleAddScreen() {
       <>
       {/* Header */}
       <View style={styles.header}>
-        {participantMode ? (
-          <View style={{ width: 36 }} />
-        ) : (
-          <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.6 }]}>
-            <View style={styles.backCircle}>
-              <Text style={styles.backArrow}>{'<'}</Text>
-            </View>
-          </Pressable>
-        )}
+        <Pressable
+          onPress={handleBack}
+          style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.6 }]}
+        >
+          <View style={styles.backCircle}>
+            <Text style={styles.backArrow}>{'<'}</Text>
+          </View>
+        </Pressable>
         <Text style={styles.headerTitle}>
-          {participantMode ? participantLabel : isEditMode ? '일정 수정' : '다이빙 만들기'}
+          {step === 'info' ? (isEditMode ? '일정 수정' : '다이빙 만들기') : participantLabel}
         </Text>
-        {participantMode ? (
-          <Pressable onPress={cancelParticipantMode} style={({ pressed }) => [styles.closeButton, pressed && { opacity: 0.6 }]}>
-            <Text style={styles.closeText}>{'✕'}</Text>
-          </Pressable>
-        ) : (
-          <View style={{ width: 36 }} />
-        )}
+        <View style={{ width: 36 }} />
       </View>
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        {/* 폼 영역 - 참석자 모드에서 접힘 */}
-        <Animated.View style={{ opacity: formOpacity, transform: [{ scaleY: formHeight }], overflow: 'hidden' }}>
-          {!participantMode && (
-            <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-              {/* 제목 */}
-              <Text style={styles.label}>제목</Text>
-              <TextInput
-                style={styles.input}
-                value={title}
-                onChangeText={setTitle}
-                placeholder="일정 제목을 입력해주세요"
-                placeholderTextColor="rgba(255,255,255,0.25)"
-              />
 
-              {/* 장소 */}
-              <Text style={styles.label}>장소</Text>
-              <Pressable style={styles.pickerButton} onPress={() => { Keyboard.dismiss(); setShowPoolPicker(true); }}>
-                <Text style={[styles.pickerText, !selectedPool && styles.pickerPlaceholder]}>
-                  {selectedPool?.name ?? '장소를 선택해주세요'}
-                </Text>
+        {/* === Step 1: Info === */}
+        {step === 'info' && (
+          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+            <Text style={styles.label}>제목</Text>
+            <TextInput
+              style={styles.input}
+              value={title}
+              onChangeText={setTitle}
+              placeholder="일정 제목을 입력해주세요"
+              placeholderTextColor="rgba(255,255,255,0.25)"
+            />
+
+            <Text style={styles.label}>장소</Text>
+            <Pressable style={styles.pickerButton} onPress={() => { Keyboard.dismiss(); setShowPoolPicker(true); }}>
+              <Text style={[styles.pickerText, !selectedPool && styles.pickerPlaceholder]}>
+                {selectedPool?.name ?? '장소를 선택해주세요'}
+              </Text>
+              <Text style={styles.pickerArrow}>▼</Text>
+            </Pressable>
+
+            {!isEditMode && (
+              <>
+                <Text style={styles.label}>날짜</Text>
+                <Pressable style={styles.dateInputRow} onPress={() => { Keyboard.dismiss(); setShowDatePicker(true); }}>
+                  <Text style={styles.pickerText}>{dateObj.getFullYear()}년 {month}월 {day}일</Text>
+                  <Text style={styles.calendarIcon}>📅</Text>
+                </Pressable>
+              </>
+            )}
+
+            <Text style={styles.label}>시간</Text>
+            <View style={styles.timeRow}>
+              <Pressable style={styles.timePickerButton} onPress={() => { Keyboard.dismiss(); setShowHourPicker(true); }}>
+                <Text style={styles.pickerText}>{String(hour).padStart(2, '0')}</Text>
                 <Text style={styles.pickerArrow}>▼</Text>
               </Pressable>
-
-              {/* 날짜 */}
-              {!isEditMode && (
-                <>
-                  <Text style={styles.label}>날짜</Text>
-                  <Pressable style={styles.dateInputRow} onPress={() => { Keyboard.dismiss(); setShowDatePicker(true); }}>
-                    <Text style={styles.pickerText}>{dateObj.getFullYear()}년 {month}월 {day}일</Text>
-                    <Text style={styles.calendarIcon}>📅</Text>
-                  </Pressable>
-                </>
-              )}
-
-              {/* 시간 */}
-              <Text style={styles.label}>시간</Text>
-              <View style={styles.timeRow}>
-                <Pressable style={styles.timePickerButton} onPress={() => { Keyboard.dismiss(); setShowHourPicker(true); }}>
-                  <Text style={styles.pickerText}>{String(hour).padStart(2, '0')}</Text>
-                  <Text style={styles.pickerArrow}>▼</Text>
-                </Pressable>
-                <Text style={styles.timeLabel}>시</Text>
-                <Pressable style={styles.timePickerButton} onPress={() => { Keyboard.dismiss(); setShowMinutePicker(true); }}>
-                  <Text style={styles.pickerText}>{String(minute).padStart(2, '0')}</Text>
-                  <Text style={styles.pickerArrow}>▼</Text>
-                </Pressable>
-                <Text style={styles.timeLabel}>분</Text>
-              </View>
-
-              {/* 분류 */}
-              <Text style={styles.label}>분류</Text>
-              <Pressable style={styles.pickerButton} onPress={() => { Keyboard.dismiss(); setShowCategoryPicker(true); }}>
-                <Text style={[styles.pickerText, !selectedCategory && styles.pickerPlaceholder]}>
-                  {selectedCategory?.label ?? '분류를 선택해주세요'}
-                </Text>
+              <Text style={styles.timeLabel}>시</Text>
+              <Pressable style={styles.timePickerButton} onPress={() => { Keyboard.dismiss(); setShowMinutePicker(true); }}>
+                <Text style={styles.pickerText}>{String(minute).padStart(2, '0')}</Text>
                 <Text style={styles.pickerArrow}>▼</Text>
               </Pressable>
-
-              {/* 공개여부 */}
-              <Text style={styles.label}>공개여부</Text>
-              <View style={styles.visibilityRow}>
-                <Text style={styles.visibilityText}>
-                  {visibility === 'public' ? '공개' : '비공개'}
-                </Text>
-                <Switch
-                  value={visibility === 'public'}
-                  onValueChange={(v) => setVisibility(v ? 'public' : 'private')}
-                  trackColor={{ false: 'rgba(255,255,255,0.15)', true: 'rgba(52,199,89,0.5)' }}
-                  thumbColor={visibility === 'public' ? Colors.brand.success : 'rgba(255,255,255,0.6)'}
-                  style={{ transform: [{ scaleX: 0.85 }, { scaleY: 0.85 }] }}
-                />
-              </View>
-              <Text style={styles.visibilityDesc}>
-                {visibility === 'public'
-                  ? '모든 사용자가 이 일정을 볼 수 있습니다.'
-                  : '친한친구만 이 일정을 볼 수 있습니다.'}
-              </Text>
-              <Text style={styles.visibilityDesc}>
-                일정 공개여부 기본 설정은 홈 화면 우측 상단 메뉴 {'>'} 일정 설정에서 변경할 수 있습니다.
-              </Text>
-
-              <View style={styles.divider} />
-
-              {/* 교육생/참석자 */}
-              <Text style={styles.label}>{participantLabel}</Text>
-
-              {/* 참석자 검색 진입 */}
-              <Pressable style={styles.participantBox} onPress={enterParticipantMode}>
-                {participants.length > 0 ? (
-                  <View style={[styles.tagRow, { marginBottom: 0 }]}>
-                    {participants.map((p) => (
-                      <View key={p.id} style={styles.tagInBox}>
-                        <Text style={styles.tagInBoxText}>{p.nickname}</Text>
-                      </View>
-                    ))}
-                  </View>
-                ) : (
-                  <Text style={styles.pickerPlaceholderText}>이름, 전화번호로 검색</Text>
-                )}
-              </Pressable>
-            </ScrollView>
-          )}
-        </Animated.View>
-
-        {/* 참석자 모드 영역 */}
-        {participantMode && (
-          <Animated.View style={[styles.participantArea, { flex: 1, opacity: modeAnim }]}>
-            {/* 탭: 사용자 검색 / 친한친구 */}
-            <View style={styles.participantTabRow}>
-              <Pressable
-                style={[styles.participantTabItem, participantTab === 'search' && styles.participantTabItemActive]}
-                onPress={() => setParticipantTab('search')}
-              >
-                <Text style={[styles.participantTabText, participantTab === 'search' && styles.participantTabTextActive]}>사용자 검색</Text>
-              </Pressable>
-              <Pressable
-                style={[styles.participantTabItem, participantTab === 'friends' && styles.participantTabItemActive]}
-                onPress={() => setParticipantTab('friends')}
-              >
-                <Text style={[styles.participantTabText, participantTab === 'friends' && styles.participantTabTextActive]}>친한친구</Text>
-              </Pressable>
+              <Text style={styles.timeLabel}>분</Text>
             </View>
 
-            {/* 선택된 참가자 태그 */}
+            <Text style={styles.label}>분류</Text>
+            <Pressable style={styles.pickerButton} onPress={() => { Keyboard.dismiss(); setShowCategoryPicker(true); }}>
+              <Text style={[styles.pickerText, !selectedCategory && styles.pickerPlaceholder]}>
+                {selectedCategory?.label ?? '분류를 선택해주세요'}
+              </Text>
+              <Text style={styles.pickerArrow}>▼</Text>
+            </Pressable>
+
+            <Text style={styles.label}>공개여부</Text>
+            <View style={styles.visibilityRow}>
+              <Text style={styles.visibilityText}>
+                {visibility === 'public' ? '공개' : '비공개'}
+              </Text>
+              <Switch
+                value={visibility === 'public'}
+                onValueChange={(v) => setVisibility(v ? 'public' : 'private')}
+                trackColor={{ false: 'rgba(255,255,255,0.15)', true: 'rgba(52,199,89,0.5)' }}
+                thumbColor={visibility === 'public' ? Colors.brand.success : 'rgba(255,255,255,0.6)'}
+              />
+            </View>
+            <Text style={styles.visibilityDesc}>
+              {visibility === 'public'
+                ? '모든 사용자가 이 일정을 볼 수 있습니다.'
+                : '친한친구만 이 일정을 볼 수 있습니다.'}
+            </Text>
+            <Text style={styles.visibilityDesc}>
+              일정 공개여부 기본 설정은 홈 화면 우측 상단 메뉴 {'>'} 일정 설정에서 변경할 수 있습니다.
+            </Text>
+          </ScrollView>
+        )}
+
+        {/* === Step 2: Participant === */}
+        {step === 'participant' && (
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+
+            {/* Already added participants */}
             {participants.length > 0 && (
-              <View style={{ marginBottom: 8, gap: 8 }}>
-                {participants.map((p) => (
-                  <View key={p.id} style={styles.participantCard}>
+              <View style={styles.addedSection}>
+                {participants.map((p, i) => (
+                  <View key={`${p.user.id}_${i}`} style={styles.addedCard}>
                     <View style={{ flex: 1 }}>
-                      <View style={styles.searchNameRow}>
-                        <Text style={styles.tagText}>{p.nickname}{p.name ? ` (${p.name})` : ''}</Text>
-                        {p.isGuest
-                          ? <View style={styles.guestBadge}><Text style={styles.guestBadgeText}>미사용자</Text></View>
-                          : <LevelBadge level={p.level} size={18} />
-                        }
+                      <View style={styles.addedNameRow}>
+                        <Text style={styles.addedName}>{p.user.nickname}{p.user.name ? ` (${p.user.name})` : ''}</Text>
+                        <LevelBadge level={p.user.level} size={18} />
                       </View>
-                      {p.phone ? <Text style={styles.searchSub}>{maskPhone(p.phone)}</Text> : null}
+                      <Text style={styles.addedCategory}>{getCategoryLabel(p.categoryCode)}</Text>
                     </View>
-                    <Pressable onPress={() => removeParticipant(p.id)} style={styles.removeButton}>
-                      <Text style={styles.tagRemove}>✕</Text>
+                    <Pressable onPress={() => removeParticipant(i)} style={styles.addedRemove}>
+                      <Text style={styles.addedRemoveText}>✕</Text>
                     </Pressable>
                   </View>
                 ))}
+                <View style={styles.addedDivider} />
               </View>
             )}
 
-            {participantTab === 'search' ? (
-            <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-              {/* 검색 입력 */}
-              <TextInput
-                ref={searchInputRef}
-                style={styles.input}
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                placeholder="이름, 전화번호로 검색"
-                placeholderTextColor="rgba(255,255,255,0.25)"
-              />
+            {/* Prompt */}
+            <Text style={styles.promptText}>
+              {participants.length === 0 ? '첫번째' : `${participants.length + 1}번째`} {participantLabel}을 입력해주세요
+            </Text>
 
-              {/* 검색 결과 / 게스트 등록 */}
-              <View style={{ marginTop: 8 }}>
-                {searching && (
-                  <View style={styles.searchLoading}>
-                    <ActivityIndicator size="small" color="rgba(255,255,255,0.5)" />
-                  </View>
-                )}
-                {/* TODO: 앱 미사용자 등록 - 주석 처리
-                {guestMode ? (
-                  <View style={styles.guestForm}>
-                    <Text style={styles.guestFormTitle}>앱 미사용자 등록</Text>
-                    <View style={styles.guestInputGroup}>
-                      <Text style={styles.guestInputLabel}>이름</Text>
-                      <TextInput
-                        style={styles.input}
-                        value={guestNickname}
-                        onChangeText={setGuestNickname}
-                        placeholder="이름을 입력해주세요"
-                        placeholderTextColor="rgba(255,255,255,0.25)"
-                      />
-                    </View>
-                    <View style={styles.guestInputGroup}>
-                      <Text style={styles.guestInputLabel}>전화번호 (선택)</Text>
-                      <TextInput
-                        style={styles.input}
-                        value={guestPhone}
-                        onChangeText={(t) => setGuestPhone(formatPhone(t))}
-                        placeholder="010-0000-0000"
-                        placeholderTextColor="rgba(255,255,255,0.25)"
-                        keyboardType="phone-pad"
-                        maxLength={13}
-                      />
-                    </View>
-                    <View style={styles.guestButtons}>
-                      <Pressable
-                        style={({ pressed }) => [styles.guestCancelButton, pressed && { opacity: 0.7 }]}
-                        onPress={() => setGuestMode(false)}
-                      >
-                        <Text style={styles.guestCancelText}>취소</Text>
-                      </Pressable>
-                      <Pressable
-                        style={({ pressed }) => [styles.guestAddButton, pressed && { opacity: 0.85 }]}
-                        onPress={addGuestParticipant}
-                      >
-                        <Text style={styles.guestAddText}>등록</Text>
-                      </Pressable>
-                    </View>
-                  </View>
-                ) : ( */}
-                  {searchResults.length > 0 && (
-                    <View style={styles.searchResults}>
-                      {searchResults.map((user) => (
-                        <Pressable
-                          key={user.id}
-                          style={({ pressed }) => [styles.searchItem, pressed && { opacity: 0.6 }]}
-                          onPress={() => addParticipant(user)}
-                        >
-                          <View style={{ flex: 1 }}>
-                            <View style={styles.searchNameRow}>
-                              <Text style={styles.searchName}>
-                                {user.nickname}{user.name ? ` (${user.name})` : ''}
-                              </Text>
-                              <LevelBadge level={user.level} size={18} />
-                            </View>
-                            {user.phone ? <Text style={styles.searchSub}>{maskPhone(user.phone)}</Text> : null}
-                          </View>
-                        </Pressable>
-                      ))}
-                    </View>
-                  )}
-                {/* 앱 미사용자 등록 버튼 - 주석 처리
-                    {searchQuery.trim().length > 0 && !searching && (
-                      <Pressable
-                        style={({ pressed }) => [styles.guestEntry, pressed && { opacity: 0.6 }]}
-                        onPress={enterGuestMode}
-                      >
-                        <Text style={styles.guestEntryText}>앱 미사용자 등록</Text>
-                        <Text style={styles.guestEntryArrow}>{'>'}</Text>
-                      </Pressable>
-                  )}
-                </>
-              )} */}
-              </View>
-            </ScrollView>
-            ) : (
-            /* 친한친구 목록 */
-            <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
-              {friendsLoading ? (
-                <View style={{ paddingVertical: 20, alignItems: 'center' }}>
-                  <ActivityIndicator size="small" color="rgba(255,255,255,0.5)" />
+            {!currentUser ? (
+              <>
+                {/* Tabs */}
+                <View style={styles.tabRow}>
+                  <Pressable
+                    style={[styles.tabItem, participantTab === 'search' && styles.tabItemActive]}
+                    onPress={() => setParticipantTab('search')}
+                  >
+                    <Text style={[styles.tabText, participantTab === 'search' && styles.tabTextActive]}>사용자 검색</Text>
+                  </Pressable>
+                  <Pressable
+                    style={[styles.tabItem, participantTab === 'friends' && styles.tabItemActive]}
+                    onPress={() => setParticipantTab('friends')}
+                  >
+                    <Text style={[styles.tabText, participantTab === 'friends' && styles.tabTextActive]}>친한친구</Text>
+                  </Pressable>
                 </View>
-              ) : closeFriends.length === 0 ? (
-                <Text style={{ fontFamily: 'SUIT-Regular', fontSize: 14, color: 'rgba(255,255,255,0.3)', textAlign: 'center', paddingTop: 20 }}>
-                  친한친구가 없습니다.
-                </Text>
-              ) : (
-                closeFriends
-                  .filter((f) => !participants.some((p) => p.nickname === f.nickname))
-                  .map((friend) => (
-                    <Pressable
-                      key={friend.userId}
-                      style={({ pressed }) => [styles.searchItem, pressed && { opacity: 0.6 }]}
-                      onPress={() => addFriendAsParticipant(friend)}
-                    >
-                      <View style={{ flex: 1 }}>
-                        <View style={styles.searchNameRow}>
-                          <Text style={styles.searchName}>
-                            {friend.nickname}{friend.name ? ` (${friend.name})` : ''}
-                          </Text>
-                          <LevelBadge level={friend.level} size={18} />
-                        </View>
-                        {(friend.phone || friend.email) && (
-                          <Text style={styles.searchSub}>
-                            {friend.phone ? maskPhone(friend.phone) : ''}{friend.phone && friend.email ? '  ' : ''}{friend.email ? maskEmail(friend.email) : ''}
+
+                {participantTab === 'search' ? (
+                  <>
+                    <TextInput
+                      ref={searchInputRef}
+                      style={styles.input}
+                      value={searchQuery}
+                      onChangeText={setSearchQuery}
+                      placeholder="이름, 전화번호로 검색"
+                      placeholderTextColor="rgba(255,255,255,0.25)"
+                    />
+                    {searching && (
+                      <View style={styles.searchLoading}>
+                        <ActivityIndicator size="small" color="rgba(255,255,255,0.5)" />
+                      </View>
+                    )}
+                    {searchResults.length > 0 && (
+                      <View style={styles.searchResults}>
+                        {searchResults.map((user) => (
+                          <Pressable
+                            key={user.id}
+                            style={({ pressed }) => [styles.searchItem, pressed && { opacity: 0.6 }]}
+                            onPress={() => handleSelectUser(user)}
+                          >
+                            <View style={{ flex: 1 }}>
+                              <View style={styles.searchNameRow}>
+                                <Text style={styles.searchName}>{user.nickname}{user.name ? ` (${user.name})` : ''}</Text>
+                                <LevelBadge level={user.level} size={18} />
+                              </View>
+                              {user.phone ? <Text style={styles.searchSub}>{maskPhone(user.phone)}</Text> : null}
+                            </View>
+                          </Pressable>
+                        ))}
+                      </View>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    {friendsLoading ? (
+                      <View style={{ paddingVertical: 20, alignItems: 'center' }}>
+                        <ActivityIndicator size="small" color="rgba(255,255,255,0.5)" />
+                      </View>
+                    ) : closeFriends.length === 0 ? (
+                      <Text style={styles.emptyText}>친한친구가 없습니다.</Text>
+                    ) : (
+                      closeFriends
+                        .filter((f) => !participants.some((p) => p.user.nickname === f.nickname) && currentUser?.nickname !== f.nickname)
+                        .map((friend) => (
+                          <Pressable
+                            key={friend.userId}
+                            style={({ pressed }) => [styles.searchItem, pressed && { opacity: 0.6 }]}
+                            onPress={() => handleSelectFriend(friend)}
+                          >
+                            <View style={{ flex: 1 }}>
+                              <View style={styles.searchNameRow}>
+                                <Text style={styles.searchName}>{friend.nickname}{friend.name ? ` (${friend.name})` : ''}</Text>
+                                <LevelBadge level={friend.level} size={18} />
+                              </View>
+                            </View>
+                          </Pressable>
+                        ))
+                    )}
+                  </>
+                )}
+              </>
+            ) : (
+              <>
+                {/* Selected user card */}
+                <View style={styles.selectedCard}>
+                  <View style={{ flex: 1 }}>
+                    <View style={styles.searchNameRow}>
+                      <Text style={styles.searchName}>{currentUser.nickname}{currentUser.name ? ` (${currentUser.name})` : ''}</Text>
+                      <LevelBadge level={currentUser.level} size={18} />
+                    </View>
+                    {currentUser.phone ? <Text style={styles.searchSub}>{maskPhone(currentUser.phone)}</Text> : null}
+                  </View>
+                  <Pressable onPress={handleRemoveCurrentUser} style={styles.addedRemove}>
+                    <Text style={styles.addedRemoveText}>✕</Text>
+                  </Pressable>
+                </View>
+
+                {/* Category picker for this participant */}
+                <Text style={styles.label}>다이빙 구분</Text>
+                <Pressable style={styles.pickerButton} onPress={() => { Keyboard.dismiss(); setShowParticipantCategoryPicker(true); }}>
+                  <Text style={styles.pickerText}>{participantCategoryLabel || '분류를 선택해주세요'}</Text>
+                  <Text style={styles.pickerArrow}>▼</Text>
+                </Pressable>
+
+                {/* License section for CERTIFICATION */}
+                {currentCategory === 'CERTIFICATION' && (
+                  <View style={styles.licenseSection}>
+                    <Text style={styles.label}>자격증 과정</Text>
+
+                    {licensesLoading ? (
+                      <View style={{ paddingVertical: 16, alignItems: 'center' }}>
+                        <ActivityIndicator size="small" color="rgba(255,255,255,0.5)" />
+                      </View>
+                    ) : (
+                      <>
+                        {inProgressLicenses.length === 0 && currentNewLicenses.length === 0 && (
+                          <Text style={styles.emptyText}>
+                            진행중인 자격증 과정이 없습니다.{'\n'}아래 버튼으로 자격증 과정을 추가해주세요.
                           </Text>
                         )}
-                      </View>
-                      {friend.pinned && <Text style={{ fontSize: 12, marginLeft: 8 }}>📌</Text>}
-                    </Pressable>
-                  ))
-              )}
-            </ScrollView>
-            )}
 
-            {/* 완료 버튼 */}
-            <View style={styles.confirmArea}>
-              <Pressable
-                style={({ pressed }) => [styles.confirmButton, pressed && { opacity: 0.85 }]}
-                onPress={confirmParticipantMode}
-              >
-                <Text style={styles.confirmText}>완료</Text>
-              </Pressable>
-            </View>
-          </Animated.View>
+                        {/* In-progress licenses */}
+                        {inProgressLicenses.map((lic) => {
+                          const selected = currentSelectedLicenseIds.includes(lic.userLicenseId);
+                          return (
+                            <Pressable
+                              key={lic.userLicenseId}
+                              style={[styles.licenseItem, selected && styles.licenseItemSelected]}
+                              onPress={() => toggleLicenseId(lic.userLicenseId)}
+                            >
+                              <View style={[styles.checkbox, selected && styles.checkboxChecked]}>
+                                {selected && <Text style={styles.checkmark}>✓</Text>}
+                              </View>
+                              <View style={{ flex: 1 }}>
+                                <Text style={styles.licenseName}>{lic.nameKo}</Text>
+                                <Text style={styles.licenseAssoc}>{lic.associationName}</Text>
+                              </View>
+                            </Pressable>
+                          );
+                        })}
+
+                        {/* Newly added licenses */}
+                        {currentNewLicenses.map((lic) => (
+                          <View key={lic.licenseId} style={[styles.licenseItem, styles.licenseItemSelected]}>
+                            <View style={[styles.checkbox, styles.checkboxChecked, styles.checkboxNew]}>
+                              <Text style={styles.checkmark}>+</Text>
+                            </View>
+                            <View style={{ flex: 1 }}>
+                              <Text style={styles.licenseName}>{lic.nameKo}</Text>
+                              <Text style={styles.licenseNew}>신규 등록</Text>
+                            </View>
+                            <Pressable onPress={() => removeNewLicense(lic.licenseId)} style={styles.addedRemove}>
+                              <Text style={styles.addedRemoveText}>✕</Text>
+                            </Pressable>
+                          </View>
+                        ))}
+
+                        {/* Add license button */}
+                        <Pressable
+                          style={({ pressed }) => [styles.addLicenseButton, pressed && { opacity: 0.7 }]}
+                          onPress={handleAddLicense}
+                        >
+                          <Text style={styles.addLicenseText}>+ 자격증 과정 추가</Text>
+                        </Pressable>
+                      </>
+                    )}
+                  </View>
+                )}
+              </>
+            )}
+          </ScrollView>
         )}
       </KeyboardAvoidingView>
 
-      {/* 저장 버튼 - 참석자 모드에서 숨김 */}
-      {!participantMode && (
-        <View style={styles.bottomArea}>
+      {/* Bottom buttons */}
+      <View style={styles.bottomArea}>
+        {step === 'info' ? (
           <Pressable
-            style={({ pressed }) => [styles.saveButton, pressed && { opacity: 0.85 }]}
-            onPress={handleSave}
-            disabled={saving}
+            style={({ pressed }) => [styles.primaryButton, pressed && { opacity: 0.85 }]}
+            onPress={handleNextStep}
           >
-            {saving ? (
-              <ActivityIndicator color={Colors.brand.primary} />
-            ) : (
-              <Text style={styles.saveText}>{isEditMode ? '수정' : '저장'}</Text>
-            )}
+            <Text style={styles.primaryButtonText}>다음</Text>
           </Pressable>
-        </View>
-      )}
+        ) : (
+          <View style={styles.bottomRow}>
+            {currentUser && (
+              <Pressable
+                style={({ pressed }) => [styles.secondaryButton, pressed && { opacity: 0.85 }]}
+                onPress={addParticipantAndContinue}
+              >
+                <Text style={styles.secondaryButtonText}>{participantLabel} 추가</Text>
+              </Pressable>
+            )}
+            <Pressable
+              style={({ pressed }) => [styles.primaryButton, { flex: 1 }, pressed && { opacity: 0.85 }]}
+              onPress={handleSave}
+              disabled={saving}
+            >
+              {saving ? (
+                <ActivityIndicator color={Colors.brand.primary} />
+              ) : (
+                <Text style={styles.primaryButtonText}>{isEditMode ? '수정' : '저장'}</Text>
+              )}
+            </Pressable>
+          </View>
+        )}
+      </View>
 
       {/* Picker Modals */}
       <DatePickerSheet
@@ -692,27 +796,37 @@ export default function ScheduleAddScreen() {
       <BottomSheet
         visible={showPoolPicker} onClose={() => setShowPoolPicker(false)} title="장소 선택"
         items={pools.map((p) => ({ label: p.name, value: p }))}
-        onSelect={(v) => setSelectedPool(v)}
-        selectedValue={selectedPool}
-        searchable
+        onSelect={(v) => setSelectedPool(v)} selectedValue={selectedPool} searchable
       />
       <BottomSheet
         visible={showHourPicker} onClose={() => setShowHourPicker(false)} title="시"
         items={HOURS.map((h) => ({ label: `${String(h).padStart(2, '0')}시`, value: h }))}
-        onSelect={(v) => setHour(v)}
-        selectedValue={hour}
+        onSelect={(v) => setHour(v)} selectedValue={hour}
       />
       <BottomSheet
         visible={showMinutePicker} onClose={() => setShowMinutePicker(false)} title="분"
         items={MINUTES.map((m) => ({ label: `${String(m).padStart(2, '0')}분`, value: m }))}
-        onSelect={(v) => setMinute(v)}
-        selectedValue={minute}
+        onSelect={(v) => setMinute(v)} selectedValue={minute}
       />
       <BottomSheet
         visible={showCategoryPicker} onClose={() => setShowCategoryPicker(false)} title="분류 선택"
         items={CATEGORIES.map((c) => ({ label: c.label, value: c.code }))}
-        onSelect={(v) => setCategoryCode(v)}
-        selectedValue={categoryCode}
+        onSelect={(v) => setCategoryCode(v)} selectedValue={categoryCode}
+      />
+      <BottomSheet
+        visible={showParticipantCategoryPicker} onClose={() => setShowParticipantCategoryPicker(false)} title="다이빙 구분"
+        items={CATEGORIES.map((c) => ({ label: c.label, value: c.code }))}
+        onSelect={(v) => handleCurrentCategoryChange(v)} selectedValue={currentCategory}
+      />
+      <BottomSheet
+        visible={showAssociationPicker} onClose={() => setShowAssociationPicker(false)} title="협회 선택"
+        items={associations.map((a) => ({ label: a.name, value: a.id }))}
+        onSelect={(v) => handleSelectAssociation(v)}
+      />
+      <BottomSheet
+        visible={showAvailableLicensePicker} onClose={() => setShowAvailableLicensePicker(false)} title="자격증 선택"
+        items={availableLicenses.map((l) => ({ label: l.nameKo, value: l }))}
+        onSelect={(v) => handleSelectNewLicense(v)}
       />
       </>
       )}
@@ -721,16 +835,10 @@ export default function ScheduleAddScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.brand.primary,
-  },
+  container: { flex: 1, backgroundColor: Colors.brand.primary },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    height: 52,
-    paddingHorizontal: 20,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    height: 52, paddingHorizontal: 20,
   },
   backButton: { width: 36, height: 36 },
   backCircle: {
@@ -757,9 +865,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16, paddingVertical: 14,
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
   },
-  calendarIcon: {
-    fontSize: 18,
-  },
+  calendarIcon: { fontSize: 18 },
   pickerButton: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12,
@@ -768,7 +874,6 @@ const styles = StyleSheet.create({
   },
   pickerText: { fontFamily: 'SUIT-Regular', fontSize: 16, color: Colors.brand.white },
   pickerPlaceholder: { color: 'rgba(255,255,255,0.25)' },
-  pickerPlaceholderText: { fontFamily: 'SUIT-Regular', fontSize: 16, color: 'rgba(255,255,255,0.25)' },
   pickerArrow: { fontSize: 10, color: 'rgba(255,255,255,0.4)' },
   timeRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   timePickerButton: {
@@ -781,60 +886,28 @@ const styles = StyleSheet.create({
   visibilityRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12,
-    paddingHorizontal: 16, height: 50,
+    paddingHorizontal: 16, paddingVertical: 10,
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
   },
-  visibilityText: {
-    fontFamily: 'SUIT-SemiBold', fontSize: 15, color: Colors.brand.white,
-  },
+  visibilityText: { fontFamily: 'SUIT-SemiBold', fontSize: 15, color: Colors.brand.white },
   visibilityDesc: {
     fontFamily: 'SUIT-Regular', fontSize: 12, color: 'rgba(255,255,255,0.35)',
     marginTop: 6, paddingHorizontal: 4,
   },
-  divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.08)', marginTop: 24 },
-  tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
-  tag: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 20,
-    paddingHorizontal: 14, paddingVertical: 8,
+
+  // Participant step
+  promptText: {
+    fontFamily: 'SUIT-SemiBold', fontSize: 16, color: Colors.brand.white,
+    marginBottom: 16,
   },
-  tagText: { fontFamily: 'SUIT-SemiBold', fontSize: 14, color: Colors.brand.white },
-  tagRemove: { fontSize: 14, color: 'rgba(255,255,255,0.5)' },
-  participantCard: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12,
-    paddingHorizontal: 14, paddingVertical: 10,
+  tabRow: {
+    flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 10, marginBottom: 14, overflow: 'hidden',
   },
-  removeButton: {
-    width: 28, height: 28, alignItems: 'center', justifyContent: 'center', marginLeft: 8,
-  },
-  participantTabRow: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 10,
-    marginBottom: 14,
-    overflow: 'hidden',
-  },
-  participantTabItem: {
-    flex: 1,
-    paddingVertical: 8,
-    alignItems: 'center',
-    borderRadius: 10,
-  },
-  participantTabItemActive: {
-    backgroundColor: 'rgba(255,255,255,0.15)',
-  },
-  participantTabText: {
-    fontFamily: 'SUIT-SemiBold',
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.35)',
-  },
-  participantTabTextActive: {
-    color: Colors.brand.white,
-  },
-  participantArea: {
-    paddingHorizontal: 24,
-  },
+  tabItem: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 10 },
+  tabItemActive: { backgroundColor: 'rgba(255,255,255,0.15)' },
+  tabText: { fontFamily: 'SUIT-SemiBold', fontSize: 13, color: 'rgba(255,255,255,0.35)' },
+  tabTextActive: { color: Colors.brand.white },
   searchLoading: { paddingVertical: 12, alignItems: 'center' },
   searchResults: {
     backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 12,
@@ -845,78 +918,82 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16, paddingVertical: 12,
     borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.04)',
   },
-  searchName: { fontFamily: 'SUIT-SemiBold', fontSize: 15, color: Colors.brand.white },
   searchNameRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
-  searchSubRow: { flexDirection: 'row', alignItems: 'center', marginTop: 2 },
+  searchName: { fontFamily: 'SUIT-SemiBold', fontSize: 15, color: Colors.brand.white },
   searchSub: { fontFamily: 'SUIT-Regular', fontSize: 12, color: 'rgba(255,255,255,0.4)' },
+  emptyText: {
+    fontFamily: 'SUIT-Regular', fontSize: 14, color: 'rgba(255,255,255,0.3)',
+    textAlign: 'center', paddingVertical: 16,
+  },
+
+  // Selected user
+  selectedCard: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12,
+    paddingHorizontal: 14, paddingVertical: 12,
+    borderWidth: 1, borderColor: 'rgba(52,199,89,0.3)',
+  },
+
+  // Added participants
+  addedSection: { marginBottom: 8 },
+  addedCard: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 10,
+    paddingHorizontal: 14, paddingVertical: 10, marginBottom: 6,
+  },
+  addedNameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  addedName: { fontFamily: 'SUIT-SemiBold', fontSize: 14, color: Colors.brand.white },
+  addedCategory: { fontFamily: 'SUIT-Regular', fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 2 },
+  addedRemove: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center', marginLeft: 8 },
+  addedRemoveText: { fontSize: 14, color: 'rgba(255,255,255,0.5)' },
+  addedDivider: { height: 1, backgroundColor: 'rgba(255,255,255,0.08)', marginTop: 8, marginBottom: 8 },
+
+  // License section
+  licenseSection: { marginTop: 4 },
+  licenseItem: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 10,
+    paddingHorizontal: 14, paddingVertical: 12, marginBottom: 6,
+  },
+  licenseItemSelected: {
+    backgroundColor: 'rgba(52,199,89,0.08)',
+    borderWidth: 1, borderColor: 'rgba(52,199,89,0.2)',
+  },
+  checkbox: {
+    width: 22, height: 22, borderRadius: 6,
+    borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: Colors.brand.success, borderColor: Colors.brand.success,
+  },
+  checkboxNew: {
+    backgroundColor: Colors.brand.warning, borderColor: Colors.brand.warning,
+  },
+  checkmark: { fontFamily: 'SUIT-Bold', fontSize: 13, color: Colors.brand.white },
+  licenseName: { fontFamily: 'SUIT-SemiBold', fontSize: 14, color: Colors.brand.white },
+  licenseAssoc: { fontFamily: 'SUIT-Regular', fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 1 },
+  licenseNew: { fontFamily: 'SUIT-Regular', fontSize: 12, color: Colors.brand.warning, marginTop: 1 },
+  addLicenseButton: {
+    backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 10,
+    paddingVertical: 12, alignItems: 'center', marginTop: 4,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', borderStyle: 'dashed',
+  },
+  addLicenseText: {
+    fontFamily: 'SUIT-SemiBold', fontSize: 13, color: 'rgba(255,255,255,0.5)',
+  },
+
+  // Bottom
   bottomArea: { paddingHorizontal: 24, paddingVertical: 12 },
-  saveButton: {
+  bottomRow: { flexDirection: 'row', gap: 10 },
+  primaryButton: {
     height: 54, borderRadius: 14, backgroundColor: Colors.brand.white,
     alignItems: 'center', justifyContent: 'center',
   },
-  saveText: { fontFamily: 'SUIT-Bold', fontSize: 16, color: Colors.brand.primary },
-  closeButton: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  closeText: { fontSize: 18, color: 'rgba(255,255,255,0.6)' },
-  noLevelText: { fontFamily: 'SUIT-Regular', fontSize: 10, color: 'rgba(255,255,255,0.3)', textAlign: 'center', lineHeight: 14 },
-  participantBox: {
-    backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12,
-    paddingHorizontal: 12, paddingVertical: 12,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
-    minHeight: 48, justifyContent: 'center',
+  primaryButtonText: { fontFamily: 'SUIT-Bold', fontSize: 16, color: Colors.brand.primary },
+  secondaryButton: {
+    height: 54, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.12)',
+    alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20,
   },
-  tagInBox: {
-    backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 16,
-    paddingHorizontal: 12, paddingVertical: 6,
-  },
-  tagInBoxText: { fontFamily: 'SUIT-SemiBold', fontSize: 13, color: Colors.brand.white },
-  confirmArea: { paddingVertical: 12 },
-  confirmButton: {
-    height: 50, borderRadius: 14, backgroundColor: Colors.brand.white,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  confirmText: { fontFamily: 'SUIT-Bold', fontSize: 16, color: Colors.brand.primary },
-  guestEntry: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 12,
-    paddingHorizontal: 16, paddingVertical: 14, marginTop: 8,
-  },
-  guestEntryText: {
-    fontFamily: 'SUIT-SemiBold', fontSize: 14, color: 'rgba(255,255,255,0.5)',
-  },
-  guestEntryArrow: {
-    fontFamily: 'SUIT-Bold', fontSize: 14, color: 'rgba(255,255,255,0.3)',
-  },
-  guestForm: {
-    backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 12,
-    padding: 16, marginTop: 4,
-  },
-  guestFormTitle: {
-    fontFamily: 'SUIT-Bold', fontSize: 15, color: Colors.brand.white, marginBottom: 16,
-  },
-  guestInputGroup: { marginBottom: 12 },
-  guestInputLabel: {
-    fontFamily: 'SUIT-SemiBold', fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 6,
-  },
-  guestButtons: {
-    flexDirection: 'row', gap: 10, marginTop: 4,
-  },
-  guestCancelButton: {
-    flex: 1, height: 44, borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  guestCancelText: { fontFamily: 'SUIT-SemiBold', fontSize: 14, color: 'rgba(255,255,255,0.5)' },
-  guestAddButton: {
-    flex: 1, height: 44, borderRadius: 12,
-    backgroundColor: Colors.brand.white,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  guestAddText: { fontFamily: 'SUIT-Bold', fontSize: 14, color: Colors.brand.primary },
-  guestBadge: {
-    backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 10,
-    paddingHorizontal: 8, paddingVertical: 2,
-  },
-  guestBadgeText: {
-    fontFamily: 'SUIT-Regular', fontSize: 11, color: 'rgba(255,255,255,0.4)',
-  },
+  secondaryButtonText: { fontFamily: 'SUIT-Bold', fontSize: 16, color: Colors.brand.white },
 });

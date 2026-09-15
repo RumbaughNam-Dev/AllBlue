@@ -14,6 +14,10 @@ import Spinner from '@/components/Spinner';
 
 const STUDENT_CATEGORIES = ['EXPERIENCE', 'CERTIFICATION', 'LECTURE'];
 const FORM_BASE_URL = 'https://rumbaugh.co.kr/form';
+const CATEGORIES_MAP: Record<string, string> = {
+  EXPERIENCE: '체험교육', CERTIFICATION: '자격증 과정', LECTURE: '특강',
+  TRAINING: '트레이닝', FUN_DIVE: '펀다이빙', ETC: '기타',
+};
 
 export default function ScheduleDetailScreen() {
   const insets = useSafeAreaInsets();
@@ -155,13 +159,37 @@ export default function ScheduleDetailScreen() {
           {schedule.participants.length === 0 ? (
             <Text style={styles.emptyText}>{participantLabel}가 없습니다</Text>
           ) : (
-            schedule.participants.map((p) => (
+            schedule.participants
+              .filter((p) => isOwner || myParticipantId === p.id)
+              .map((p) => {
+              const isMe = myParticipantId === p.id;
+              const showCopyUrl = isOwner && !isMe;
+              const showSignButton = isMe && !isOwner;
+
+              const openFormForSign = (uuid?: string) => {
+                if (!uuid) return;
+                WebBrowser.openBrowserAsync(`${FORM_BASE_URL}/${uuid}`).then(() => handleRefresh());
+              };
+
+              return (
               <View key={`${p.isGuest ? 'g' : 'u'}_${p.id}`} style={styles.participantCard}>
                 <View style={styles.participantNameRow}>
                   <Text style={styles.participantName}>
                     {p.nickname}{p.name ? ` (${p.name})` : ''}
                   </Text>
                 </View>
+                {p.categoryCode && (
+                  <View style={styles.participantMeta}>
+                    <Text style={styles.participantMetaText}>
+                      {CATEGORIES_MAP[p.categoryCode] ?? p.categoryCode}
+                    </Text>
+                    {p.participantLicenses && p.participantLicenses.length > 0 && (
+                      <Text style={styles.participantMetaText}>
+                        {' · '}{p.participantLicenses.map((l) => l.nameKo).join(', ')}
+                      </Text>
+                    )}
+                  </View>
+                )}
                 <View style={styles.docRow}>
                   <Text style={styles.docLabel}>면책동의서</Text>
                   <View style={styles.docActions}>
@@ -176,9 +204,14 @@ export default function ScheduleDetailScreen() {
                         <View style={[styles.docBadge, styles.docBadgeUnsigned]}>
                           <Text style={[styles.docBadgeText, styles.docTextUnsigned]}>미제출</Text>
                         </View>
-                        {p.waiverUuid && (
+                        {p.waiverUuid && !p.waiverReused && showCopyUrl && (
                           <Pressable onPress={() => copyFormUrl(p.waiverUuid, p.id)} style={({ pressed }) => [styles.copyButton, pressed && { opacity: 0.6 }]}>
                             <Text style={styles.copyText}>URL 복사</Text>
+                          </Pressable>
+                        )}
+                        {p.waiverUuid && !p.waiverReused && showSignButton && (
+                          <Pressable onPress={() => openFormForSign(p.waiverUuid)} style={({ pressed }) => [styles.signButton, pressed && { opacity: 0.6 }]}>
+                            <Text style={styles.signText}>서명하기</Text>
                           </Pressable>
                         )}
                       </>
@@ -199,9 +232,14 @@ export default function ScheduleDetailScreen() {
                         <View style={[styles.docBadge, styles.docBadgeUnsigned]}>
                           <Text style={[styles.docBadgeText, styles.docTextUnsigned]}>미제출</Text>
                         </View>
-                        {p.medicalUuid && (
+                        {p.medicalUuid && !p.medicalReused && showCopyUrl && (
                           <Pressable onPress={() => copyFormUrl(p.medicalUuid, p.id)} style={({ pressed }) => [styles.copyButton, pressed && { opacity: 0.6 }]}>
                             <Text style={styles.copyText}>URL 복사</Text>
+                          </Pressable>
+                        )}
+                        {p.medicalUuid && !p.medicalReused && showSignButton && (
+                          <Pressable onPress={() => openFormForSign(p.medicalUuid)} style={({ pressed }) => [styles.signButton, pressed && { opacity: 0.6 }]}>
+                            <Text style={styles.signText}>서명하기</Text>
                           </Pressable>
                         )}
                       </>
@@ -261,7 +299,8 @@ export default function ScheduleDetailScreen() {
                   );
                 })()}
               </View>
-            ))
+              );
+            })
           )}
         </ScrollView>
       ) : (
@@ -425,6 +464,12 @@ const styles = StyleSheet.create({
   actionButtonTextDone: {
     color: Colors.brand.success,
   },
+  participantMeta: {
+    flexDirection: 'row', alignItems: 'center', marginBottom: 6,
+  },
+  participantMetaText: {
+    fontFamily: 'SUIT-Regular', fontSize: 12, color: 'rgba(255,255,255,0.4)',
+  },
   docRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingVertical: 6,
@@ -441,6 +486,13 @@ const styles = StyleSheet.create({
   },
   copyText: {
     fontFamily: 'SUIT-SemiBold', fontSize: 11, color: Colors.brand.warning,
+  },
+  signButton: {
+    backgroundColor: 'rgba(3,84,145,0.3)', borderRadius: 8,
+    paddingHorizontal: 10, paddingVertical: 4,
+  },
+  signText: {
+    fontFamily: 'SUIT-SemiBold', fontSize: 11, color: Colors.brand.white,
   },
   docBadge: {
     borderRadius: 10, paddingHorizontal: 10, paddingVertical: 3,
