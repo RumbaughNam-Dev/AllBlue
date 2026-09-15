@@ -111,6 +111,7 @@ export default function ScheduleAddScreen() {
   // Other
   const [saving, setSaving] = useState(false);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const myUserId = useRef<number | null>(null);
 
   const selectedCategory = CATEGORIES.find((c) => c.code === categoryCode);
   const participantCategoryLabel = CATEGORIES.find((c) => c.code === currentCategory)?.label ?? '';
@@ -118,8 +119,13 @@ export default function ScheduleAddScreen() {
   const participantLabel = isStudentType ? '교육생' : '참석자';
 
   // Block back navigation (button + swipe) when there's unsaved input
+  const savingRef = useRef(false);
+  useEffect(() => { savingRef.current = saving; }, [saving]);
+
   useEffect(() => {
     const unsubscribe = navigation.addListener('beforeRemove', (e: any) => {
+      if (savingRef.current) return; // 저장 완료 후 이동 시 방해하지 않음
+
       if (step === 'participant') {
         e.preventDefault();
         setStep('info');
@@ -143,6 +149,10 @@ export default function ScheduleAddScreen() {
   // --- Effects ---
 
   useEffect(() => {
+    api.getProfile()
+      .then((res) => { myUserId.current = res.user.id; })
+      .catch(() => {});
+
     if (!isEditMode) {
       api.getUserSettings()
         .then((res) => setVisibility(res.settings.schedulePublic === 'Y' ? 'public' : 'private'))
@@ -210,8 +220,8 @@ export default function ScheduleAddScreen() {
       setSearching(true);
       try {
         const res = await api.searchUsers(searchQuery.trim());
-        const existingIds = [...participants.map((p) => p.user.id), ...(currentUser ? [currentUser.id] : [])];
-        setSearchResults((res.users ?? []).filter((u) => !existingIds.includes(u.id)));
+        const excludeIds = [...participants.map((p) => p.user.id), ...(currentUser ? [currentUser.id] : []), ...(myUserId.current ? [myUserId.current] : [])];
+        setSearchResults((res.users ?? []).filter((u) => !excludeIds.includes(u.id)));
       } catch {}
       setSearching(false);
     }, 300);
@@ -370,12 +380,6 @@ export default function ScheduleAddScreen() {
       allParticipants.push(buildCurrentEntry()!);
     }
 
-    if (isEditMode) {
-      doSave(allParticipants);
-      return;
-    }
-
-    // 확인 Alert with summary
     const dateStr = `${dateObj.getFullYear()}년 ${month}월 ${day}일 ${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
     const catLabel = getCategoryLabel(categoryCode);
     const participantSummary = allParticipants.length > 0
@@ -383,11 +387,11 @@ export default function ScheduleAddScreen() {
       : '  없음';
 
     Alert.alert(
-      '다이빙을 등록하시겠어요?',
+      isEditMode ? '다이빙을 수정하시겠어요?' : '다이빙을 등록하시겠어요?',
       `${title.trim()}\n${dateStr}\n${catLabel}${selectedPool ? ` · ${selectedPool.name}` : ''}\n\n${participantLabel} ${allParticipants.length}명\n${participantSummary}`,
       [
         { text: '취소', style: 'cancel' },
-        { text: '등록할게요', onPress: () => doSave(allParticipants) },
+        { text: isEditMode ? '수정할게요' : '등록할게요', onPress: () => doSave(allParticipants) },
       ],
     );
   };
@@ -424,9 +428,8 @@ export default function ScheduleAddScreen() {
         }, 100);
       }
     } catch (e: any) {
-      if (!e._handled) Alert.alert(isEditMode ? '수정 실패' : '등록 실패', e.message ?? '잠시 후 다시 시도해주세요.');
-    } finally {
       setSaving(false);
+      if (!e._handled) Alert.alert(isEditMode ? '수정 실패' : '등록 실패', e.message ?? '잠시 후 다시 시도해주세요.');
     }
   };
 

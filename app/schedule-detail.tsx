@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, Pressable, ScrollView, Alert, ActivityIndicator, Modal, Platform,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import * as Clipboard from 'expo-clipboard';
 import * as WebBrowser from 'expo-web-browser';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import Colors from '@/constants/Colors';
@@ -39,7 +39,19 @@ export default function ScheduleDetailScreen() {
       .finally(() => { setLoading(false); setRefreshing(false); });
   };
 
+  const initialLoad = useRef(true);
+
   useEffect(() => { fetchDetail(); }, [id]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (initialLoad.current) {
+        initialLoad.current = false;
+        return;
+      }
+      fetchDetail(false);
+    }, [id])
+  );
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -488,11 +500,11 @@ const styles = StyleSheet.create({
     fontFamily: 'SUIT-SemiBold', fontSize: 11, color: Colors.brand.warning,
   },
   signButton: {
-    backgroundColor: 'rgba(3,84,145,0.3)', borderRadius: 8,
+    backgroundColor: 'rgba(235,160,60,0.15)', borderRadius: 8,
     paddingHorizontal: 10, paddingVertical: 4,
   },
   signText: {
-    fontFamily: 'SUIT-SemiBold', fontSize: 11, color: Colors.brand.white,
+    fontFamily: 'SUIT-SemiBold', fontSize: 11, color: Colors.brand.warning,
   },
   docBadge: {
     borderRadius: 10, paddingHorizontal: 10, paddingVertical: 3,

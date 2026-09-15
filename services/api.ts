@@ -630,6 +630,21 @@ export const api = {
     return request<{ associations: Association[] }>('/licenses/associations');
   },
 
+  // 푸시 토큰
+  registerPushToken(token: string) {
+    return request<{ success: boolean }>('/push/register', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    });
+  },
+
+  unregisterPushToken(token: string) {
+    return request<{ success: boolean }>('/push/unregister', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    });
+  },
+
   // 사용자 설정
   getUserSettings() {
     return request<{ settings: { schedulePublic: string } }>('/user/settings');

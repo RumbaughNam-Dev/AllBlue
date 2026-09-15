@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { setSessionExpiredHandler } from '@/services/api';
+import { registerForPushNotifications, unregisterPushToken } from '@/services/push';
 
 type User = {
   id: string;
@@ -49,6 +50,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setLoggedIn(true);
           setUser(JSON.parse(userData));
           setHasSeenOnboarding(true);
+          // 기존 로그인 유저 푸시 토큰 갱신
+          registerForPushNotifications().then((pushToken) => {
+            if (pushToken) AsyncStorage.setItem('pushToken', pushToken);
+          });
         } else {
           setHasSeenOnboarding(false);
         }
@@ -63,6 +68,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await AsyncStorage.setItem('user', JSON.stringify(userData));
     setUser(userData);
     setLoggedIn(true);
+    // 푸시 토큰 등록
+    registerForPushNotifications().then((pushToken) => {
+      if (pushToken) AsyncStorage.setItem('pushToken', pushToken);
+    });
   };
 
   const updateUser = async (data: Partial<User>) => {
@@ -72,7 +81,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = async () => {
-    await AsyncStorage.multiRemove(['authToken', 'user']);
+    const pushToken = await AsyncStorage.getItem('pushToken');
+    if (pushToken) await unregisterPushToken(pushToken);
+    await AsyncStorage.multiRemove(['authToken', 'user', 'pushToken']);
     setUser(null);
     setLoggedIn(false);
   };
