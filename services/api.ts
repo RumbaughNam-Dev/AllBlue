@@ -2,7 +2,9 @@ import { Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { File, UploadType } from 'expo-file-system';
 
-const BASE_URL = 'https://api.rumbaugh.co.kr/allblue';
+const BASE_URL = __DEV__
+  ? 'https://api-dev.rumbaugh.co.kr/allblue'
+  : 'https://api.rumbaugh.co.kr/allblue';
 
 let onSessionExpired: (() => void) | null = null;
 
