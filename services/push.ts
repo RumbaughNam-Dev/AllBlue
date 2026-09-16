@@ -1,18 +1,31 @@
-import * as Notifications from 'expo-notifications';
-import * as Device from 'expo-device';
-import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { api } from './api';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
+let Notifications: any = null;
+let Device: any = null;
+let Constants: any = null;
+
+try {
+  Notifications = require('expo-notifications');
+  Device = require('expo-device');
+  Constants = require('expo-constants');
+
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+    }),
+  });
+} catch {
+  // Expo Go에서는 expo-notifications 사용 불가
+}
 
 export async function registerForPushNotifications(): Promise<string | null> {
+  if (!Notifications || !Device || !Constants) {
+    console.log('[Push] expo-notifications 사용 불가 (Expo Go)');
+    return null;
+  }
   console.log('[Push] 시작, isDevice:', Device.isDevice);
   if (!Device.isDevice) return null;
 
@@ -31,7 +44,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
     return null;
   }
 
-  const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
+  const projectId = Constants?.expoConfig?.extra?.eas?.projectId ?? Constants?.easConfig?.projectId;
   console.log('[Push] projectId:', projectId);
   if (!projectId) {
     console.log('[Push] projectId 없음');

@@ -84,6 +84,9 @@ export default function ScheduleAddScreen() {
   const [inProgressLicenses, setInProgressLicenses] = useState<InProgressLicense[]>([]);
   const [licensesLoading, setLicensesLoading] = useState(false);
 
+  const participantScrollRef = useRef<ScrollView>(null);
+  const searchInputLayoutY = useRef(0);
+
   // Search
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<UserResult[]>([]);
@@ -473,11 +476,11 @@ export default function ScheduleAddScreen() {
         <View style={{ width: 36 }} />
       </View>
 
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
 
         {/* === Step 1: Info === */}
         {step === 'info' && (
-          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive">
             <Text style={styles.label}>제목</Text>
             <TextInput
               style={styles.input}
@@ -537,6 +540,7 @@ export default function ScheduleAddScreen() {
                 onValueChange={(v) => setVisibility(v ? 'public' : 'private')}
                 trackColor={{ false: 'rgba(255,255,255,0.15)', true: 'rgba(52,199,89,0.5)' }}
                 thumbColor={visibility === 'public' ? Colors.brand.success : 'rgba(255,255,255,0.6)'}
+                style={Platform.OS === 'android' ? { transform: [{ scaleX: 0.85 }, { scaleY: 0.85 }], marginVertical: -10 } : undefined}
               />
             </View>
             <Text style={styles.visibilityDesc}>
@@ -552,7 +556,7 @@ export default function ScheduleAddScreen() {
 
         {/* === Step 2: Participant === */}
         {step === 'participant' && (
-          <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          <ScrollView ref={participantScrollRef} style={{ flex: 1 }} contentContainerStyle={[styles.scrollContent, { paddingBottom: 40 }]} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive">
 
             {/* Already added participants */}
             {participants.length > 0 && (
@@ -600,14 +604,21 @@ export default function ScheduleAddScreen() {
 
                 {participantTab === 'search' ? (
                   <>
-                    <TextInput
-                      ref={searchInputRef}
-                      style={styles.input}
-                      value={searchQuery}
-                      onChangeText={setSearchQuery}
-                      placeholder="이름, 전화번호로 검색"
-                      placeholderTextColor="rgba(255,255,255,0.25)"
-                    />
+                    <View onLayout={(e) => { searchInputLayoutY.current = e.nativeEvent.layout.y; }}>
+                      <TextInput
+                        ref={searchInputRef}
+                        style={styles.input}
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
+                        placeholder="이름, 전화번호로 검색"
+                        placeholderTextColor="rgba(255,255,255,0.25)"
+                        onFocus={() => {
+                          setTimeout(() => {
+                            participantScrollRef.current?.scrollTo({ y: searchInputLayoutY.current - 16, animated: true });
+                          }, 300);
+                        }}
+                      />
+                    </View>
                     {searching && (
                       <View style={styles.searchLoading}>
                         <ActivityIndicator size="small" color="rgba(255,255,255,0.5)" />
@@ -751,43 +762,44 @@ export default function ScheduleAddScreen() {
                 )}
               </>
             )}
+
           </ScrollView>
         )}
-      </KeyboardAvoidingView>
 
-      {/* Bottom buttons */}
-      <View style={styles.bottomArea}>
-        {step === 'info' ? (
-          <Pressable
-            style={({ pressed }) => [styles.primaryButton, pressed && { opacity: 0.85 }]}
-            onPress={handleNextStep}
-          >
-            <Text style={styles.primaryButtonText}>다음</Text>
-          </Pressable>
-        ) : (
-          <View style={styles.bottomRow}>
-            {currentUser && (
-              <Pressable
-                style={({ pressed }) => [styles.secondaryButton, pressed && { opacity: 0.85 }]}
-                onPress={addParticipantAndContinue}
-              >
-                <Text style={styles.secondaryButtonText}>{participantLabel} 추가</Text>
-              </Pressable>
-            )}
+        {/* Bottom buttons - always fixed, KeyboardAvoidingView pushes above keyboard */}
+        <View style={styles.bottomArea}>
+          {step === 'info' ? (
             <Pressable
-              style={({ pressed }) => [styles.primaryButton, { flex: 1 }, pressed && { opacity: 0.85 }]}
-              onPress={handleSave}
-              disabled={saving}
+              style={({ pressed }) => [styles.primaryButton, pressed && { opacity: 0.85 }]}
+              onPress={handleNextStep}
             >
-              {saving ? (
-                <ActivityIndicator color={Colors.brand.primary} />
-              ) : (
-                <Text style={styles.primaryButtonText}>{isEditMode ? '수정' : '저장'}</Text>
-              )}
+              <Text style={styles.primaryButtonText}>다음</Text>
             </Pressable>
-          </View>
-        )}
-      </View>
+          ) : (
+            <View style={styles.bottomRow}>
+              {currentUser && (
+                <Pressable
+                  style={({ pressed }) => [styles.secondaryButton, pressed && { opacity: 0.85 }]}
+                  onPress={addParticipantAndContinue}
+                >
+                  <Text style={styles.secondaryButtonText}>{participantLabel} 추가</Text>
+                </Pressable>
+              )}
+              <Pressable
+                style={({ pressed }) => [styles.primaryButton, { flex: 1 }, pressed && { opacity: 0.85 }]}
+                onPress={handleSave}
+                disabled={saving}
+              >
+                {saving ? (
+                  <ActivityIndicator color={Colors.brand.primary} />
+                ) : (
+                  <Text style={styles.primaryButtonText}>{isEditMode ? '수정' : '저장'}</Text>
+                )}
+              </Pressable>
+            </View>
+          )}
+        </View>
+      </KeyboardAvoidingView>
 
       {/* Picker Modals */}
       <DatePickerSheet
@@ -889,7 +901,7 @@ const styles = StyleSheet.create({
   visibilityRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12,
-    paddingHorizontal: 16, paddingVertical: 10,
+    paddingHorizontal: 16, paddingVertical: 14,
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
   },
   visibilityText: { fontFamily: 'SUIT-SemiBold', fontSize: 15, color: Colors.brand.white },
@@ -905,11 +917,11 @@ const styles = StyleSheet.create({
   },
   tabRow: {
     flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 10, marginBottom: 14, overflow: 'hidden',
+    borderRadius: 10, marginBottom: 14,
   },
   tabItem: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 10 },
   tabItemActive: { backgroundColor: 'rgba(255,255,255,0.15)' },
-  tabText: { fontFamily: 'SUIT-SemiBold', fontSize: 13, color: 'rgba(255,255,255,0.35)' },
+  tabText: { fontFamily: 'SUIT-SemiBold', fontSize: 13, color: 'rgba(255,255,255,0.5)' },
   tabTextActive: { color: Colors.brand.white },
   searchLoading: { paddingVertical: 12, alignItems: 'center' },
   searchResults: {

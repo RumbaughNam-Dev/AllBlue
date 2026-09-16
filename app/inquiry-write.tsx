@@ -137,6 +137,7 @@ export default function InquiryWriteScreen() {
           style={{ flex: 1 }}
           contentContainerStyle={[styles.scrollContent, { minHeight: availableHeight }]}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
           bounces={false}
         >
           <Text style={styles.label}>제목</Text>

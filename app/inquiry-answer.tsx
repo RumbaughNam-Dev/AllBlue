@@ -137,7 +137,7 @@ export default function InquiryAnswerScreen() {
           style={{ flex: 1 }}
           contentContainerStyle={{ flexGrow: 1 }}
           keyboardShouldPersistTaps="handled"
-          onScrollBeginDrag={Keyboard.dismiss}
+          keyboardDismissMode="interactive"
           bounces={false}
         >
           {/* 상단 50%: 답변 입력 */}
