@@ -115,11 +115,9 @@ export default function ScheduleDailyScreen() {
                           {item.participants!.map((p, i) => (
                             <View key={i} style={styles.participantItem}>
                               <Text style={styles.scheduleParticipants}>
-                                {'  - '}{p.nickname}{p.name ? ` (${p.name})` : ''}
+                                {'  - '}{p.nickname}{p.name ? ` (${p.name})` : ''}{' '}
                               </Text>
-                              {p.level != null && p.level !== 0 && (
-                                <LevelBadge level={p.level} size={18} />
-                              )}
+                              <LevelBadge level={p.level} size={18} />
                             </View>
                           ))}
                         </View>

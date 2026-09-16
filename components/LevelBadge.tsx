@@ -17,9 +17,7 @@ type Props = {
 };
 
 export default function LevelBadge({ level, size = 22 }: Props) {
-  if (level === null || level === undefined) return null;
-
-  const key = String(level);
+  const key = String(level ?? 0);
   const config = LEVEL_CONFIG[key];
   if (!config) return null;
 

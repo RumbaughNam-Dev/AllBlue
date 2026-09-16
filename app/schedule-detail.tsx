@@ -11,6 +11,7 @@ import { StatusBar } from 'expo-status-bar';
 import Colors from '@/constants/Colors';
 import { api, ScheduleDetail } from '@/services/api';
 import Spinner from '@/components/Spinner';
+import LevelBadge from '@/components/LevelBadge';
 
 const STUDENT_CATEGORIES = ['EXPERIENCE', 'CERTIFICATION', 'LECTURE'];
 const FORM_BASE_URL = 'https://rumbaugh.co.kr/form';
@@ -189,6 +190,7 @@ export default function ScheduleDetailScreen() {
                   <Text style={styles.participantName}>
                     {p.nickname}{p.name ? ` (${p.name})` : ''}
                   </Text>
+                  <LevelBadge level={p.level} size={18} />
                 </View>
                 {p.categoryCode && (
                   <View style={styles.participantMeta}>
@@ -453,12 +455,11 @@ const styles = StyleSheet.create({
     marginBottom: 8, paddingHorizontal: 16, paddingVertical: 14,
   },
   participantNameRow: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    flexDirection: 'row', alignItems: 'center', gap: 6,
     marginBottom: 8,
   },
   participantName: {
     fontFamily: 'SUIT-SemiBold', fontSize: 15, color: Colors.brand.white,
-    flex: 1,
   },
   actionRow: {
     flexDirection: 'row', gap: 8, marginTop: 10,
