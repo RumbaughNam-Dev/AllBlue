@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "560064415494",
+    "project_id": "allblue-291e8",
+    "storage_bucket": "allblue-291e8.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:560064415494:android:d202e5762295930d854087",
+        "android_client_info": {
+          "package_name": "com.rumbaugh.allblue"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDuSStE2KPh_Ca4wQalUnR38wliawCuPno"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

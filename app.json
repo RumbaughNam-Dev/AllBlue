@@ -18,6 +18,7 @@
     },
     "android": {
       "package": "com.rumbaugh.allblue",
+      "googleServicesFile": "./google-services.json",
       "backgroundColor": "#144A84",
       "adaptiveIcon": {
         "backgroundColor": "#035491",
