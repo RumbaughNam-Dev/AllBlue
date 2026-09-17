@@ -5,17 +5,18 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import Colors from '@/constants/Colors';
 import { useAuth } from '@/contexts/AuthContext';
-import { api, Profile } from '@/services/api';
+import { api, Profile, Organization } from '@/services/api';
 import Spinner from '@/components/Spinner';
 import LevelBadge from '@/components/LevelBadge';
 
 const LEVEL_LABELS: Record<string, string> = {
-  I: 'AIDA Instructor',
-  T: 'AIDA Instructor Trainer',
-  '4': 'AIDA 4',
-  '3': 'AIDA 3',
-  '2': 'AIDA 2',
-  '1': 'AIDA 1',
+  '5': '강사',
+  '4': 'Lv.4',
+  '3': 'Lv.3',
+  '2': 'Lv.2',
+  '1': 'Lv.1',
+  '0': '일반',
+  'A': '관리자',
 };
 
 function formatRecord(val: number | null, unit?: string): string {
@@ -31,6 +32,8 @@ export default function ProfileScreen() {
   const [loading, setLoading] = useState(true);
   const [pendingCount, setPendingCount] = useState(0);
   const [inquiryPendingCount, setInquiryPendingCount] = useState(0);
+  const [organization, setOrganization] = useState<Organization | null>(null);
+  const [memberPendingCount, setMemberPendingCount] = useState(0);
 
   useFocusEffect(
     useCallback(() => {
@@ -44,6 +47,11 @@ export default function ProfileScreen() {
               name: res.user.name,
               profileImage: res.user.profileImage,
             });
+            if (res.user.organization && res.user.organization.status !== 'rejected') {
+              setOrganization(res.user.organization);
+            } else {
+              setOrganization(null);
+            }
           }
         })
         .catch((e) => console.log('[프로필] 조회 실패:', e))
@@ -54,10 +62,13 @@ export default function ProfileScreen() {
       api.getInquiryPendingCount()
         .then((res) => setInquiryPendingCount(res.count))
         .catch(() => {});
+      api.getPendingMembers()
+        .then((res) => setMemberPendingCount((res.members ?? []).length))
+        .catch(() => {});
     }, [])
   );
 
-  const levelLabel = profile?.diverLevel ? (LEVEL_LABELS[profile.diverLevel] ?? profile.diverLevel) : '';
+  const levelLabel = profile?.level != null ? (LEVEL_LABELS[String(profile.level)] ?? '') : '';
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 16, paddingBottom: insets.bottom }]}>
@@ -97,6 +108,16 @@ export default function ProfileScreen() {
                 <Text style={styles.closeX}>✕</Text>
               </Pressable>
             </View>
+
+            {/* Organization */}
+            {organization && (profile?.level === 5 || profile?.level === '5' || profile?.level === 'A') && (
+              <View style={styles.orgSection}>
+                <Text style={styles.orgLabel}>소속단체</Text>
+                <Text style={styles.orgName}>
+                  {organization.name}{organization.status === 'pending' ? ' (등록 처리중)' : organization.membershipStatus === 'pending' ? ' (소속 등록 요청중)' : ''}
+                </Text>
+              </View>
+            )}
 
             {/* Bio */}
             {profile?.description ? (
@@ -195,7 +216,28 @@ export default function ProfileScreen() {
                     )}
                   </View>
                 </Pressable>
+                <Pressable
+                  style={({ pressed }) => [styles.certButton, pressed && { opacity: 0.85 }]}
+                  onPress={() => router.push('/organization-manage')}
+                >
+                  <View style={styles.certButtonInner}>
+                    <Text style={styles.certButtonText}>단체 등록처리</Text>
+                  </View>
+                </Pressable>
               </>
+            )}
+            {organization?.isRepresentative && (
+              <Pressable
+                style={({ pressed }) => [styles.certButton, pressed && { opacity: 0.85 }]}
+                onPress={() => router.push('/organization-members')}
+              >
+                <View style={styles.certButtonInner}>
+                  <Text style={styles.certButtonText}>소속 등록요청 처리</Text>
+                  {memberPendingCount > 0 && (
+                    <Text style={styles.certCount}>{memberPendingCount}건</Text>
+                  )}
+                </View>
+              </Pressable>
             )}
             {/* 자격증 등록 요청 - 햄버거 메뉴로 이동
             {profile?.level !== 5 && (
@@ -304,6 +346,15 @@ const styles = StyleSheet.create({
   closeX: {
     fontSize: 20,
     color: Colors.brand.white,
+  },
+  orgSection: {
+    marginBottom: 16,
+  },
+  orgLabel: {
+    fontFamily: 'SUIT-SemiBold', fontSize: 13, color: 'rgba(255,255,255,0.45)', marginBottom: 4,
+  },
+  orgName: {
+    fontFamily: 'SUIT-SemiBold', fontSize: 15, color: Colors.brand.white,
   },
   bioSection: {
     marginBottom: 20,

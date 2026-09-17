@@ -4,18 +4,19 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import Colors from '@/constants/Colors';
-import { api, Profile } from '@/services/api';
+import { api, Profile, Organization } from '@/services/api';
 import Spinner from '@/components/Spinner';
 import LevelBadge from '@/components/LevelBadge';
 import { useAuth } from '@/contexts/AuthContext';
 
 const LEVEL_LABELS: Record<string, string> = {
-  I: 'AIDA Instructor',
-  T: 'AIDA Instructor Trainer',
-  '4': 'AIDA 4',
-  '3': 'AIDA 3',
-  '2': 'AIDA 2',
-  '1': 'AIDA 1',
+  '5': '강사',
+  '4': 'Lv.4',
+  '3': 'Lv.3',
+  '2': 'Lv.2',
+  '1': 'Lv.1',
+  '0': '일반',
+  'A': '관리자',
 };
 
 function formatRecord(val: number | null, unit?: string): string {
@@ -32,6 +33,7 @@ export default function ProfileViewScreen() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [userInfo, setUserInfo] = useState<{ id: number; nickname: string; name?: string; profileImage?: string } | null>(null);
   const [isMyStudent, setIsMyStudent] = useState(false);
+  const [organization, setOrganization] = useState<Organization | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -41,12 +43,15 @@ export default function ProfileViewScreen() {
         setProfile(res.profile);
         setUserInfo(res.user);
         setIsMyStudent(res.isMyStudent ?? false);
+        if (res.user.organization && res.user.organization.status !== 'rejected') {
+          setOrganization(res.user.organization);
+        }
       })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [userId]);
 
-  const levelLabel = profile?.diverLevel ? (LEVEL_LABELS[profile.diverLevel] ?? profile.diverLevel) : '';
+  const levelLabel = profile?.level != null ? (LEVEL_LABELS[String(profile.level)] ?? '') : '';
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 16, paddingBottom: insets.bottom }]}>
@@ -84,6 +89,14 @@ export default function ProfileViewScreen() {
               <Text style={styles.closeX}>✕</Text>
             </Pressable>
           </View>
+
+          {/* Organization */}
+          {organization && (profile?.level === 5 || profile?.level === '5' || profile?.level === 'A') && (
+            <View style={styles.orgSection}>
+              <Text style={styles.orgLabel}>소속단체</Text>
+              <Text style={styles.orgName}>{organization.name}</Text>
+            </View>
+          )}
 
           {/* Bio */}
           {profile?.description ? (
@@ -202,6 +215,9 @@ const styles = StyleSheet.create({
   role: { fontFamily: 'SUIT-Regular', fontSize: 14, color: 'rgba(255,255,255,0.55)' },
   closeButton: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
   closeX: { fontSize: 20, color: Colors.brand.white },
+  orgSection: { marginBottom: 16 },
+  orgLabel: { fontFamily: 'SUIT-SemiBold', fontSize: 13, color: 'rgba(255,255,255,0.45)', marginBottom: 4 },
+  orgName: { fontFamily: 'SUIT-SemiBold', fontSize: 15, color: Colors.brand.white },
   bioSection: { marginBottom: 20 },
   bioText: { fontFamily: 'SUIT-Regular', fontSize: 15, color: 'rgba(255,255,255,0.75)', lineHeight: 24 },
   divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.1)', marginVertical: 16 },

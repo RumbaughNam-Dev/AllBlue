@@ -1,16 +1,18 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View, Text, TextInput, StyleSheet, Pressable, ScrollView,
-  Alert, Platform, KeyboardAvoidingView, ActivityIndicator, Image,
+  Alert, Platform, KeyboardAvoidingView, ActivityIndicator, Image, Modal,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { BlurView } from 'expo-blur';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import * as ImagePicker from 'expo-image-picker';
 import Colors from '@/constants/Colors';
 import { useAuth } from '@/contexts/AuthContext';
-import { api, Profile } from '@/services/api';
+import { api, Profile, Organization } from '@/services/api';
 import Spinner from '@/components/Spinner';
+import BottomSheet from '@/components/BottomSheet';
 
 export default function ProfileEditScreen() {
   const insets = useSafeAreaInsets();
@@ -35,6 +37,26 @@ export default function ProfileEditScreen() {
   const [cwtb, setCwtb] = useState('');
   const [cwt, setCwt] = useState('');
   const [cnf, setCnf] = useState('');
+  const [level, setLevel] = useState<string | number | null>(null);
+  const [selectedOrg, setSelectedOrg] = useState<Organization | null>(null);
+  const [showOrgPicker, setShowOrgPicker] = useState(false);
+  const [orgSearchQuery, setOrgSearchQuery] = useState('');
+  const [orgSearchResults, setOrgSearchResults] = useState<Organization[]>([]);
+  const [orgSearching, setOrgSearching] = useState(false);
+  const orgInputRef = useRef<TextInput>(null);
+
+  const openOrgPicker = () => {
+    setShowOrgPicker(true);
+    setTimeout(() => orgInputRef.current?.focus(), 400);
+  };
+
+  const closeOrgPicker = () => {
+    setShowOrgPicker(false);
+    setOrgSearchQuery('');
+    setOrgSearchResults([]);
+  };
+
+  const isInstructor = level === 5 || level === '5' || level === 'A';
 
   useEffect(() => {
     api.getProfile()
@@ -42,9 +64,13 @@ export default function ProfileEditScreen() {
         if (res.user) {
           setNicknameTxt(res.user.nickname ?? '');
           setNameTxt(res.user.name ?? '');
+          if (res.user.organization && res.user.organization.status !== 'rejected') {
+            setSelectedOrg(res.user.organization);
+          }
         }
         const p = res.profile;
         if (p) {
+          setLevel(p.level);
           setDescription(p.description ?? '');
           setShoesSize(p.shoesSize != null ? String(p.shoesSize) : '');
           setFinSize(p.finSize != null ? String(p.finSize) : '');
@@ -66,6 +92,21 @@ export default function ProfileEditScreen() {
       .finally(() => setLoading(false));
   }, []);
 
+  const initialLoad = useRef(true);
+  useFocusEffect(
+    useCallback(() => {
+      if (initialLoad.current) { initialLoad.current = false; return; }
+      // 단체 등록요청 후 돌아왔을 때 소속단체 갱신
+      api.getProfile()
+        .then((res) => {
+          if (res.user?.organization && res.user.organization.status !== 'rejected') {
+            setSelectedOrg(res.user.organization);
+          }
+        })
+        .catch(() => {});
+    }, [])
+  );
+
   const toNum = (v: string): number | null => {
     const trimmed = v.trim();
     if (!trimmed) return null;
@@ -73,18 +114,22 @@ export default function ProfileEditScreen() {
     return isNaN(n) ? null : n;
   };
 
+  const [pickingImage, setPickingImage] = useState(false);
+
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
       Alert.alert('권한 필요', '사진 라이브러리 접근 권한이 필요합니다.');
       return;
     }
+    setPickingImage(true);
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.8,
     });
+    setPickingImage(false);
     if (!result.canceled && result.assets[0]) {
       setProfileImage(result.assets[0].uri);
       setImageChanged(true);
@@ -106,6 +151,7 @@ export default function ProfileEditScreen() {
         nickname: nicknameTxt.trim() || undefined,
         name: nameTxt.trim() || null,
         description: description.trim() || null,
+        organizationId: isInstructor ? (selectedOrg?.id ?? null) : undefined,
         shoesSize: toNum(shoesSize) as any,
         finSize: finSize.trim() || null,
         sta: (staMin.trim() || staSec.trim()) ? toNum(`${staMin.trim() || '0'}.${staSec.trim() || '0'}`) : null,
@@ -178,8 +224,12 @@ export default function ProfileEditScreen() {
                 )}
               </View>
             </Pressable>
-            <Pressable onPress={pickImage} style={({ pressed }) => [pressed && { opacity: 0.6 }]}>
-              <Text style={styles.changePhotoText}>사진 변경</Text>
+            <Pressable onPress={pickImage} disabled={pickingImage} style={({ pressed }) => [pressed && { opacity: 0.6 }]}>
+              {pickingImage ? (
+                <ActivityIndicator size="small" color="rgba(255,255,255,0.5)" style={{ paddingVertical: 2 }} />
+              ) : (
+                <Text style={styles.changePhotoText}>사진 변경</Text>
+              )}
             </Pressable>
           </View>
 
@@ -202,6 +252,30 @@ export default function ProfileEditScreen() {
             placeholder="실명을 입력해주세요"
             placeholderTextColor="rgba(255,255,255,0.25)"
           />
+
+          {/* Organization - 강사만 */}
+          {isInstructor && (
+            <>
+              <Text style={styles.sectionLabel}>소속단체</Text>
+              <Pressable
+                style={styles.orgPickerButton}
+                onPress={openOrgPicker}
+              >
+                {selectedOrg ? (
+                  <View style={styles.orgSelectedRow}>
+                    <Text style={styles.orgSelectedText}>
+                      {selectedOrg.name}{selectedOrg.status === 'pending' ? ' (등록요청)' : selectedOrg.membershipStatus === 'pending' ? ' (소속 등록 요청중)' : ''}
+                    </Text>
+                    <Pressable onPress={() => setSelectedOrg(null)} style={styles.orgClearButton}>
+                      <Text style={styles.orgClearText}>✕</Text>
+                    </Pressable>
+                  </View>
+                ) : (
+                  <Text style={styles.orgPlaceholder}>소속단체를 선택해주세요</Text>
+                )}
+              </Pressable>
+            </>
+          )}
 
           {/* Description */}
           <Text style={styles.sectionLabel}>자기소개</Text>
@@ -306,6 +380,73 @@ export default function ProfileEditScreen() {
 
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Organization Search Modal */}
+      <Modal visible={showOrgPicker} transparent animationType="fade" onRequestClose={closeOrgPicker}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={closeOrgPicker}>
+          <BlurView intensity={80} tint="dark" style={StyleSheet.absoluteFill} />
+        </Pressable>
+        <KeyboardAvoidingView style={styles.orgModalWrap} behavior={Platform.OS === 'ios' ? 'padding' : undefined} pointerEvents="box-none">
+          <View style={[styles.orgModalContent, { paddingBottom: insets.bottom + 16 }]}>
+            <View style={styles.orgModalHeader}>
+              <Text style={styles.orgModalTitle}>소속단체 선택</Text>
+              <Pressable onPress={closeOrgPicker}>
+                <Text style={styles.orgModalClose}>✕</Text>
+              </Pressable>
+            </View>
+            <TextInput
+              ref={orgInputRef}
+              style={styles.orgSearchInput}
+              value={orgSearchQuery}
+              onChangeText={(q) => {
+                setOrgSearchQuery(q);
+                if (q.trim().length === 0) { setOrgSearchResults([]); return; }
+                setOrgSearching(true);
+                api.searchOrganizations(q.trim())
+                  .then((res) => setOrgSearchResults(res.organizations ?? []))
+                  .catch(() => {})
+                  .finally(() => setOrgSearching(false));
+              }}
+              placeholder="단체명으로 검색"
+              placeholderTextColor="rgba(255,255,255,0.25)"
+            />
+            <ScrollView style={{ flex: 1 }} keyboardShouldPersistTaps="handled">
+              {orgSearching && (
+                <View style={{ paddingVertical: 16, alignItems: 'center' }}>
+                  <ActivityIndicator size="small" color="rgba(255,255,255,0.5)" />
+                </View>
+              )}
+              {orgSearchResults.map((org) => (
+                <Pressable
+                  key={org.id}
+                  style={({ pressed }) => [styles.orgSearchItem, pressed && { opacity: 0.6 }]}
+                  onPress={() => {
+                    setSelectedOrg(org);
+                    closeOrgPicker();
+                  }}
+                >
+                  <Text style={styles.orgSearchName}>
+                    {org.name}{org.status === 'pending' ? ' (등록요청)' : ''}
+                  </Text>
+                </Pressable>
+              ))}
+              {orgSearchQuery.trim().length > 0 && !orgSearching && (
+                <Pressable
+                  style={({ pressed }) => [styles.orgRegisterEntry, pressed && { opacity: 0.6 }]}
+                  onPress={() => {
+                    const q = orgSearchQuery.trim();
+                    closeOrgPicker();
+                    setTimeout(() => router.push({ pathname: '/organization-register', params: { name: q } }), 300);
+                  }}
+                >
+                  <Text style={styles.orgRegisterText}>단체 등록요청</Text>
+                  <Text style={styles.orgRegisterArrow}>{'>'}</Text>
+                </Pressable>
+              )}
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
@@ -441,4 +582,50 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: Colors.brand.white,
   },
+  // Organization styles
+  orgPickerButton: {
+    backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12,
+    paddingHorizontal: 16, paddingVertical: 14,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+  },
+  orgSelectedRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+  },
+  orgSelectedText: {
+    fontFamily: 'SUIT-Regular', fontSize: 16, color: Colors.brand.white, flex: 1,
+  },
+  orgClearButton: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
+  orgClearText: { fontSize: 14, color: 'rgba(255,255,255,0.5)' },
+  orgPlaceholder: {
+    fontFamily: 'SUIT-Regular', fontSize: 16, color: 'rgba(255,255,255,0.25)',
+  },
+  orgModalWrap: {
+    flex: 1, justifyContent: 'flex-end',
+  },
+  orgModalContent: {
+    backgroundColor: Colors.brand.primary, borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    paddingTop: 16, paddingHorizontal: 24, minHeight: 300, maxHeight: '70%',
+  },
+  orgModalHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16,
+  },
+  orgModalTitle: { fontFamily: 'SUIT-Bold', fontSize: 18, color: Colors.brand.white },
+  orgModalClose: { fontSize: 18, color: 'rgba(255,255,255,0.6)' },
+  orgSearchInput: {
+    fontFamily: 'SUIT-Regular', fontSize: 16, color: Colors.brand.white,
+    backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12,
+    paddingHorizontal: 16, paddingVertical: 12,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', marginBottom: 12,
+  },
+  orgSearchItem: {
+    paddingHorizontal: 4, paddingVertical: 14,
+    borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)',
+  },
+  orgSearchName: { fontFamily: 'SUIT-SemiBold', fontSize: 15, color: Colors.brand.white },
+  orgRegisterEntry: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingVertical: 14, paddingHorizontal: 4, marginTop: 4,
+  },
+  orgRegisterText: { fontFamily: 'SUIT-SemiBold', fontSize: 14, color: Colors.brand.warning },
+  orgRegisterArrow: { fontFamily: 'SUIT-Bold', fontSize: 14, color: Colors.brand.warning },
 });

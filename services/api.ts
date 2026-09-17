@@ -80,7 +80,6 @@ export type Profile = {
   nickname?: string;
   name?: string | null;
   level: number | string | null;
-  diverLevel: string | null;
   description: string | null;
   shoesSize: number | null;
   finSize: string | null;
@@ -255,8 +254,30 @@ export type CertRequest = {
   createdAt: string;
 };
 
+export type Organization = {
+  id: number;
+  name: string;
+  phone?: string;
+  address?: string;
+  logo?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  membershipStatus?: 'pending' | 'approved' | 'rejected';
+  isRepresentative?: boolean;
+  representativeName?: string;
+  representativeNickname?: string;
+  createdAt?: string;
+};
+
+export type PendingMember = {
+  userId: string;
+  nickname: string;
+  name?: string;
+  phone?: string;
+  profileImage?: string;
+};
+
 export type ProfileResponse = {
-  user: { id: number; name?: string; nickname: string; profileImage?: string };
+  user: { id: number; name?: string; nickname: string; profileImage?: string; organization?: Organization | null };
   profile: Profile | null;
   isMyStudent?: boolean;
 };
@@ -444,7 +465,7 @@ export const api = {
     return data as { success: boolean };
   },
 
-  updateProfile(data: Partial<Profile>) {
+  updateProfile(data: Partial<Profile> & { organizationId?: number | null }) {
     return request<{ success: boolean; profile: Profile }>('/profile', {
       method: 'PUT',
       body: JSON.stringify(data),
@@ -617,6 +638,67 @@ export const api = {
 
   removeFromFriendGroup(groupId: number, userId: string) {
     return request<{ success: boolean }>(`/friends/groups/${groupId}/members/${userId}`, { method: 'DELETE' });
+  },
+
+  // 단체 관련
+  searchOrganizations(q: string) {
+    return request<{ organizations: Organization[] }>(`/organizations/search?q=${encodeURIComponent(q)}`);
+  },
+
+  async createOrganization(data: { name: string; phone?: string; address?: string; logoUri?: string }) {
+    // 로고 이미지가 있으면 먼저 업로드
+    let logoUrl: string | undefined;
+    if (data.logoUri) {
+      const token = await AsyncStorage.getItem('authToken');
+      const file = new File(data.logoUri);
+      const result = await file.upload(`${BASE_URL}/organizations/logo`, {
+        uploadType: UploadType.MULTIPART,
+        fieldName: 'logo',
+        mimeType: 'image/jpeg',
+        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      });
+      const parsed = JSON.parse(result.body);
+      if (result.status >= 200 && result.status < 300) {
+        logoUrl = parsed.logoUrl;
+      }
+    }
+
+    return request<{ success: boolean; organization: Organization }>('/organizations', {
+      method: 'POST',
+      body: JSON.stringify({
+        name: data.name,
+        phone: data.phone,
+        address: data.address,
+        logo: logoUrl,
+      }),
+    });
+  },
+
+  getPendingOrganizations() {
+    return request<{ organizations: Organization[] }>('/organizations/pending');
+  },
+
+  approveOrganization(id: number) {
+    return request<{ success: boolean }>(`/organizations/${id}/approve`, { method: 'PATCH' });
+  },
+
+  rejectOrganization(id: number, reason?: string) {
+    return request<{ success: boolean }>(`/organizations/${id}/reject`, {
+      method: 'PATCH',
+      body: JSON.stringify({ reason }),
+    });
+  },
+
+  getPendingMembers() {
+    return request<{ members: PendingMember[] }>('/organizations/members/pending');
+  },
+
+  approveMember(userId: string) {
+    return request<{ success: boolean }>(`/organizations/members/${userId}/approve`, { method: 'PATCH' });
+  },
+
+  rejectMember(userId: string) {
+    return request<{ success: boolean }>(`/organizations/members/${userId}/reject`, { method: 'PATCH' });
   },
 
   // 자격증 관련
