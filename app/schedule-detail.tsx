@@ -86,6 +86,19 @@ export default function ScheduleDetailScreen() {
     ]);
   };
 
+  const openFormUrl = async (url: string) => {
+    try {
+      // Development-only diagnostics collect geometry, never document contents.
+      const documentUrl = __DEV__ ? `${url}${url.includes('?') ? '&' : '?'}touchDebug=1` : url;
+      await WebBrowser.openBrowserAsync(documentUrl, {
+        presentationStyle: WebBrowser.WebBrowserPresentationStyle.PAGE_SHEET,
+      });
+      handleRefresh();
+    } catch {
+      Alert.alert('문서 열기 실패', '브라우저를 열지 못했습니다. 다시 시도해주세요.');
+    }
+  };
+
   const openDocument = (uuid?: string, participantId?: number) => {
     if (!uuid) {
       Alert.alert('알림', '서류가 등록되지 않았습니다.');
@@ -95,7 +108,7 @@ export default function ScheduleDetailScreen() {
       Alert.alert('알림', '내 일정 또는 내 문서만 조회할 수 있어요.');
       return;
     }
-    WebBrowser.openBrowserAsync(`${FORM_BASE_URL}/${uuid}?from=instructor`);
+    void openFormUrl(`${FORM_BASE_URL}/${uuid}?from=instructor`);
   };
 
   const copyFormUrl = async (uuid?: string, participantId?: number) => {
@@ -181,7 +194,7 @@ export default function ScheduleDetailScreen() {
 
               const openFormForSign = (uuid?: string) => {
                 if (!uuid) return;
-                WebBrowser.openBrowserAsync(`${FORM_BASE_URL}/${uuid}`).then(() => handleRefresh());
+                void openFormUrl(`${FORM_BASE_URL}/${uuid}`);
               };
 
               return (
