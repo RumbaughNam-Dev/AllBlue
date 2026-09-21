@@ -88,9 +88,7 @@ export default function ScheduleDetailScreen() {
 
   const openFormUrl = async (url: string) => {
     try {
-      // Development-only diagnostics collect geometry, never document contents.
-      const documentUrl = __DEV__ ? `${url}${url.includes('?') ? '&' : '?'}touchDebug=1` : url;
-      await WebBrowser.openBrowserAsync(documentUrl, {
+      await WebBrowser.openBrowserAsync(url, {
         presentationStyle: WebBrowser.WebBrowserPresentationStyle.PAGE_SHEET,
       });
       handleRefresh();
