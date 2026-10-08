@@ -1,6 +1,7 @@
+import ProfileLink from '@/components/ProfileLink';
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, Pressable, ScrollView, FlatList, Alert, ActivityIndicator,
+  View, Text, StyleSheet, Pressable, ScrollView, FlatList, Alert, ActivityIndicator, Platform,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -43,7 +44,7 @@ function buildSections(requirements: AchievementRequirement[], allCompleted: boo
       currentSection.data.push(item);
     } else {
       currentSection = {
-        group: { id: 0, name: 'Performance', nameKo: '수행 평가', reqGroup: 'PERFORMANCE', reqType: 'GROUP', code: null, unit: '', minValue: null, displayValue: null, isOptional: false, isCompleted: false, completedAt: null, completedBy: null },
+        group: { id: 0, name: 'Performance', nameKo: '수행 평가', reqGroup: 'PERFORMANCE', reqType: 'GROUP', code: null, unit: '', minValue: null, displayValue: null, isOptional: false, isCompleted: false, completedAt: null, completedBy: null, completedByMe: false },
         data: [allCompleted ? { ...req, isCompleted: true } : req],
       };
       result.push(currentSection);
@@ -61,13 +62,16 @@ export default function AchievementScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user } = useAuth();
-  const { participantId, participantName, participantLevel, modal } = useLocalSearchParams<{
+  const { participantId, profileUserId, participantName, participantLevel, modal } = useLocalSearchParams<{
     participantId: string;
+    profileUserId?: string;
     participantName: string;
     participantLevel?: string;
     modal?: string;
   }>();
   const isModal = modal === '1';
+  // Android modals cover the status bar; iOS sheets already sit below it.
+  const topPadding = isModal ? 16 + (Platform.OS === 'android' ? insets.top : 0) : insets.top;
 
   const [licenses, setLicenses] = useState<UserLicense[]>([]);
   const [loading, setLoading] = useState(true);
@@ -236,7 +240,7 @@ export default function AchievementScreen() {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: isModal ? 16 : insets.top, paddingBottom: insets.bottom }]}>
+    <View style={[styles.container, { paddingTop: topPadding, paddingBottom: insets.bottom }]}>
       <StatusBar style="light" />
 
       <View style={styles.header}>
@@ -250,7 +254,7 @@ export default function AchievementScreen() {
           </Pressable>
         )}
         <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>{participantName}</Text>
+          <ProfileLink userId={profileUserId} label={participantName}><Text style={styles.headerTitle}>{participantName}</Text></ProfileLink>
           {participantLevel ? <LevelBadge level={participantLevel} size={20} /> : null}
         </View>
         {isModal ? (

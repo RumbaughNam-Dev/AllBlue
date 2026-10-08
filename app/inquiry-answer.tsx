@@ -103,13 +103,13 @@ export default function InquiryAnswerScreen() {
       <View style={[styles.container, { paddingTop: insets.top }]}>
         <StatusBar style="light" />
         <View style={styles.header}>
-          <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.6 }]}>
-            <View style={styles.backCircle}>
-              <Text style={styles.backArrow}>{'<'}</Text>
+          <View style={{ width: 36 }} />
+          <Text style={styles.headerTitle}>답변하기</Text>
+          <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.closeButton, pressed && { opacity: 0.6 }]}>
+            <View style={styles.closeCircle}>
+              <Text style={styles.closeX}>✕</Text>
             </View>
           </Pressable>
-          <Text style={styles.headerTitle}>답변하기</Text>
-          <View style={{ width: 36 }} />
         </View>
         <View style={styles.loadingArea}>
           <Text style={styles.emptyText}>문의를 찾을 수 없습니다.</Text>

@@ -1,12 +1,16 @@
+import { PopupBlurProvider } from '@/components/PopupBackdrop';
 import { useFonts } from 'expo-font';
-import { Stack, useRouter, useSegments } from 'expo-router';
+import { Stack, useRouter, useSegments, useGlobalSearchParams } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import * as SystemUI from 'expo-system-ui';
 import { useEffect, useRef, useState } from 'react';
-import { View } from 'react-native';
+import { View, DeviceEventEmitter } from 'react-native';
+import { observeSchedulePushes } from '@/services/push';
+import { api } from '@/services/api';
 import { StatusBar } from 'expo-status-bar';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import SplashView from '@/components/SplashView';
+import { useScheduleLinkResume } from '@/hooks/useScheduleLinkResume';
 
 export { ErrorBoundary } from 'expo-router';
 
@@ -17,6 +21,11 @@ function RootLayoutNav() {
   const { isLoggedIn, hasSeenOnboarding, isLoading, login } = useAuth();
   const router = useRouter();
   const segments = useSegments();
+  const linkParams = useGlobalSearchParams<{ id?: string; filter?: string }>();
+  useScheduleLinkResume({
+    route: segments[0], id: linkParams.id, filter: linkParams.filter,
+    isLoading, isLoggedIn, replace: router.replace,
+  });
   const [ready, setReady] = useState(false);
   const [splashDone, setSplashDone] = useState(false);
   const routeReady = useRef(false);
@@ -45,6 +54,14 @@ function RootLayoutNav() {
   }, [isLoggedIn, hasSeenOnboarding, isLoading, segments]);
 
 
+  useEffect(() => {
+    if (!isLoggedIn || isLoading || !ready || !splashDone) return;
+    return observeSchedulePushes((scheduleId, notificationId) => {
+      if (notificationId) void api.readNotification(notificationId).then(() => DeviceEventEmitter.emit('notificationsChanged')).catch(() => {});
+      routerRef.current.push({ pathname: '/schedule-detail', params: { id: String(scheduleId), filter: 'notification' } });
+    }, () => DeviceEventEmitter.emit('notificationsChanged'));
+  }, [isLoggedIn, isLoading, ready, splashDone]);
+
   if (!ready || !splashDone) {
     return <SplashView onFinish={() => { setSplashDone(true); setReady(true); }} />;
   }
@@ -70,7 +87,7 @@ function RootLayoutNav() {
         <Stack.Screen name="cert-manage" options={{ presentation: 'fullScreenModal', contentStyle: { backgroundColor: '#144A84' } }} />
         <Stack.Screen name="schedule-daily" options={{ gestureEnabled: true }} />
         <Stack.Screen name="schedule-detail" options={{ gestureEnabled: true }} />
-        <Stack.Screen name="schedule-add" options={{ gestureEnabled: true }} />
+        <Stack.Screen name="schedule-add" options={{ gestureEnabled: true, headerBackButtonMenuEnabled: false }} />
         <Stack.Screen name="profile-view" options={{ presentation: 'fullScreenModal' }} />
         <Stack.Screen name="achievement" options={{ gestureEnabled: true }} />
         <Stack.Screen name="debriefing" options={{ gestureEnabled: true }} />
@@ -114,7 +131,7 @@ export default function RootLayout() {
 
   return (
     <AuthProvider>
-      <RootLayoutNav />
+      <PopupBlurProvider><RootLayoutNav /></PopupBlurProvider>
     </AuthProvider>
   );
 }

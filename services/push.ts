@@ -8,73 +8,96 @@ let Constants: any = null;
 try {
   Notifications = require('expo-notifications');
   Device = require('expo-device');
-  Constants = require('expo-constants');
+  Constants = require('expo-constants').default;
 
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
-      shouldShowAlert: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
       shouldPlaySound: true,
       shouldSetBadge: false,
     }),
   });
 } catch {
-  // Expo Go에서는 expo-notifications 사용 불가
+  if (__DEV__) console.warn('[push] 알림 모듈을 불러오지 못했습니다. 설치된 빌드의 네이티브 모듈을 확인하세요.');
 }
 
-export async function registerForPushNotifications(): Promise<string | null> {
+export async function registerForPushNotifications(authToken: string): Promise<string | null> {
   if (!Notifications || !Device || !Constants) {
-    console.log('[Push] expo-notifications 사용 불가 (Expo Go)');
     return null;
   }
-  console.log('[Push] 시작, isDevice:', Device.isDevice);
   if (!Device.isDevice) return null;
 
-  const { status: existingStatus } = await Notifications.getPermissionsAsync();
-  console.log('[Push] 기존 권한:', existingStatus);
-  let finalStatus = existingStatus;
-
-  if (existingStatus !== 'granted') {
-    const { status } = await Notifications.requestPermissionsAsync();
-    finalStatus = status;
-    console.log('[Push] 요청 후 권한:', finalStatus);
-  }
-
-  if (finalStatus !== 'granted') {
-    console.log('[Push] 권한 거부됨');
-    return null;
-  }
-
-  const projectId = Constants?.expoConfig?.extra?.eas?.projectId ?? Constants?.easConfig?.projectId;
-  console.log('[Push] projectId:', projectId);
-  if (!projectId) {
-    console.log('[Push] projectId 없음');
-    return null;
-  }
-
+  let stage = 'notification-channel';
   try {
-    const { data: token } = await Notifications.getExpoPushTokenAsync({ projectId });
-    console.log('[Push] 토큰 발급:', token);
-
     if (Platform.OS === 'android') {
-      Notifications.setNotificationChannelAsync('default', {
+      await Notifications.setNotificationChannelAsync('default', {
         name: 'default',
         importance: Notifications.AndroidImportance.MAX,
       });
     }
 
-    // 서버에 토큰 등록
-    await api.registerPushToken(token);
-    console.log('[Push] 서버 등록 완료');
+    stage = 'permissions';
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
 
+    if (existingStatus !== 'granted') {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+
+    if (finalStatus !== 'granted') {
+      if (__DEV__) console.info('[push] 알림 권한이 허용되지 않아 토큰 등록을 건너뜁니다.');
+      return null;
+    }
+
+    const projectId = Constants?.expoConfig?.extra?.eas?.projectId ?? Constants?.easConfig?.projectId;
+    if (!projectId) {
+      if (__DEV__) console.warn('[push] EAS projectId가 없어 토큰을 발급할 수 없습니다.');
+      return null;
+    }
+
+    stage = 'expo-token';
+    const { data: token } = await Notifications.getExpoPushTokenAsync({ projectId });
+
+    // 서버에 토큰 등록
+    stage = 'server-registration';
+    await api.registerPushToken(token, authToken);
+
+    if (__DEV__) console.info('[push] 서버에 푸시 토큰을 등록했습니다.');
     return token;
-  } catch (e) {
-    console.log('[Push] 에러:', e);
+  } catch {
+    // Log only the failing stage; never include authentication or push tokens.
+    if (__DEV__) console.warn(`[push] 토큰 등록 실패: ${stage}`);
     return null;
   }
 }
 
-export async function unregisterPushToken(token: string) {
+export async function unregisterPushToken(token: string, authToken: string) {
   try {
-    await api.unregisterPushToken(token);
+    await api.unregisterPushToken(token, authToken);
   } catch {}
+}
+
+// Subscribe only after authentication/navigation are ready. The last response
+// covers cold launches; the listener covers foreground/background taps.
+const handledScheduleResponses = new Set<string>();
+export function observeSchedulePushes(onOpen: (scheduleId: number, notificationId?: number) => void, onReceive: () => void) {
+  if (!Notifications) return () => {};
+  let active = true;
+  const handle = (response: any) => {
+    if (!active || !response?.notification) return;
+    const request = response.notification.request;
+    const data = request.content?.data;
+    const id = Number(data?.scheduleId);
+    if (data?.type !== 'schedule' || !Number.isSafeInteger(id) || id < 1 || handledScheduleResponses.has(request.identifier)) return;
+    handledScheduleResponses.add(request.identifier);
+    if (handledScheduleResponses.size > 100) handledScheduleResponses.delete(handledScheduleResponses.values().next().value!);
+    const notificationId = Number(data.notificationId);
+    onOpen(id, Number.isSafeInteger(notificationId) && notificationId > 0 ? notificationId : undefined);
+  };
+  const response = Notifications.addNotificationResponseReceivedListener(handle);
+  const received = Notifications.addNotificationReceivedListener(onReceive);
+  Notifications.getLastNotificationResponseAsync().then(handle).catch(() => {});
+  return () => { active = false; response.remove(); received.remove(); };
 }

@@ -1,3 +1,4 @@
+import ProfileLink from '@/components/ProfileLink';
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, Pressable, ScrollView, Alert, Image, Platform,
@@ -87,17 +88,17 @@ export default function OrganizationMembersScreen() {
           {members.map((member) => (
             <View key={member.userId} style={styles.card}>
               <View style={styles.cardTop}>
-                {member.profileImage ? (
+                <ProfileLink userId={member.userId} label={member.nickname}>{member.profileImage ? (
                   <Image source={{ uri: member.profileImage }} style={styles.avatar} />
                 ) : (
                   <View style={[styles.avatar, styles.avatarEmpty]}>
                     <Text style={styles.avatarText}>{member.nickname?.charAt(0) ?? '?'}</Text>
                   </View>
-                )}
+                )}</ProfileLink>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.memberName}>
+                  <ProfileLink userId={member.userId} label={member.nickname}><Text style={styles.memberName}>
                     {member.nickname}{member.name ? ` (${member.name})` : ''}
-                  </Text>
+                  </Text></ProfileLink>
                   {member.phone && (
                     <Text style={styles.memberPhone}>{maskPhone(member.phone)}</Text>
                   )}

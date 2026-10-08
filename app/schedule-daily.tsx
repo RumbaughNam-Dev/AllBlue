@@ -6,6 +6,7 @@ import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import Colors from '@/constants/Colors';
+import { useLatestRequest } from '@/hooks/useLatestRequest';
 import { api, Schedule } from '@/services/api';
 import Spinner from '@/components/Spinner';
 import LevelBadge from '@/components/LevelBadge';
@@ -13,9 +14,12 @@ import LevelBadge from '@/components/LevelBadge';
 export default function ScheduleDailyScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { date } = useLocalSearchParams<{ date: string }>();
+  const { date, filter = 'mine', sourceLabel } = useLocalSearchParams<{ date: string; filter?: string; sourceLabel?: string }>();
+  const source = sourceLabel ?? (filter === 'instructor' ? '강사 일정' : filter === 'closeFriend' ? '친한친구 일정' : filter.startsWith('group_') ? '그룹 일정' : '내 일정');
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const request = useLatestRequest();
 
   const dateObj = date ? new Date(date + 'T00:00:00') : new Date();
   const month = dateObj.getMonth() + 1;
@@ -24,12 +28,16 @@ export default function ScheduleDailyScreen() {
   useFocusEffect(
     useCallback(() => {
       if (!date) return;
+      const isCurrent = request.start();
       setLoading(true);
-      api.getDailySchedules(date)
-        .then((res) => setSchedules(res.schedules ?? []))
-        .catch(() => {})
-        .finally(() => setLoading(false));
-    }, [date])
+      setSchedules([]);
+      setError(false);
+      api.getDailySchedules(date, filter)
+        .then((res) => { if (isCurrent()) setSchedules(res.schedules ?? []); })
+        .catch(() => { if (isCurrent()) setError(true); })
+        .finally(() => { if (isCurrent()) setLoading(false); });
+      return () => request.invalidate();
+    }, [date, filter, request])
   );
 
   const formatTime = (h: number, m: number) => {
@@ -70,6 +78,10 @@ export default function ScheduleDailyScreen() {
 
       {loading ? (
         <View style={styles.loadingArea}><Spinner /></View>
+      ) : error ? (
+        <View style={styles.emptyArea}>
+          <Text style={styles.emptyMessage}>일정을 불러오지 못했습니다. 잠시 후 다시 열어주세요.</Text>
+        </View>
       ) : schedules.length === 0 ? (
         <View style={styles.emptyArea}>
           <Text style={styles.emptyMessage}>예정된 일정이 없습니다.</Text>
@@ -96,7 +108,7 @@ export default function ScheduleDailyScreen() {
 
                 <View style={styles.lineColumn}>
                   <View style={styles.dotActive} />
-                  <View style={[styles.lineBottom, slotIndex === timelineSlots.length - 1 && styles.lineTrailing]} />
+                  <View style={styles.lineBottom} />
                 </View>
 
                 <View style={styles.timelineContent}>
@@ -104,9 +116,12 @@ export default function ScheduleDailyScreen() {
                     <Pressable
                       key={item.id}
                       style={({ pressed }) => [styles.scheduleCard, pressed && { opacity: 0.7 }]}
-                      onPress={() => router.push({ pathname: '/schedule-detail', params: { id: String(item.id) } })}
+                      onPress={() => router.push({ pathname: '/schedule-detail', params: { id: String(item.id), filter, sourceLabel: source } })}
                     >
-                      <Text style={styles.scheduleTitle}>{item.title}</Text>
+                      {item.invitationStatus === 'pending' && <Text style={{ color: '#FFD166', fontWeight: '700', marginBottom: 6 }}>일정 등록요청이 왔어요!</Text>}
+                      <Text style={styles.scheduleTitle}>
+                        {item.title}{' '}<Text style={styles.scheduleSource}>({source})</Text>
+                      </Text>
                       <Text style={styles.scheduleDetail}>• 장소 : {item.poolName || '-'}</Text>
                       <Text style={styles.scheduleDetail}>• 분류 : {item.categoryName}</Text>
                       <Text style={styles.scheduleDetail}>• {item.categoryCode === 'TRAINING' || item.categoryCode === 'FUN_DIVE' ? '참석자' : '교육생'} : {item.participantCount}명</Text>
@@ -223,10 +238,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(255,255,255,0.15)',
   },
-  lineTrailing: {
-    flex: 0,
-    height: CARD_HEIGHT * 5 / 3,
-  },
   timelineItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -244,6 +255,7 @@ const styles = StyleSheet.create({
     marginTop: -3,
   },
   lineColumn: {
+    alignSelf: 'stretch',
     width: 20,
     alignItems: 'center',
   },
@@ -270,6 +282,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.brand.white,
     marginBottom: 8,
+  },
+  scheduleSource: {
+    fontFamily: 'SUIT-Regular',
+    fontSize: 12,
+    color: '#9CA3AF',
   },
   scheduleDetail: {
     fontFamily: 'SUIT-Regular',

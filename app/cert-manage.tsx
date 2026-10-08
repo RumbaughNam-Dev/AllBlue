@@ -1,3 +1,5 @@
+import PopupBackdrop from '@/components/PopupBackdrop';
+import ProfileLink from '@/components/ProfileLink';
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, TextInput, StyleSheet, Pressable, FlatList, Alert,
@@ -10,16 +12,8 @@ import { StatusBar } from 'expo-status-bar';
 import * as WebBrowser from 'expo-web-browser';
 import Constants from 'expo-constants';
 import Colors from '@/constants/Colors';
-import { api, CertRequest } from '@/services/api';
+import { api, CertRequest, CertificationOption } from '@/services/api';
 import Spinner from '@/components/Spinner';
-
-const LEVEL_OPTIONS = [
-  { label: 'Level 1', value: '1' },
-  { label: 'Level 2', value: '2' },
-  { label: 'Level 3', value: '3' },
-  { label: 'Master', value: '4' },
-  { label: 'Instructor', value: '5' },
-];
 
 export default function CertManageScreen() {
   const insets = useSafeAreaInsets();
@@ -30,6 +24,12 @@ export default function CertManageScreen() {
   const [rejectTarget, setRejectTarget] = useState<CertRequest | null>(null);
   const [rejectReason, setRejectReason] = useState('');
   const [rejecting, setRejecting] = useState(false);
+  const [approveTarget, setApproveTarget] = useState<CertRequest | null>(null);
+  const [licenseOptions, setLicenseOptions] = useState<CertificationOption[]>([]);
+  const [selectedLicense, setSelectedLicense] = useState<CertificationOption | null>(null);
+  const [optionsLoading, setOptionsLoading] = useState(false);
+  const [optionsError, setOptionsError] = useState(false);
+  const [approving, setApproving] = useState(false);
 
   const fetchRequests = useCallback(() => {
     setLoading(true);
@@ -43,26 +43,35 @@ export default function CertManageScreen() {
     fetchRequests();
   }, [fetchRequests]);
 
-  const handleApprove = (item: CertRequest) => {
-    Alert.alert(
-      '레벨 선택',
-      '레벨을 선택해주세요.',
-      [
-        ...LEVEL_OPTIONS.map((opt) => ({
-          text: opt.label,
-          onPress: async () => {
-            try {
-              await api.approveCert(item.id, opt.value);
-              Alert.alert('알림', `${item.userName}님을 ${opt.label}(으)로 승인했습니다.`);
-              fetchRequests();
-            } catch (e: any) {
-              if (!e._handled) Alert.alert('실패', e.message ?? '잠시 후 다시 시도해주세요.');
-            }
-          },
-        })),
-        { text: '취소', style: 'cancel' },
-      ]
-    );
+  const handleApprove = async (item: CertRequest) => {
+    setApproveTarget(item);
+    setSelectedLicense(null);
+    setLicenseOptions([]);
+    setOptionsLoading(true);
+    setOptionsError(false);
+    try {
+      const result = await api.getCertificationOptions();
+      setLicenseOptions(result.data);
+    } catch {
+      setOptionsError(true);
+    } finally {
+      setOptionsLoading(false);
+    }
+  };
+
+  const submitApprove = async () => {
+    if (!approveTarget || !selectedLicense || approving) return;
+    setApproving(true);
+    try {
+      await api.approveCert(approveTarget.id, selectedLicense.id);
+      setApproveTarget(null);
+      Alert.alert('승인 완료', `${approveTarget.userName}님의 ${selectedLicense.nameKo || selectedLicense.name} 자격증을 등록했습니다.`);
+      fetchRequests();
+    } catch (e: any) {
+      if (!e._handled) Alert.alert('실패', e.message ?? '잠시 후 다시 시도해주세요.');
+    } finally {
+      setApproving(false);
+    }
   };
 
   const handleReject = (item: CertRequest) => {
@@ -131,7 +140,7 @@ export default function CertManageScreen() {
 
       <View style={styles.infoRow}>
         <Text style={styles.infoLabel}>이름</Text>
-        <Text style={styles.infoValue}>{item.userName}</Text>
+        <ProfileLink userId={item.userId} label={item.userName}><Text style={styles.infoValue}>{item.userName}</Text></ProfileLink>
       </View>
       <View style={styles.infoRow}>
         <Text style={styles.infoLabel}>생년월일</Text>
@@ -183,12 +192,55 @@ export default function CertManageScreen() {
         />
       )}
 
+      <Modal visible={!!approveTarget} transparent animationType="fade"
+        onRequestClose={() => { if (!approving) setApproveTarget(null); }}>
+        <View style={styles.modalOverlay}>
+          <PopupBackdrop />
+          <Pressable style={styles.modalBackdrop} disabled={approving} onPress={() => setApproveTarget(null)} />
+          <View style={[styles.modalContent, { maxHeight: '80%' }]}>
+            <Text style={styles.modalTitle}>취득 자격증 선택</Text>
+            <Text style={styles.modalSubtitle}>{approveTarget?.userName}님의 증빙과 일치하는 자격증을 선택해주세요.</Text>
+            {optionsLoading ? <Spinner /> : optionsError ? (
+              <Pressable onPress={() => approveTarget && handleApprove(approveTarget)}>
+                <Text style={styles.modalSubtitle}>목록을 불러오지 못했습니다. 다시 시도</Text>
+              </Pressable>
+            ) : (
+              <FlatList
+                style={{ flexGrow: 0 }}
+                data={licenseOptions}
+                keyExtractor={(item) => String(item.id)}
+                ListEmptyComponent={<Text style={styles.modalSubtitle}>등록된 자격증이 없습니다.</Text>}
+                renderItem={({ item }) => (
+                  <Pressable disabled={approving} accessibilityRole="radio"
+                    accessibilityState={{ selected: selectedLicense?.id === item.id }}
+                    onPress={() => setSelectedLicense(item)}
+                    style={[styles.licenseOption, selectedLicense?.id === item.id && styles.licenseSelected]}>
+                    <Text style={styles.licenseAssociation}>{item.association.nameKo || item.association.name}</Text>
+                    <Text style={styles.licenseName}>{item.nameKo || item.name}</Text>
+                  </Pressable>
+                )}
+              />
+            )}
+            <View style={styles.modalActions}>
+              <Pressable style={styles.modalCancelBtn} disabled={approving} onPress={() => setApproveTarget(null)}>
+                <Text style={styles.modalCancelText}>취소</Text>
+              </Pressable>
+              <Pressable style={[styles.approveButton, { opacity: selectedLicense && !approving ? 1 : 0.4 }]}
+                disabled={!selectedLicense || approving} onPress={submitApprove}>
+                <Text style={styles.approveText}>{approving ? '처리 중...' : '자격증 승인'}</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       {/* Reject Reason Modal */}
       <Modal visible={!!rejectTarget} transparent animationType="fade">
         <KeyboardAvoidingView
           style={styles.modalOverlay}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
+          <PopupBackdrop />
           <Pressable style={styles.modalBackdrop} onPress={() => setRejectTarget(null)} />
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>거절 사유 입력</Text>
@@ -231,6 +283,10 @@ export default function CertManageScreen() {
 }
 
 const styles = StyleSheet.create({
+  licenseOption: { padding: 12, marginBottom: 8, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
+  licenseSelected: { borderColor: '#00C9ED', backgroundColor: 'rgba(0,201,237,0.12)' },
+  licenseAssociation: { color: 'rgba(255,255,255,0.6)', fontSize: 12, marginBottom: 4 },
+  licenseName: { color: '#fff', fontFamily: 'SUIT-Medium', fontSize: 15 },
   container: {
     flex: 1,
     backgroundColor: Colors.brand.primary,
@@ -342,8 +398,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalBackdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    ...StyleSheet.absoluteFill,
+    backgroundColor: 'transparent',
   },
   modalContent: {
     width: '85%',

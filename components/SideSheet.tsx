@@ -1,6 +1,7 @@
+import PopupBackdrop from '@/components/PopupBackdrop';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  View,
+  Modal,  View,
   Text,
   StyleSheet,
   Pressable,
@@ -9,7 +10,6 @@ import {
   BackHandler,
   Alert,
 } from 'react-native';
-import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Colors from '@/constants/Colors';
@@ -130,10 +130,11 @@ export default function SideSheet({ visible, onClose }: Props) {
   if (!mounted) return null;
 
   return (
+    <Modal transparent visible={mounted} animationType="none" statusBarTranslucent onRequestClose={onClose}>
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+      <PopupBackdrop />
       <Animated.View style={[StyleSheet.absoluteFill, { opacity: backdropAnim }]}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose}>
-          <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFill} />
         </Pressable>
       </Animated.View>
 
@@ -190,12 +191,13 @@ export default function SideSheet({ visible, onClose }: Props) {
         </Pressable>
       </Animated.View>
     </View>
+    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
   backdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0,0,0,0.5)',
   },
   sheet: {

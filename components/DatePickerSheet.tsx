@@ -1,8 +1,8 @@
+import PopupBackdrop from '@/components/PopupBackdrop';
 import React, { useState, useRef, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, Pressable, Animated, Easing, useWindowDimensions,
+  Modal,  View, Text, StyleSheet, Pressable, Animated, Easing, useWindowDimensions,
 } from 'react-native';
-import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/Colors';
 
@@ -100,15 +100,16 @@ export default function DatePickerSheet({ visible, onClose, selectedDate, onSele
   while (lastWeek.length < 7) lastWeek.push(null);
 
   return (
+    <Modal transparent visible={mounted} animationType="none" statusBarTranslucent onRequestClose={onClose}>
     <View style={StyleSheet.absoluteFill} pointerEvents={visible ? 'auto' : 'none'}>
+      <PopupBackdrop />
       <Animated.View style={[StyleSheet.absoluteFill, { opacity: backdropAnim }]}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose}>
-          <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFill} />
         </Pressable>
       </Animated.View>
 
       <Animated.View style={[styles.sheet, { transform: [{ translateY: slideAnim }], paddingBottom: insets.bottom + 16 }]}>
-        <BlurView intensity={80} tint="dark" style={styles.blurWrap}>
+        <View style={styles.calendarWrap}>
           {/* 헤더 */}
           <View style={styles.header}>
             <Pressable onPress={goToPrevMonth} style={styles.navButton}>
@@ -155,9 +156,10 @@ export default function DatePickerSheet({ visible, onClose, selectedDate, onSele
               })}
             </View>
           ))}
-        </BlurView>
+        </View>
       </Animated.View>
     </View>
+    </Modal>
   );
 }
 
@@ -165,11 +167,12 @@ const styles = StyleSheet.create({
   sheet: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
   },
-  blurWrap: {
+  calendarWrap: {
     marginHorizontal: 16,
     borderRadius: 20,
     overflow: 'hidden',
     padding: 16,
+    backgroundColor: Colors.brand.deep,
   },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',

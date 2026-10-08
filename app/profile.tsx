@@ -5,19 +5,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import Colors from '@/constants/Colors';
 import { useAuth } from '@/contexts/AuthContext';
-import { api, Profile, Organization } from '@/services/api';
+import { api, Profile, Organization, Certification } from '@/services/api';
 import Spinner from '@/components/Spinner';
 import LevelBadge from '@/components/LevelBadge';
-
-const LEVEL_LABELS: Record<string, string> = {
-  '5': '강사',
-  '4': 'Lv.4',
-  '3': 'Lv.3',
-  '2': 'Lv.2',
-  '1': 'Lv.1',
-  '0': '일반',
-  'A': '관리자',
-};
 
 function formatRecord(val: number | null, unit?: string): string {
   if (val === null || val === undefined) return '--';
@@ -28,6 +18,7 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user, updateUser } = useAuth();
+  const [certifications, setCertifications] = useState<Certification[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [pendingCount, setPendingCount] = useState(0);
@@ -41,11 +32,13 @@ export default function ProfileScreen() {
       api.getProfile()
         .then((res) => {
           setProfile(res.profile);
+          setCertifications(res.certifications ?? []);
           if (res.user) {
             updateUser({
               nickname: res.user.nickname,
               name: res.user.name,
               profileImage: res.user.profileImage,
+              level: res.profile?.level ?? undefined,
             });
             if (res.user.organization && res.user.organization.status !== 'rejected') {
               setOrganization(res.user.organization);
@@ -68,7 +61,6 @@ export default function ProfileScreen() {
     }, [])
   );
 
-  const levelLabel = profile?.level != null ? (LEVEL_LABELS[String(profile.level)] ?? '') : '';
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 16, paddingBottom: insets.bottom }]}>
@@ -91,6 +83,9 @@ export default function ProfileScreen() {
                     <Text style={styles.avatarText}>{user?.nickname?.charAt(0) ?? '?'}</Text>
                   </View>
                 )}
+                <View style={styles.avatarBadge}>
+                  <LevelBadge level={profile?.level} size={24} />
+                </View>
               </View>
               <View style={styles.nameArea}>
                 <View style={styles.nameRow}>
@@ -99,7 +94,9 @@ export default function ProfileScreen() {
                   </Text>
                   <LevelBadge level={profile?.level} />
                 </View>
-                {levelLabel ? <Text style={styles.role}>{levelLabel}</Text> : null}
+                {certifications.map((cert) => (
+                  <Text key={cert.id} style={styles.role}>{cert.nameKo?.trim() || cert.name}</Text>
+                ))}
               </View>
               <Pressable
                 style={({ pressed }) => [styles.closeButton, pressed && { opacity: 0.6 }]}
@@ -297,6 +294,14 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.25)',
     borderRadius: 42,
     padding: 2,
+  },
+  avatarBadge: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    borderWidth: 2,
+    borderColor: Colors.brand.primary,
+    borderRadius: 14,
   },
   avatar: {
     width: 80,

@@ -1,3 +1,4 @@
+import ProfileLink from '@/components/ProfileLink';
 import React, { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import {
   View, Text, StyleSheet, SectionList, TextInput, Pressable, Alert,
@@ -110,11 +111,13 @@ function RequirementItem({ item, onToggle, onUncheck }: {
 export default function DebriefingScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { scheduleId, participantId, participantName, isGuest } = useLocalSearchParams<{
+  const { scheduleId, participantId, profileUserId, participantName, isGuest, participantCategory } = useLocalSearchParams<{
     scheduleId: string;
     participantId: string;
+    profileUserId?: string;
     participantName: string;
     isGuest?: string;
+    participantCategory?: string;
   }>();
   const guestUser = isGuest === '1';
 
@@ -164,7 +167,7 @@ export default function DebriefingScreen() {
   }, [originalCompletedIds]);
 
   useEffect(() => {
-    if (!participantId || guestUser) {
+    if (!participantId || guestUser || participantCategory !== 'CERTIFICATION') {
       setLoading(false);
       return;
     }
@@ -184,7 +187,7 @@ export default function DebriefingScreen() {
         if (!e._handled) Alert.alert('오류', '정보를 불러올 수 없습니다.');
       })
       .finally(() => setLoading(false));
-  }, [participantId]);
+  }, [participantId, participantCategory]);
 
   const inProgressLicense = useMemo(
     () => licenses.find((lic) => lic.status === 'IN_PROGRESS'),
@@ -277,7 +280,7 @@ export default function DebriefingScreen() {
             <View style={styles.infoSection}>
               <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>이름</Text>
-                <Text style={styles.infoValue}>{participantName}</Text>
+                <ProfileLink userId={profileUserId} label={participantName}><Text style={styles.infoValue}>{participantName}</Text></ProfileLink>
               </View>
               {inProgressLicense && (
                 <View style={styles.infoRow}>

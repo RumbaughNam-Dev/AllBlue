@@ -1,9 +1,9 @@
+import PopupBackdrop from '@/components/PopupBackdrop';
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  View, Text, TextInput, StyleSheet, Pressable, ScrollView,
-  Platform, Keyboard, Animated, Easing, useWindowDimensions,
+  Modal,  View, Text, TextInput, StyleSheet, Pressable, ScrollView,
+  Platform, Keyboard, Animated, Easing, useWindowDimensions, ActivityIndicator,
 } from 'react-native';
-import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/Colors';
 
@@ -16,10 +16,12 @@ type Props = {
   items: BottomSheetItem[];
   onSelect: (value: any) => void;
   searchable?: boolean;
+  closeOnSelect?: boolean;
+  loading?: boolean;
   selectedValue?: any;
 };
 
-export default function BottomSheet({ visible, onClose, title, items, onSelect, searchable, selectedValue }: Props) {
+export default function BottomSheet({ visible, onClose, title, items, onSelect, searchable, selectedValue, closeOnSelect = true, loading = false }: Props) {
   const insets = useSafeAreaInsets();
   const { height: screenHeight } = useWindowDimensions();
   const backdropAnim = useRef(new Animated.Value(0)).current;
@@ -93,10 +95,11 @@ export default function BottomSheet({ visible, onClose, title, items, onSelect, 
     : items;
 
   return (
+    <Modal transparent visible={mounted} animationType="none" statusBarTranslucent onRequestClose={onClose}>
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+      <PopupBackdrop />
       <Animated.View style={[StyleSheet.absoluteFill, { opacity: backdropAnim }]}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose}>
-          <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFill} />
         </Pressable>
       </Animated.View>
       <Animated.View style={[
@@ -115,7 +118,9 @@ export default function BottomSheet({ visible, onClose, title, items, onSelect, 
           />
         )}
         <ScrollView ref={scrollRef} style={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-          {filtered.length === 0 ? (
+          {loading ? (
+            <ActivityIndicator style={{ padding: 24 }} color={Colors.brand.white} accessibilityLabel="자격증 목록 불러오는 중" />
+          ) : filtered.length === 0 ? (
             <Text style={styles.emptyText}>검색 결과가 없습니다</Text>
           ) : (
             filtered.map((item) => {
@@ -128,7 +133,7 @@ export default function BottomSheet({ visible, onClose, title, items, onSelect, 
                 <Pressable
                   key={item.label}
                   style={({ pressed }) => [styles.item, pressed && { opacity: 0.6 }]}
-                  onPress={() => { onSelect(item.value); onClose(); }}
+                  onPress={() => { onSelect(item.value); if (closeOnSelect) onClose(); }}
                 >
                   <Text style={[styles.itemText, isSelected && styles.itemTextSelected]}>{item.label}</Text>
                   {isSelected && <Text style={styles.checkMark}>✓</Text>}
@@ -139,12 +144,13 @@ export default function BottomSheet({ visible, onClose, title, items, onSelect, 
         </ScrollView>
       </Animated.View>
     </View>
+    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
   backdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0,0,0,0.5)',
   },
   container: {

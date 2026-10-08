@@ -12,6 +12,7 @@ type Event = {
   date: string; // YYYY-MM-DD
   title: string;
   color: string;
+  requested?: boolean;
 };
 
 type FilterOption = { key: string; label: string };
@@ -253,7 +254,7 @@ export default function Calendar({ events = [], onDatePress, onMonthChange, sche
                       {visibleEvents.map((ev, ei) => (
                         <View key={ei} style={styles.eventRow}>
                           <View style={[styles.eventDot, { backgroundColor: ev.color }]} />
-                          <Text style={styles.eventText} numberOfLines={1}>{ev.title}</Text>
+                          <Text style={[styles.eventText, ev.requested && { color: '#FFD166', fontWeight: '700', backgroundColor: 'rgba(255,209,102,0.18)' }]} numberOfLines={1}>{ev.title}</Text>
                         </View>
                       ))}
                       {remaining > 0 && (

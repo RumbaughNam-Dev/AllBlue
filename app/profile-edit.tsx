@@ -1,14 +1,16 @@
+import PopupBackdrop from '@/components/PopupBackdrop';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View, Text, TextInput, StyleSheet, Pressable, ScrollView,
   Alert, Platform, KeyboardAvoidingView, ActivityIndicator, Image, Modal,
 } from 'react-native';
-import { BlurView } from 'expo-blur';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import * as ImagePicker from 'expo-image-picker';
 import Colors from '@/constants/Colors';
+import { useOrganizationSearch } from '@/hooks/useSearch';
+import { hasInstructorAccess } from '@/utils/userRole';
 import { useAuth } from '@/contexts/AuthContext';
 import { api, Profile, Organization } from '@/services/api';
 import Spinner from '@/components/Spinner';
@@ -41,8 +43,7 @@ export default function ProfileEditScreen() {
   const [selectedOrg, setSelectedOrg] = useState<Organization | null>(null);
   const [showOrgPicker, setShowOrgPicker] = useState(false);
   const [orgSearchQuery, setOrgSearchQuery] = useState('');
-  const [orgSearchResults, setOrgSearchResults] = useState<Organization[]>([]);
-  const [orgSearching, setOrgSearching] = useState(false);
+  const { results: orgSearchResults, searching: orgSearching, error: orgSearchError } = useOrganizationSearch(orgSearchQuery, showOrgPicker);
   const orgInputRef = useRef<TextInput>(null);
 
   const openOrgPicker = () => {
@@ -53,10 +54,9 @@ export default function ProfileEditScreen() {
   const closeOrgPicker = () => {
     setShowOrgPicker(false);
     setOrgSearchQuery('');
-    setOrgSearchResults([]);
   };
 
-  const isInstructor = level === 5 || level === '5' || level === 'A';
+  const isInstructor = hasInstructorAccess(level);
 
   useEffect(() => {
     api.getProfile()
@@ -384,7 +384,7 @@ export default function ProfileEditScreen() {
       {/* Organization Search Modal */}
       <Modal visible={showOrgPicker} transparent animationType="fade" onRequestClose={closeOrgPicker}>
         <Pressable style={StyleSheet.absoluteFill} onPress={closeOrgPicker}>
-          <BlurView intensity={80} tint="dark" style={StyleSheet.absoluteFill} />
+          <PopupBackdrop />
         </Pressable>
         <KeyboardAvoidingView style={styles.orgModalWrap} behavior={Platform.OS === 'ios' ? 'padding' : undefined} pointerEvents="box-none">
           <View style={[styles.orgModalContent, { paddingBottom: insets.bottom + 16 }]}>
@@ -398,19 +398,12 @@ export default function ProfileEditScreen() {
               ref={orgInputRef}
               style={styles.orgSearchInput}
               value={orgSearchQuery}
-              onChangeText={(q) => {
-                setOrgSearchQuery(q);
-                if (q.trim().length === 0) { setOrgSearchResults([]); return; }
-                setOrgSearching(true);
-                api.searchOrganizations(q.trim())
-                  .then((res) => setOrgSearchResults(res.organizations ?? []))
-                  .catch(() => {})
-                  .finally(() => setOrgSearching(false));
-              }}
+              onChangeText={setOrgSearchQuery}
               placeholder="단체명으로 검색"
               placeholderTextColor="rgba(255,255,255,0.25)"
             />
             <ScrollView style={{ flex: 1 }} keyboardShouldPersistTaps="handled">
+              {orgSearchError && <Text style={{ color: 'white', padding: 16 }}>검색 결과를 불러오지 못했습니다. 다시 검색해주세요.</Text>}
               {orgSearching && (
                 <View style={{ paddingVertical: 16, alignItems: 'center' }}>
                   <ActivityIndicator size="small" color="rgba(255,255,255,0.5)" />

@@ -1,12 +1,14 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, Animated, Easing, Alert, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Animated, Easing, Alert, ActivityIndicator, Platform, Modal, TextInput, KeyboardAvoidingView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 import { useRouter } from 'expo-router';
 import Colors from '@/constants/Colors';
+import { authCallbackUrl } from '@/constants/Environment';
 import { useAuth } from '@/contexts/AuthContext';
+import { api } from '@/services/api';
 import KakaoLogo from '@/components/sns/KakaoLogo';
 import GoogleLogo from '@/components/sns/GoogleLogo';
 import NaverLogo from '@/components/sns/NaverLogo';
@@ -55,6 +57,30 @@ export default function LoginScreen() {
   const router = useRouter();
   const { login } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [demoOpen, setDemoOpen] = useState(false);
+  const [demoCode, setDemoCode] = useState('');
+  const demoSubmitting = useRef(false);
+
+  const handleDemoLogin = async () => {
+    if (demoSubmitting.current || !demoCode.trim()) return;
+    demoSubmitting.current = true;
+    setLoading(true);
+    try {
+      const result = await api.demoLogin(demoCode.trim());
+      if (!result?.token || !result.user?.id || !result.user.nickname || result.user.demo !== true) {
+        throw new Error('데모 로그인 정보를 확인할 수 없습니다.');
+      }
+      await login(result.token, result.user);
+      setDemoCode('');
+      setDemoOpen(false);
+      router.replace('/(tabs)');
+    } catch (error: any) {
+      Alert.alert('데모 로그인', error?.status === 401 ? '데모 접속 코드를 확인해주세요.' : (error?.message || '로그인하지 못했습니다. 다시 시도해주세요.'));
+    } finally {
+      demoSubmitting.current = false;
+      setLoading(false);
+    }
+  };
 
   const fadeAnims = useRef(SNS_BUTTONS.map(() => new Animated.Value(0))).current;
   const slideAnims = useRef(SNS_BUTTONS.map(() => new Animated.Value(24))).current;
@@ -87,7 +113,7 @@ export default function LoginScreen() {
   }, []);
 
   const handleKakaoLogin = async () => {
-    const redirectUri = 'https://api.rumbaugh.co.kr/allblue/auth/kakao/callback';
+    const redirectUri = authCallbackUrl('kakao');
     const appReturnUrl = Linking.createURL('kakao-callback');
     const authUrl =
       `https://kauth.kakao.com/oauth/authorize?` +
@@ -102,7 +128,6 @@ export default function LoginScreen() {
       if (result.type === 'success' && result.url) {
         const parsed = Linking.parse(result.url);
         const params = (parsed.queryParams ?? {}) as Record<string, string>;
-        console.log('[카카오] 결과:', JSON.stringify(params));
 
         if (params.error) {
           Alert.alert('로그인 실패', params.error);
@@ -110,6 +135,10 @@ export default function LoginScreen() {
         }
 
         const isNewUser = params.isNewUser === 'true';
+        if (isNewUser ? !params.tempToken : !params.token || !params.userId) {
+          Alert.alert('로그인 실패', '로그인 정보가 올바르지 않습니다. 다시 시도해주세요.');
+          return;
+        }
         if (isNewUser) {
           Alert.alert(
             '회원 정보가 없어요.',
@@ -139,15 +168,16 @@ export default function LoginScreen() {
           router.replace('/(tabs)');
         }
       }
+    } catch {
+      Alert.alert('로그인 실패', '로그인을 완료하지 못했습니다. 다시 시도해주세요.');
     } finally {
       setLoading(false);
     }
   };
 
   const handleGoogleLogin = async () => {
-    const redirectUri = 'https://api.rumbaugh.co.kr/allblue/auth/google/callback';
+    const redirectUri = authCallbackUrl('google');
     const appReturnUrl = Linking.createURL('google-callback');
-    console.log('[구글] appReturnUrl:', appReturnUrl);
     const authUrl =
       `https://accounts.google.com/o/oauth2/v2/auth?` +
       `client_id=${encodeURIComponent(GOOGLE_CLIENT_ID)}` +
@@ -159,11 +189,9 @@ export default function LoginScreen() {
     try {
       setLoading(true);
       const result = await WebBrowser.openAuthSessionAsync(authUrl, appReturnUrl);
-      console.log('[구글] result type:', result.type);
       if (result.type === 'success' && result.url) {
         const parsed = Linking.parse(result.url);
         const params = (parsed.queryParams ?? {}) as Record<string, string>;
-        console.log('[구글] 결과:', JSON.stringify(params));
 
         if (params.error) {
           Alert.alert('로그인 실패', params.error);
@@ -171,6 +199,10 @@ export default function LoginScreen() {
         }
 
         const isNewUser = params.isNewUser === 'true';
+        if (isNewUser ? !params.tempToken : !params.token || !params.userId) {
+          Alert.alert('로그인 실패', '로그인 정보가 올바르지 않습니다. 다시 시도해주세요.');
+          return;
+        }
         if (isNewUser) {
           Alert.alert(
             '회원 정보가 없어요.',
@@ -200,13 +232,15 @@ export default function LoginScreen() {
           router.replace('/(tabs)');
         }
       }
+    } catch {
+      Alert.alert('로그인 실패', '로그인을 완료하지 못했습니다. 다시 시도해주세요.');
     } finally {
       setLoading(false);
     }
   };
 
   const handleNaverLogin = async () => {
-    const redirectUri = 'https://api.rumbaugh.co.kr/allblue/auth/naver/callback';
+    const redirectUri = authCallbackUrl('naver');
     const appReturnUrl = Linking.createURL('naver-callback');
     const authUrl =
       `https://nid.naver.com/oauth2.0/authorize?` +
@@ -221,7 +255,6 @@ export default function LoginScreen() {
       if (result.type === 'success' && result.url) {
         const parsed = Linking.parse(result.url);
         const params = (parsed.queryParams ?? {}) as Record<string, string>;
-        console.log('[네이버] 결과:', JSON.stringify(params));
 
         if (params.error) {
           Alert.alert('로그인 실패', params.error);
@@ -229,6 +262,10 @@ export default function LoginScreen() {
         }
 
         const isNewUser = params.isNewUser === 'true';
+        if (isNewUser ? !params.tempToken : !params.token || !params.userId) {
+          Alert.alert('로그인 실패', '로그인 정보가 올바르지 않습니다. 다시 시도해주세요.');
+          return;
+        }
         if (isNewUser) {
           Alert.alert(
             '회원 정보가 없어요.',
@@ -258,13 +295,15 @@ export default function LoginScreen() {
           router.replace('/(tabs)');
         }
       }
+    } catch {
+      Alert.alert('로그인 실패', '로그인을 완료하지 못했습니다. 다시 시도해주세요.');
     } finally {
       setLoading(false);
     }
   };
 
   const handleAppleLogin = async () => {
-    const redirectUri = 'https://api.rumbaugh.co.kr/allblue/auth/apple/callback';
+    const redirectUri = authCallbackUrl('apple');
     const appReturnUrl = Linking.createURL('apple-callback');
     const authUrl =
       `https://appleid.apple.com/auth/authorize?` +
@@ -281,7 +320,6 @@ export default function LoginScreen() {
       if (result.type === 'success' && result.url) {
         const parsed = Linking.parse(result.url);
         const params = (parsed.queryParams ?? {}) as Record<string, string>;
-        console.log('[애플] 결과:', JSON.stringify(params));
 
         if (params.error) {
           Alert.alert('로그인 실패', params.error);
@@ -289,6 +327,10 @@ export default function LoginScreen() {
         }
 
         const isNewUser = params.isNewUser === 'true';
+        if (isNewUser ? !params.tempToken : !params.token || !params.userId) {
+          Alert.alert('로그인 실패', '로그인 정보가 올바르지 않습니다. 다시 시도해주세요.');
+          return;
+        }
         if (isNewUser) {
           Alert.alert(
             '회원 정보가 없어요.',
@@ -318,6 +360,8 @@ export default function LoginScreen() {
           router.replace('/(tabs)');
         }
       }
+    } catch {
+      Alert.alert('로그인 실패', '로그인을 완료하지 못했습니다. 다시 시도해주세요.');
     } finally {
       setLoading(false);
     }
@@ -374,7 +418,29 @@ export default function LoginScreen() {
             </Pressable>
           </Animated.View>
         ))}
+        <Pressable accessibilityRole="button" onPress={() => setDemoOpen(true)} disabled={loading} style={styles.demoButton}>
+          <Text style={styles.demoButtonText}>데모 모드로 체험하기</Text>
+        </Pressable>
       </View>
+
+      <Modal transparent visible={demoOpen} animationType="fade" onRequestClose={() => { if (!loading) { setDemoOpen(false); setDemoCode(''); } }}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.demoBackdrop}>
+          <View style={styles.demoCard}>
+            <Text style={styles.demoTitle}>데모 모드로 체험하기</Text>
+            <Text style={styles.demoDescription}>제공받은 접속 코드를 입력해주세요.{ '\n' }공용 계정이므로 개인정보는 입력하지 마세요.</Text>
+            <TextInput accessibilityLabel="데모 접속 코드" placeholder="접속 코드" placeholderTextColor="#68778A" value={demoCode} onChangeText={setDemoCode}
+              secureTextEntry autoCapitalize="none" autoCorrect={false} editable={!loading} maxLength={128} style={styles.demoInput}
+              returnKeyType="go" onSubmitEditing={handleDemoLogin} />
+            <Pressable accessibilityRole="button" disabled={loading || !demoCode.trim()} onPress={handleDemoLogin}
+              style={[styles.demoSubmit, (loading || !demoCode.trim()) && { opacity: 0.5 }]}>
+              {loading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.demoSubmitText}>체험 시작</Text>}
+            </Pressable>
+            <Pressable accessibilityRole="button" disabled={loading} onPress={() => { setDemoOpen(false); setDemoCode(''); }} style={styles.demoButton}>
+              <Text style={{ color: '#144A84', textAlign: 'center' }}>취소</Text>
+            </Pressable>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
 
       {loading && (
         <View style={styles.loadingOverlay}>
@@ -400,6 +466,15 @@ const styles = StyleSheet.create({
     letterSpacing: 6, textTransform: 'uppercase',
   },
   buttonArea: { gap: 12 },
+  demoButton: { paddingVertical: 12, minHeight: 44 },
+  demoButtonText: { color: '#FFFFFF', textAlign: 'center', fontSize: 14, textDecorationLine: 'underline' },
+  demoBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'center', alignItems: 'center', padding: 24 },
+  demoCard: { width: '100%', maxWidth: 420, padding: 24, borderRadius: 20, backgroundColor: '#FFFFFF', gap: 16 },
+  demoTitle: { fontSize: 20, fontWeight: '600', color: '#144A84' },
+  demoDescription: { fontSize: 14, lineHeight: 21, color: '#44556A' },
+  demoInput: { borderWidth: 1, borderColor: '#BCC8D5', borderRadius: 10, padding: 14, color: '#162C44', fontSize: 16 },
+  demoSubmit: { backgroundColor: '#144A84', padding: 15, borderRadius: 10, alignItems: 'center' },
+  demoSubmitText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
   snsButton: {
     flexDirection: 'row', alignItems: 'center', height: 54, borderRadius: 12, paddingHorizontal: 20,
   },
@@ -409,7 +484,7 @@ const styles = StyleSheet.create({
     flex: 1, textAlign: 'center', fontFamily: 'SUIT-SemiBold', fontSize: 15, marginRight: 28,
   },
   loadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0,0,0,0.4)',
     alignItems: 'center',
     justifyContent: 'center',

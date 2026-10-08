@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { View, Image, Pressable, StyleSheet, Platform, Animated, Easing, LayoutChangeEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
-import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import type { BottomTabBarProps } from 'expo-router/tabs';
 import Colors from '@/constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
 

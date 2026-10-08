@@ -53,7 +53,7 @@ export default function InquiryManageScreen() {
         <Text style={styles.cardDate}>{formatDate(item.createdAt)}</Text>
       </View>
       <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
-      <Text style={styles.cardUser}>{item.userName} ({item.userId})</Text>
+      <View><Text style={styles.cardUser}>{item.userName} ({item.userId})</Text></View>
     </Pressable>
   );
 

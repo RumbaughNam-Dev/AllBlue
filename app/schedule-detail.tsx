@@ -1,19 +1,26 @@
+import TemporaryUserLinkModal from '@/components/TemporaryUserLinkModal';
+import PopupBackdrop from '@/components/PopupBackdrop';
+import ProfileLink from '@/components/ProfileLink';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  View, Text, StyleSheet, Pressable, ScrollView, Alert, ActivityIndicator, Modal, Platform,
+  View, Text, StyleSheet, Pressable, ScrollView, Alert, ActivityIndicator, Modal, Platform, Linking, AppState,
 } from 'react-native';
-import { BlurView } from 'expo-blur';
+import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import * as WebBrowser from 'expo-web-browser';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import Colors from '@/constants/Colors';
+import { useLatestRequest } from '@/hooks/useLatestRequest';
 import { api, ScheduleDetail } from '@/services/api';
 import Spinner from '@/components/Spinner';
-import LevelBadge from '@/components/LevelBadge';
+import ProfileAvatar from '@/components/ProfileAvatar';
+import { useAuth } from '@/contexts/AuthContext';
+import { hasInstructorAccess } from '@/utils/userRole';
 
 const STUDENT_CATEGORIES = ['EXPERIENCE', 'CERTIFICATION', 'LECTURE'];
+const DOCUMENT_CATEGORIES = ['EXPERIENCE', 'CERTIFICATION', 'TRAINING'];
 const FORM_BASE_URL = 'https://rumbaugh.co.kr/form';
 const CATEGORIES_MAP: Record<string, string> = {
   EXPERIENCE: '체험교육', CERTIFICATION: '자격증 과정', LECTURE: '특강',
@@ -21,37 +28,60 @@ const CATEGORIES_MAP: Record<string, string> = {
 };
 
 export default function ScheduleDetailScreen() {
+  const { user } = useAuth();
+  const isQualifiedInstructor = hasInstructorAccess(user?.level);
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, filter = 'mine', sourceLabel } = useLocalSearchParams<{ id: string; filter?: string; sourceLabel?: string }>();
+  const scheduleSource = filter === 'instructor' ? '강사 공개 일정'
+    : filter === 'closeFriend' ? '친한친구 일정'
+    : filter.startsWith('group_') ? (sourceLabel ?? '그룹 일정') : '내 일정';
+  const request = useLatestRequest();
   const [schedule, setSchedule] = useState<ScheduleDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [invitationBusy, setInvitationBusy] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
+  const [linkVisible, setLinkVisible] = useState(false);
+  const [linkSource, setLinkSource] = useState<{ id: number; nickname: string } | null>(null);
 
-  const fetchDetail = (showLoading = true) => {
-    if (!id) return;
-    if (showLoading) setLoading(true);
-    api.getScheduleDetail(Number(id))
-      .then((res) => setSchedule(res.schedule))
+  const fetchDetail = useCallback((showLoading = true) => {
+    if (!id || !user) return;
+    const isCurrent = request.start();
+    if (showLoading) { setLoading(true); setSchedule(null); }
+    api.getScheduleDetail(Number(id), filter)
+      .then((res) => { if (isCurrent()) setSchedule(res.schedule); })
       .catch((e) => {
-        if (!e._handled) Alert.alert('오류', '일정을 불러올 수 없습니다.');
+        if (isCurrent()) setSchedule(null);
+        if (isCurrent() && !e._handled) Alert.alert('오류', '일정을 불러올 수 없습니다.');
       })
-      .finally(() => { setLoading(false); setRefreshing(false); });
-  };
+      .finally(() => { if (isCurrent()) { setLoading(false); setRefreshing(false); } });
+  }, [id, filter, request, user?.id]);
 
   const initialLoad = useRef(true);
 
-  useEffect(() => { fetchDetail(); }, [id]);
+  useEffect(() => { fetchDetail(); return () => request.invalidate(); }, [fetchDetail, request]);
 
   useFocusEffect(
     useCallback(() => {
       if (initialLoad.current) {
         initialLoad.current = false;
-        return;
+      } else {
+        fetchDetail(false);
       }
-      fetchDetail(false);
-    }, [id])
+      // External browsers do not blur the navigation route. Refresh when the
+      // app resumes, including returns that do not submit or change a document.
+      let appState = AppState.currentState;
+      const subscription = AppState.addEventListener('change', (nextState) => {
+        const resumed = appState !== 'active' && nextState === 'active';
+        appState = nextState;
+        if (resumed) fetchDetail(false);
+      });
+      return () => {
+        subscription.remove();
+        request.invalidate();
+      };
+    }, [fetchDetail, request])
   );
 
   const handleRefresh = () => {
@@ -86,12 +116,31 @@ export default function ScheduleDetailScreen() {
     ]);
   };
 
+  const handleInvitation = async (participantId: number, action: 'accept' | 'reject' | 'remove' | 'resend', token?: string | null) => {
+    if (invitationBusy) return;
+    setInvitationBusy(true);
+    try {
+      if (action === 'accept' || action === 'reject') {
+        if (!token) return;
+        await api.respondToSchedule(Number(id), action, token);
+      } else await api.manageScheduleInvitation(Number(id), participantId, action);
+      if (action === 'reject') router.back();
+      else fetchDetail(false);
+    } catch (e: any) {
+      if (!e._handled) Alert.alert('요청 처리 실패', e.message ?? '다시 시도해주세요.');
+    } finally { setInvitationBusy(false); }
+  };
+
   const openFormUrl = async (url: string) => {
     try {
-      await WebBrowser.openBrowserAsync(url, {
-        presentationStyle: WebBrowser.WebBrowserPresentationStyle.PAGE_SHEET,
-      });
-      handleRefresh();
+      if (Platform.OS === 'ios') {
+        // SFSafariViewController의 상단 제스처 영역이 웹 페이지 버튼 터치를 방해하므로
+        // iOS에서는 시스템 사파리로 열기 (복귀 시 AppState로 새로고침)
+        await Linking.openURL(url);
+      } else {
+        // Android resolves this promise when the browser opens, not on return.
+        await WebBrowser.openBrowserAsync(url);
+      }
     } catch {
       Alert.alert('문서 열기 실패', '브라우저를 열지 못했습니다. 다시 시도해주세요.');
     }
@@ -107,6 +156,17 @@ export default function ScheduleDetailScreen() {
       return;
     }
     void openFormUrl(`${FORM_BASE_URL}/${uuid}?from=instructor`);
+  };
+
+  const copyScheduleUrl = async () => {
+    setMenuVisible(false);
+    if (!schedule) return;
+    try {
+      await Clipboard.setStringAsync(`https://rumbaugh.co.kr/allblue/schedule.html?id=${encodeURIComponent(String(schedule.id))}`);
+      Alert.alert('알림', '일정 URL이 복사되었습니다.');
+    } catch {
+      Alert.alert('복사 실패', '일정 URL을 복사하지 못했습니다. 다시 시도해주세요.');
+    }
   };
 
   const copyFormUrl = async (uuid?: string, participantId?: number) => {
@@ -126,7 +186,7 @@ export default function ScheduleDetailScreen() {
 
       {/* Header */}
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.6 }]}>
+        <Pressable onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)')} style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.6 }]}>
           <View style={styles.backCircle}>
             <Text style={styles.backArrow}>{'<'}</Text>
           </View>
@@ -152,6 +212,10 @@ export default function ScheduleDetailScreen() {
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           {/* Info rows */}
           <View style={styles.infoSection}>
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>일정 구분</Text>
+              <Text style={styles.infoValue}>{scheduleSource}</Text>
+            </View>
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>장소</Text>
               <Text style={styles.infoValue}>{schedule.poolName || '-'}</Text>
@@ -183,12 +247,14 @@ export default function ScheduleDetailScreen() {
           {schedule.participants.length === 0 ? (
             <Text style={styles.emptyText}>{participantLabel}가 없습니다</Text>
           ) : (
-            schedule.participants
-              .filter((p) => isOwner || myParticipantId === p.id)
-              .map((p) => {
-              const isMe = myParticipantId === p.id;
+            schedule.participants.map((p) => {
+              const isMe = !p.isGuest && myParticipantId === p.id;
               const showCopyUrl = isOwner && !isMe;
               const showSignButton = isMe && !isOwner;
+              const category = p.categoryCode ?? schedule.categoryCode;
+              const accepted = !p.invitationStatus || p.invitationStatus === 'accepted';
+              const showDocuments = accepted && DOCUMENT_CATEGORIES.includes(category);
+              const showLogs = accepted && STUDENT_CATEGORIES.includes(category);
 
               const openFormForSign = (uuid?: string) => {
                 if (!uuid) return;
@@ -197,24 +263,60 @@ export default function ScheduleDetailScreen() {
 
               return (
               <View key={`${p.isGuest ? 'g' : 'u'}_${p.id}`} style={styles.participantCard}>
-                <View style={styles.participantNameRow}>
-                  <Text style={styles.participantName}>
-                    {p.nickname}{p.name ? ` (${p.name})` : ''}
-                  </Text>
-                  <LevelBadge level={p.level} size={18} />
-                </View>
-                {p.categoryCode && (
-                  <View style={styles.participantMeta}>
-                    <Text style={styles.participantMetaText}>
-                      {CATEGORIES_MAP[p.categoryCode] ?? p.categoryCode}
-                    </Text>
-                    {p.participantLicenses && p.participantLicenses.length > 0 && (
-                      <Text style={styles.participantMetaText}>
-                        {' · '}{p.participantLicenses.map((l) => l.nameKo).join(', ')}
+                <View style={styles.participantHeader}>
+                  <ProfileLink userId={p.isGuest || (p.isTemporary && !isOwner) ? null : p.userId} label={p.nickname}><ProfileAvatar profileImage={p.isGuest ? null : p.profileImage} nickname={p.nickname} level={p.level} /></ProfileLink>
+                  <View style={styles.participantInfo}>
+                    <ProfileLink userId={p.isGuest || (p.isTemporary && !isOwner) ? null : p.userId} label={p.nickname} style={styles.participantNameRow}>
+                      <Text style={styles.participantName}>
+                        {p.nickname}{p.isTemporary ? ' · 임시 사용자' : ''}{p.name && p.name !== p.nickname ? ` (${p.name})` : ''}
                       </Text>
-                    )}
+                    </ProfileLink>
+                    <Text style={styles.participantMetaText}>
+                      {CATEGORIES_MAP[category] ?? category}
+                    </Text>
+                  </View>
+                </View>
+                {p.participantLicenses && p.participantLicenses.length > 0 && (
+                  <View style={styles.licenseList}>
+                    {p.participantLicenses.map((license, index) => (
+                      <View key={`${license.nameKo}_${index}`} style={styles.licenseRow}>
+                        <View style={styles.licenseDot} />
+                        <Text style={styles.licenseText}>{license.nameKo}</Text>
+                      </View>
+                    ))}
                   </View>
                 )}
+                {p.canLinkTemporary && <Pressable accessibilityRole="button" onPress={() => { setLinkSource({ id: p.id, nickname: p.nickname }); setLinkVisible(true); }}
+                  style={{ padding: 12, marginTop: 8, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.1)' }}>
+                  <Text style={{ color: 'white', textAlign: 'center' }}>가입 사용자로 연결</Text>
+                </Pressable>}
+                {p.invitationStatus === 'pending' && (isOwner || isMe) && (
+                  <View style={[styles.cardSection, styles.invitationSection]}>
+                    <Text style={styles.invitationStatus}>{isOwner ? '일정등록 요청을 보냈어요!' : '일정 등록 요청'}</Text>
+                    {isMe && !isOwner && <View style={styles.invitationActions}>
+                      {(['accept', 'reject'] as const).map(action => (
+                        <Pressable key={action} accessibilityRole="button" disabled={invitationBusy}
+                          style={({ pressed }) => [styles.actionButton, styles.invitationButton, action === 'accept' && styles.actionButtonDone, (pressed || invitationBusy) && { opacity: 0.5 }]}
+                          onPress={() => handleInvitation(p.id, action, p.invitationToken)}>
+                          <Text style={[styles.actionButtonText, action === 'accept' && styles.actionButtonTextDone]}>{action === 'accept' ? '수락' : '거절'}</Text>
+                        </Pressable>
+                      ))}
+                    </View>}
+                  </View>
+                )}
+                {p.invitationStatus === 'rejected' && isOwner && (
+                  <View style={[styles.cardSection, styles.invitationSection]}>
+                    <Text style={[styles.invitationStatus, { color: '#FF9292' }]}>일정등록 요청을 거부했어요. 😢</Text>
+                    <View style={styles.invitationActions}>
+                    {(['remove', 'resend'] as const).map(action => (
+                      <Pressable key={action} disabled={invitationBusy} style={styles.actionButton} onPress={() => handleInvitation(p.id, action)}>
+                        <Text style={styles.actionButtonText}>{action === 'remove' ? '요청 지우기' : '다시 요청하기'}</Text>
+                      </Pressable>
+                    ))}
+                    </View>
+                  </View>
+                )}
+                {showDocuments && (isOwner || isMe) && (<View style={styles.cardSection}>
                 <View style={styles.docRow}>
                   <Text style={styles.docLabel}>면책동의서</Text>
                   <View style={styles.docActions}>
@@ -271,13 +373,12 @@ export default function ScheduleDetailScreen() {
                     )}
                   </View>
                 </View>
+                </View>)}
                 {/* 라이센스 정보 / 디브리핑 버튼 */}
                 {(() => {
-                  const isMe = myParticipantId === p.id;
-                  const isInstructor = isOwner;
-                  const hasLicense = !p.isGuest && p.hasInProgressLicense;
-                  const showLicense = isMe || (isInstructor && hasLicense);
-                  const showDebriefing = isInstructor && !isMe;
+                  const isOwnLog = !!user?.id && p.userId === user.id;
+                  const showLicense = isOwnLog || (showLogs && !p.isGuest && isQualifiedInstructor && p.canViewDivingLog === true);
+                  const showDebriefing = accepted && (showLogs || category === 'TRAINING') && !p.isGuest && isOwner && !isOwnLog && isQualifiedInstructor && p.canWriteDebriefing === true;
                   if (!showLicense && !showDebriefing) return null;
                   return (
                     <View style={styles.actionRow}>
@@ -292,6 +393,7 @@ export default function ScheduleDetailScreen() {
                               pathname: '/achievement',
                               params: {
                                 participantId: String(p.id),
+                                profileUserId: p.isGuest ? undefined : p.userId ?? undefined,
                                 participantName: p.name ? `${p.nickname} (${p.name})` : p.nickname,
                                 participantLevel: p.level != null ? String(p.level) : '',
                               },
@@ -310,8 +412,10 @@ export default function ScheduleDetailScreen() {
                               params: {
                                 scheduleId: String(schedule!.id),
                                 participantId: String(p.id),
+                                profileUserId: p.isGuest ? undefined : p.userId ?? undefined,
                                 participantName: p.name ? `${p.nickname} (${p.name})` : p.nickname,
                                 isGuest: p.isGuest ? '1' : '0',
+                                participantCategory: category,
                               },
                             });
                           }}
@@ -334,10 +438,23 @@ export default function ScheduleDetailScreen() {
         </View>
       )}
 
+      <TemporaryUserLinkModal visible={linkVisible} scheduleId={Number(id)} source={linkSource}
+        onClose={() => setLinkVisible(false)} onLinked={() => { setLinkVisible(false); fetchDetail(false); }} />
+
       {/* Dropdown Menu */}
       <Modal visible={menuVisible} transparent animationType="fade" onRequestClose={() => setMenuVisible(false)}>
         <Pressable style={styles.menuBackdrop} onPress={() => setMenuVisible(false)}>
+          <PopupBackdrop />
           <View style={[styles.menuDropdown, { top: Platform.OS === 'ios' ? insets.top + 52 : 52 }]}>
+            <Pressable
+              disabled={!schedule}
+              style={({ pressed }) => [styles.menuItem, !schedule && { opacity: 0.4 }, pressed && { backgroundColor: 'rgba(255,255,255,0.08)' }]}
+              onPress={copyScheduleUrl}
+            >
+              <Ionicons name="copy-outline" size={20} color={Colors.brand.white} accessible={false} />
+              <Text style={styles.menuItemText}>일정 URL 복사</Text>
+            </Pressable>
+            <View style={styles.menuDivider} />
             <Pressable
               style={({ pressed }) => [styles.menuItem, pressed && { backgroundColor: 'rgba(255,255,255,0.08)' }]}
               onPress={() => {
@@ -351,6 +468,7 @@ export default function ScheduleDetailScreen() {
                 }
               }}
             >
+              <Ionicons name="create-outline" size={20} color={Colors.brand.white} accessible={false} />
               <Text style={styles.menuItemText}>수정</Text>
             </Pressable>
             <View style={styles.menuDivider} />
@@ -365,6 +483,7 @@ export default function ScheduleDetailScreen() {
                 handleDelete();
               }}
             >
+              <Ionicons name="trash-outline" size={20} color={'#FF6B6B'} accessible={false} />
               <Text style={[styles.menuItemText, styles.menuItemDelete]}>삭제</Text>
             </Pressable>
           </View>
@@ -408,7 +527,7 @@ const styles = StyleSheet.create({
   },
   menuBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.3)',
+    backgroundColor: 'transparent',
   },
   menuDropdown: {
     position: 'absolute', right: 20,
@@ -418,6 +537,7 @@ const styles = StyleSheet.create({
     elevation: 8, overflow: 'hidden',
   },
   menuItem: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
     paddingHorizontal: 20, paddingVertical: 14,
   },
   menuItemText: {
@@ -435,7 +555,7 @@ const styles = StyleSheet.create({
   infoRow: { flexDirection: 'row', alignItems: 'flex-start' },
   infoLabel: {
     fontFamily: 'SUIT-SemiBold', fontSize: 14, color: 'rgba(255,255,255,0.5)',
-    width: 60,
+    width: 60, marginRight: 16,
   },
   infoValue: {
     fontFamily: 'SUIT-Regular', fontSize: 15, color: Colors.brand.white,
@@ -465,13 +585,23 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 12,
     marginBottom: 8, paddingHorizontal: 16, paddingVertical: 14,
   },
+  participantHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  participantInfo: { flex: 1, minWidth: 0, minHeight: 40, justifyContent: 'center', gap: 2 },
   participantNameRow: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    marginBottom: 8,
   },
   participantName: {
-    fontFamily: 'SUIT-SemiBold', fontSize: 15, color: Colors.brand.white,
+    fontFamily: 'SUIT-SemiBold', fontSize: 15, lineHeight: 20, color: Colors.brand.white, flexShrink: 1,
   },
+  cardSection: {
+    marginTop: 14, paddingTop: 14, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)',
+  },
+  invitationSection: { gap: 10 },
+  invitationStatus: {
+    fontFamily: 'SUIT-SemiBold', fontSize: 13, lineHeight: 20, color: '#FFD166',
+  },
+  invitationActions: { flexDirection: 'row', gap: 8 },
+  invitationButton: { minHeight: 40, justifyContent: 'center' },
   actionRow: {
     flexDirection: 'row', gap: 8, marginTop: 10,
   },
@@ -488,11 +618,14 @@ const styles = StyleSheet.create({
   actionButtonTextDone: {
     color: Colors.brand.success,
   },
-  participantMeta: {
-    flexDirection: 'row', alignItems: 'center', marginBottom: 6,
-  },
   participantMetaText: {
-    fontFamily: 'SUIT-Regular', fontSize: 12, color: 'rgba(255,255,255,0.4)',
+    fontFamily: 'SUIT-Regular', fontSize: 12, lineHeight: 18, color: 'rgba(255,255,255,0.55)',
+  },
+  licenseList: { gap: 4, marginLeft: 52, marginTop: 8 },
+  licenseRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  licenseDot: { width: 3, height: 3, borderRadius: 2, marginTop: 8, backgroundColor: 'rgba(255,255,255,0.45)' },
+  licenseText: {
+    flex: 1, minWidth: 0, fontFamily: 'SUIT-Regular', fontSize: 12, lineHeight: 19, color: 'rgba(255,255,255,0.7)',
   },
   docRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',

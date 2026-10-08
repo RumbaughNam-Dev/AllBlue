@@ -1,17 +1,30 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Pressable, Image } from 'react-native';
+import NotificationBell from '@/features/notifications/NotificationBell';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Tabs, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CustomTabBar from '@/components/CustomTabBar';
 import SideSheet from '@/components/SideSheet';
 import Colors from '@/constants/Colors';
 import { useAuth } from '@/contexts/AuthContext';
+import { api } from '@/services/api';
+import ProfileAvatar from '@/components/ProfileAvatar';
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
   const [sheetVisible, setSheetVisible] = useState(false);
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const router = useRouter();
+
+  useEffect(() => {
+    if (user && user.level == null) {
+      api.getProfile()
+        .then((res) => {
+          if (res.profile?.level != null) updateUser({ level: res.profile.level });
+        })
+        .catch(() => {});
+    }
+  }, []);
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
@@ -21,25 +34,24 @@ export default function TabLayout() {
           style={({ pressed }) => [styles.profileButton, pressed && { opacity: 0.6 }]}
           onPress={() => router.push('/profile')}
         >
-          {user?.profileImage ? (
-            <Image source={{ uri: user.profileImage }} style={styles.profileImage} />
-          ) : (
-            <View style={styles.profilePlaceholder}>
-              <Text style={styles.profileInitial}>{user?.nickname?.charAt(0) ?? '?'}</Text>
-            </View>
-          )}
+          <ProfileAvatar profileImage={user?.profileImage} nickname={user?.nickname} level={user?.level} />
         </Pressable>
 
-        <Text style={styles.toolbarTitle}>all<Text style={{ color: '#00E5FF' }}>b</Text>lue</Text>
+        <View pointerEvents="none" style={styles.toolbarLogo}>
+          <Text style={styles.toolbarTitle}>all<Text style={{ color: '#00E5FF' }}>b</Text>lue</Text>
+        </View>
 
-        <Pressable
-          style={({ pressed }) => [styles.hamburger, pressed && { opacity: 0.6 }]}
-          onPress={() => setSheetVisible(true)}
-        >
-          <View style={styles.hamburgerLine} />
-          <View style={[styles.hamburgerLine, { width: 16 }]} />
-          <View style={styles.hamburgerLine} />
-        </Pressable>
+        <View style={styles.toolbarActions}>
+          <NotificationBell key={user?.id} />
+          <Pressable
+            style={({ pressed }) => [styles.hamburger, pressed && { opacity: 0.6 }]}
+            onPress={() => setSheetVisible(true)}
+          >
+            <View style={styles.hamburgerLine} />
+            <View style={[styles.hamburgerLine, { width: 16 }]} />
+            <View style={styles.hamburgerLine} />
+          </Pressable>
+        </View>
       </View>
 
       {/* Tabs */}
@@ -70,31 +82,20 @@ const styles = StyleSheet.create({
     height: 52,
     paddingHorizontal: 20,
   },
-  profileButton: {
-    width: 40,
-    height: 40,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.25)',
-    borderRadius: 20,
-    padding: 1,
+  toolbarActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
-  profileImage: {
-    width: 35,
-    height: 35,
-    borderRadius: 17.5,
-  },
-  profilePlaceholder: {
-    width: 35,
-    height: 35,
-    borderRadius: 17.5,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+  profileButton: { width: 40, height: 40 },
+  toolbarLogo: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  profileInitial: {
-    fontFamily: 'SUIT-Bold',
-    fontSize: 16,
-    color: Colors.brand.white,
   },
   toolbarTitle: {
     fontFamily: 'SUIT-Regular',

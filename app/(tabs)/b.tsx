@@ -51,16 +51,24 @@ export default function TabB() {
   const [scheduleMap, setScheduleMap] = useState<Map<string, Schedule[]>>(new Map());
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const requests = useRef(new Map<string, symbol>());
+  const failedMonths = useRef(new Map<string, { year: number; month: number }>());
+  const loadingMoreRef = useRef(false);
   const monthOffsetRef = useRef({ min: 0, max: 0 });
 
   const loadedMonthsRef = useRef<Set<string>>(new Set());
 
   const fetchMonth = useCallback(async (year: number, month: number, force = false) => {
     const key = `${year}-${month}`;
-    if (!force && loadedMonthsRef.current.has(key)) return;
+    if (!force && loadedMonthsRef.current.has(key)) return true;
+    const requestId = Symbol(key);
+    requests.current.set(key, requestId);
+    const isCurrent = () => requests.current.get(key) === requestId;
 
     try {
       const res = await api.getMonthlySchedules(year, month);
+      if (!isCurrent()) return false;
       setScheduleMap((prev) => {
         const next = new Map(prev);
         // 해당 월 날짜 데이터 초기화 후 덮어쓰기
@@ -76,18 +84,30 @@ export default function TabB() {
         return next;
       });
       loadedMonthsRef.current.add(key);
-    } catch {}
+      failedMonths.current.delete(key);
+      setLoadError(failedMonths.current.size > 0);
+      return true;
+    } catch {
+      if (isCurrent()) {
+        failedMonths.current.set(key, { year, month });
+        setLoadError(true);
+      }
+      return false;
+    }
   }, []);
 
   useFocusEffect(
     useCallback(() => {
+      let active = true;
+      loadingMoreRef.current = false;
+      setLoadingMore(false);
       const refresh = async () => {
         const cur = getYearMonth(0);
         // 이미 로드된 모든 월을 다시 가져옴
         if (loadedMonthsRef.current.size === 0) {
           setLoading(true);
           await fetchMonth(cur.year, cur.month, true);
-          setLoading(false);
+          if (active) setLoading(false);
         } else {
           const months = Array.from(loadedMonthsRef.current);
           await Promise.all(months.map((k) => {
@@ -97,6 +117,7 @@ export default function TabB() {
         }
       };
       refresh();
+      return () => { active = false; requests.current.clear(); };
     }, [fetchMonth])
   );
 
@@ -106,7 +127,7 @@ export default function TabB() {
     return sortedDates.map((date) => ({
       title: formatSectionTitle(date),
       date,
-      data: scheduleMap.get(date)!.sort((a, b) => {
+      data: [...scheduleMap.get(date)!].sort((a, b) => {
         if (a.startHour !== b.startHour) return a.startHour - b.startHour;
         return a.startMinute - b.startMinute;
       }),
@@ -115,24 +136,26 @@ export default function TabB() {
 
   const MAX_FUTURE_MONTHS = 3;
 
-  const handleLoadMore = useCallback(async () => {
-    if (loadingMore) return;
-    if (monthOffsetRef.current.max >= MAX_FUTURE_MONTHS) return;
+  const loadDirection = async (direction: 'previous' | 'next') => {
+    if (loadingMoreRef.current) return;
+    if (direction === 'next' && monthOffsetRef.current.max >= MAX_FUTURE_MONTHS) return;
+    loadingMoreRef.current = true;
     setLoadingMore(true);
-    monthOffsetRef.current.max += 1;
-    const next = getYearMonth(monthOffsetRef.current.max);
-    await fetchMonth(next.year, next.month);
+    const offset = direction === 'next' ? monthOffsetRef.current.max + 1 : monthOffsetRef.current.min - 1;
+    const target = getYearMonth(offset);
+    const success = await fetchMonth(target.year, target.month);
+    if (success) {
+      if (direction === 'next') monthOffsetRef.current.max = offset;
+      else monthOffsetRef.current.min = offset;
+    }
+    loadingMoreRef.current = false;
     setLoadingMore(false);
-  }, [loadingMore, fetchMonth]);
-
-  const handleLoadPrevious = useCallback(async () => {
-    if (loadingMore) return;
-    setLoadingMore(true);
-    monthOffsetRef.current.min -= 1;
-    const prev = getYearMonth(monthOffsetRef.current.min);
-    await fetchMonth(prev.year, prev.month);
-    setLoadingMore(false);
-  }, [loadingMore, fetchMonth]);
+  };
+  const handleLoadMore = () => { if (!loadError) void loadDirection('next'); };
+  const handleLoadPrevious = () => { void loadDirection('previous'); };
+  const retry = async () => {
+    await Promise.all([...failedMonths.current.values()].map(({ year, month }) => fetchMonth(year, month, true)));
+  };
 
   const renderScheduleItem = ({ item }: { item: Schedule }) => {
     const time = formatTime(item.startHour, item.startMinute);
@@ -147,7 +170,11 @@ export default function TabB() {
       >
         <View style={[styles.levelBar, { backgroundColor: levelColor }]} />
         <Text style={styles.scheduleText}>
-          {time}  |  {summary}
+          {time}  |  {item.participants?.length ? <>
+            {item.title} ({item.participants.map((participant, index) => <React.Fragment key={index}>
+              {index > 0 ? ', ' : ''}<Text>{participant.nickname}</Text>
+            </React.Fragment>)})
+          </> : summary}
         </Text>
       </Pressable>
     );
@@ -187,6 +214,9 @@ export default function TabB() {
         </View>
       ) : (
         <>
+          {loadError && <Pressable onPress={retry} style={{ padding: 16 }}>
+            <Text style={styles.emptyText}>일정을 불러오지 못했습니다. 눌러서 다시 시도해주세요.</Text>
+          </Pressable>}
           <SectionList
             sections={sections}
             keyExtractor={(item) => String(item.id)}
@@ -194,11 +224,11 @@ export default function TabB() {
             renderSectionHeader={renderSectionHeader}
             ListHeaderComponent={ListHeader}
             ListFooterComponent={ListFooter}
-            ListEmptyComponent={
+            ListEmptyComponent={loadError ? null : (
               <View style={styles.emptyArea}>
                 <Text style={styles.emptyText}>예정된 일정이 없습니다.</Text>
               </View>
-            }
+            )}
             stickySectionHeadersEnabled={true}
             onEndReached={handleLoadMore}
             onEndReachedThreshold={0.3}

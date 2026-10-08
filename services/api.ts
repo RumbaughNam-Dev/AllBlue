@@ -2,56 +2,72 @@ import { Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { File, UploadType } from 'expo-file-system';
 
-const BASE_URL = __DEV__
-  ? 'https://api-dev.rumbaugh.co.kr/allblue'
-  : 'https://api.rumbaugh.co.kr/allblue';
+import { API_BASE_URL as BASE_URL } from '@/constants/Environment';
 
-let onSessionExpired: (() => void) | null = null;
+let onSessionExpired: (() => Promise<void>) | null = null;
+let expiredToken: string | null = null;
 
-export function setSessionExpiredHandler(handler: () => void) {
+export function setSessionExpiredHandler(handler: (() => Promise<void>) | null) {
   onSessionExpired = handler;
+  expiredToken = null;
 }
 
-function handleUnauthorized() {
-  Alert.alert(
-    '세션 만료',
-    '로그인 세션이 만료되었습니다.\n다시 로그인해주세요.',
-    [
-      {
-        text: '확인',
-        onPress: () => onSessionExpired?.(),
-      },
-    ]
-  );
+async function handleUnauthorized(token: string | null) {
+  // Ignore late responses from a previous session and coalesce concurrent 401s.
+  if (!token || token !== await AsyncStorage.getItem('authToken') || expiredToken === token) return;
+  expiredToken = token;
+  await onSessionExpired?.();
+  Alert.alert('세션 만료', '로그인 세션이 만료되었습니다.\n다시 로그인해주세요.');
 }
 
-async function request<T>(
-  path: string,
-  options: RequestInit = {}
-): Promise<T> {
-  const token = await AsyncStorage.getItem('authToken');
-  console.log(`[API] ${options.method ?? 'GET'} ${path} | token: ${token ? token.substring(0, 20) + '...' : 'NULL'}`);
+type RequestOptions = RequestInit & {
+  authToken?: string;
+  ignoreUnauthorized?: boolean;
+};
 
-  const res = await fetch(`${BASE_URL}${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers,
-    },
-  });
-
-  const data = await res.json();
-
-  if (!res.ok) {
-    if (res.status === 401) {
-      handleUnauthorized();
-      throw { status: 401, message: '세션 만료', _handled: true };
-    }
-    throw { status: res.status, ...data };
+async function parseResponse<T>(status: number, body: string, token: string | null, ignoreUnauthorized = false): Promise<T> {
+  // Check authentication before parsing: an upstream 401 may have an empty or HTML body.
+  if (status === 401) {
+    if (!ignoreUnauthorized) await handleUnauthorized(token);
+    throw { status, message: '인증이 만료되었습니다. 다시 시도해주세요.', _handled: !ignoreUnauthorized && !!token };
   }
 
-  return data;
+  let data;
+  try {
+    data = body ? JSON.parse(body) : undefined;
+  } catch {
+    throw { status, message: '서버 응답을 확인할 수 없습니다. 잠시 후 다시 시도해주세요.' };
+  }
+  if (status < 200 || status >= 300) {
+    throw { ...data, status, message: data?.message || '요청을 처리하지 못했습니다.' };
+  }
+  return data as T;
+}
+
+async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  const { authToken, ignoreUnauthorized = false, ...fetchOptions } = options;
+  const token = authToken ?? await AsyncStorage.getItem('authToken');
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+  try {
+    const res = await fetch(`${BASE_URL}${path}`, {
+      ...fetchOptions,
+      signal: controller.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...fetchOptions.headers,
+      },
+    });
+    return await parseResponse<T>(res.status, await res.text(), token, ignoreUnauthorized);
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw { message: '서버 응답이 지연되고 있습니다. 다시 시도해주세요.' };
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 export type KakaoAuthResponse =
@@ -94,12 +110,17 @@ export type Profile = {
 };
 
 export type ScheduleParticipantSummary = {
+  userId?: string | null;
   nickname: string;
   name?: string;
   level?: string | number | null;
 };
 
+export type InvitationStatus = 'pending' | 'accepted' | 'rejected' | 'removed';
+export type AppNotification = { id: number; senderId: string; receiverId: string; scheduleId: number; title: string; body: string; readAt: string | null; createdAt: string };
+
 export type Schedule = {
+  invitationStatus?: InvitationStatus | null;
   id: number;
   title: string;
   scheduleDate: string;
@@ -116,11 +137,19 @@ export type Schedule = {
 };
 
 export type ScheduleParticipant = {
+  canLinkTemporary?: boolean;
+  canViewDivingLog?: boolean;
+  canWriteDebriefing?: boolean;
+  userId?: string | null;
+  invitationStatus?: InvitationStatus;
+  invitationToken?: string | null;
   id: number;
   nickname: string;
+  profileImage?: string | null;
   name?: string;
   level?: string | number | null;
   isGuest?: boolean;
+  isTemporary?: boolean;
   hasInProgressLicense?: boolean;
   debriefingDone?: boolean;
   categoryCode?: string;
@@ -224,8 +253,10 @@ export type DebriefingItem = {
 };
 
 export type DiveBuddy = {
+  isTemporary?: boolean;
   userId: string;
   nickname: string;
+  profileImage?: string | null;
   name?: string;
   level?: string | number | null;
   lastDiveDate: string;
@@ -233,8 +264,10 @@ export type DiveBuddy = {
 };
 
 export type CloseFriend = {
+  isTemporary?: boolean;
   userId: string;
   nickname: string;
+  profileImage?: string | null;
   name?: string;
   level?: string | number | null;
   memo?: string;
@@ -276,13 +309,35 @@ export type PendingMember = {
   profileImage?: string;
 };
 
+export type Certification = { id: number; name: string; nameKo: string | null };
+export type CertificationOption = Certification & {
+  levelOrder: number;
+  isInstructor: number;
+  association: { code: string; name: string; nameKo: string | null };
+};
+
 export type ProfileResponse = {
-  user: { id: number; name?: string; nickname: string; profileImage?: string; organization?: Organization | null };
+  certifications?: Certification[];
+  user: { id: number; isTemporary?: boolean; name?: string; nickname: string; profileImage?: string; organization?: Organization | null };
   profile: Profile | null;
   isMyStudent?: boolean;
 };
 
+export type TemporaryLinkTarget = { id: number; userId: string; nickname: string; name?: string | null; profileImage?: string | null; level?: string; phoneHint?: string | null };
+export type TemporaryLinkPreview = {
+  source: { id: number; nickname: string }; target: TemporaryLinkTarget;
+  schedules: { id: number; title: string; date: string }[];
+  counts: { schedules: number; courses: number; forms: number; debriefings: number; achievements: number };
+  duplicates: { schedules: number; courses: number; achievements: number; contacts: number };
+  confirmationToken: string;
+};
 export const api = {
+  demoLogin(code: string) {
+    return request<{ token: string; user: { id: string; nickname: string; name?: string; profileImage?: string; demo: boolean } }>('/auth/demo', {
+      method: 'POST', body: JSON.stringify({ code }), authToken: '', ignoreUnauthorized: true,
+    });
+  },
+
   kakaoLogin(code: string, redirectUri: string) {
     return request<KakaoAuthResponse>('/auth/kakao', {
       method: 'POST',
@@ -307,15 +362,7 @@ export const api = {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
     });
-    const data = JSON.parse(result.body);
-    if (result.status < 200 || result.status >= 300) {
-      if (result.status === 401) {
-        handleUnauthorized();
-        throw { status: 401, message: '세션 만료', _handled: true };
-      }
-      throw { status: result.status, ...data };
-    }
-    return data as { success: boolean; profileImage: string };
+    return parseResponse<{ success: boolean; profileImage: string }>(result.status, result.body, token);
   },
 
   getLastCertReject() {
@@ -326,6 +373,10 @@ export const api = {
     return request<{ pending: boolean }>('/cert/pending');
   },
 
+  getCertificationOptions() {
+    return request<{ success: boolean; data: CertificationOption[] }>('/licenses');
+  },
+
   getCertRequests() {
     return request<{ requests: CertRequest[] }>('/cert/requests');
   },
@@ -334,10 +385,10 @@ export const api = {
     return request<{ count: number }>('/cert/pending-count');
   },
 
-  approveCert(requestId: number, level: string) {
+  approveCert(requestId: number, licenseId: number) {
     return request<{ success: boolean }>(`/cert/requests/${requestId}/approve`, {
       method: 'PATCH',
-      body: JSON.stringify({ level }),
+      body: JSON.stringify({ licenseId }),
     });
   },
 
@@ -345,8 +396,37 @@ export const api = {
     return request<{ pools: { id: number; name: string }[] }>('/diving-pools');
   },
 
+  temporaryLinkTargets(scheduleId: number, sourceId: number, query: string) {
+    return request<{ users: TemporaryLinkTarget[] }>(`/schedule/${scheduleId}/temporary-users/${sourceId}/link-targets?q=${encodeURIComponent(query)}`);
+  },
+  previewTemporaryLink(scheduleId: number, sourceId: number, targetId: number) {
+    return request<TemporaryLinkPreview>(`/schedule/${scheduleId}/temporary-users/${sourceId}/link-preview`, { method: 'POST', body: JSON.stringify({ targetId }) });
+  },
+  linkTemporaryUser(scheduleId: number, sourceId: number, targetId: number, confirmationToken: string) {
+    return request<{ success: boolean; auditId: number; alreadyLinked: boolean }>(`/schedule/${scheduleId}/temporary-users/${sourceId}/link`, { method: 'POST', body: JSON.stringify({ targetId, confirmationToken }) });
+  },
+  createTemporaryUser(name: string) {
+    return request<{ user: { id: number; userId: string; nickname: string; isTemporary: boolean; phone: string; level: string } }>('/users/temporary', {
+      method: 'POST', body: JSON.stringify({ name }),
+    });
+  },
+
   searchUsers(q: string) {
-    return request<{ users: { id: number; nickname: string; name?: string; phone: string; birthDate?: string; level?: string | number | null }[] }>(`/users/search?q=${encodeURIComponent(q)}`);
+    return request<{ users: { id: number; userId?: string; isTemporary?: boolean; nickname: string; profileImage?: string | null; name?: string; phone: string; birthDate?: string; level?: string | number | null }[] }>(`/users/search?q=${encodeURIComponent(q)}`);
+  },
+
+  getNotifications(options: { all?: boolean; before?: number; after?: number; ceiling?: number } = {}) {
+    const params = new URLSearchParams();
+    for (const [key, value] of Object.entries(options)) if (value !== undefined) params.set(key, String(value));
+    return request<{ items: AppNotification[]; hasMore: boolean; unreadCount: number }>(`/notifications?${params}`);
+  },
+  readNotification(id: number) { return request(`/notifications/${id}/read`, { method: 'PATCH' }); },
+  hideNotification(id: number) { return request(`/notifications/${id}`, { method: 'DELETE' }); },
+  respondToSchedule(id: number, action: 'accept' | 'reject', token: string) {
+    return request(`/schedule/${id}/invitation/respond`, { method: 'POST', body: JSON.stringify({ action, token }) });
+  },
+  manageScheduleInvitation(id: number, participantId: number, action: 'remove' | 'resend') {
+    return request(`/schedule/${id}/invitation/${participantId}`, { method: 'POST', body: JSON.stringify({ action }) });
   },
 
   createSchedule(data: {
@@ -372,8 +452,8 @@ export const api = {
     });
   },
 
-  getScheduleDetail(id: number) {
-    return request<{ schedule: ScheduleDetail }>(`/schedule/${id}`);
+  getScheduleDetail(id: number, filter = 'mine') {
+    return request<{ schedule: ScheduleDetail }>(`/schedule/${id}?filter=${encodeURIComponent(filter)}`);
   },
 
   updateSchedule(id: number, data: {
@@ -425,7 +505,12 @@ export const api = {
     });
   },
 
-  getDailySchedules(date: string) {
+  async getDailySchedules(date: string, filter = 'mine') {
+    if (filter !== 'mine') {
+      const [year, month] = date.split('-').map(Number);
+      const result = await api.getMonthlySchedules(year, month, filter);
+      return { schedules: (result.schedules ?? []).filter((schedule) => schedule.scheduleDate === date) };
+    }
     return request<{ schedules: Schedule[] }>(`/schedule/daily?date=${date}`);
   },
 
@@ -454,15 +539,7 @@ export const api = {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
     });
-    const data = JSON.parse(result.body);
-    if (result.status < 200 || result.status >= 300) {
-      if (result.status === 401) {
-        handleUnauthorized();
-        throw { status: 401, message: '세션 만료', _handled: true };
-      }
-      throw { status: result.status, ...data };
-    }
-    return data as { success: boolean };
+    return parseResponse<{ success: boolean }>(result.status, result.body, token);
   },
 
   updateProfile(data: Partial<Profile> & { organizationId?: number | null }) {
@@ -556,7 +633,6 @@ export const api = {
 
     const token = await AsyncStorage.getItem('authToken');
 
-    console.log('[API] POST /inquiries (multipart)', { fileName: attachment.name, type: attachment.type });
     const file = new File(attachment.uri);
     const result = await file.upload(`${BASE_URL}/inquiries`, {
       uploadType: UploadType.MULTIPART,
@@ -567,16 +643,7 @@ export const api = {
       },
       parameters: { title, content },
     });
-    const data = JSON.parse(result.body);
-    console.log('[API] POST /inquiries response:', result.status, data);
-    if (result.status < 200 || result.status >= 300) {
-      if (result.status === 401) {
-        handleUnauthorized();
-        throw { status: 401, message: '세션 만료', _handled: true };
-      }
-      throw new Error(data?.message || '문의 등록 실패');
-    }
-    return data as { success: boolean };
+    return parseResponse<{ success: boolean }>(result.status, result.body, token);
   },
 
   // 문의 관리 (admin)
@@ -657,10 +724,8 @@ export const api = {
         mimeType: 'image/jpeg',
         headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       });
-      const parsed = JSON.parse(result.body);
-      if (result.status >= 200 && result.status < 300) {
-        logoUrl = parsed.logoUrl;
-      }
+      const parsed = await parseResponse<{ logoUrl: string }>(result.status, result.body, token);
+      logoUrl = parsed.logoUrl;
     }
 
     return request<{ success: boolean; organization: Organization }>('/organizations', {
@@ -715,15 +780,18 @@ export const api = {
   },
 
   // 푸시 토큰
-  registerPushToken(token: string) {
+  registerPushToken(token: string, authToken: string) {
     return request<{ success: boolean }>('/push/register', {
+      authToken,
       method: 'POST',
       body: JSON.stringify({ token }),
     });
   },
 
-  unregisterPushToken(token: string) {
+  unregisterPushToken(token: string, authToken: string) {
     return request<{ success: boolean }>('/push/unregister', {
+      authToken,
+      ignoreUnauthorized: true,
       method: 'POST',
       body: JSON.stringify({ token }),
     });
@@ -745,7 +813,8 @@ export const api = {
   sendVerificationCode(phone: string, tempToken: string) {
     return request<{ success: boolean; message?: string }>('/auth/send-code', {
       method: 'POST',
-      headers: { Authorization: `Bearer ${tempToken}` },
+      authToken: tempToken,
+      ignoreUnauthorized: true,
       body: JSON.stringify({ phone }),
     });
   },
@@ -753,7 +822,8 @@ export const api = {
   verifyCode(phone: string, code: string, tempToken: string) {
     return request<{ success: boolean; message?: string }>('/auth/verify-code', {
       method: 'POST',
-      headers: { Authorization: `Bearer ${tempToken}` },
+      authToken: tempToken,
+      ignoreUnauthorized: true,
       body: JSON.stringify({ phone, code }),
     });
   },
@@ -770,7 +840,8 @@ export const api = {
   ) {
     return request<RegisterResponse>('/auth/register', {
       method: 'POST',
-      headers: { Authorization: `Bearer ${tempToken}` },
+      authToken: tempToken,
+      ignoreUnauthorized: true,
       body: JSON.stringify(data),
     });
   },

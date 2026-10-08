@@ -176,11 +176,9 @@ export default function RegisterScreen() {
         birthDate: '',
         phone: phoneDigits,
       });
-      console.log('[Register] response:', JSON.stringify(res));
       await login(res.token, res.user);
       Alert.alert('가입 완료', `${res.user.nickname}님, 환영합니다!\nAllBlue와 함께 안전한 다이빙 되세요.`);
     } catch (e: any) {
-      console.log('[Register] error:', JSON.stringify(e));
       if (!e._handled) Alert.alert('오류', e.message || '가입에 실패했습니다.');
     } finally {
       setLoading(false);
