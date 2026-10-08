@@ -3,16 +3,13 @@ import { useFocusEffect } from 'expo-router';
 import { AppState } from 'react-native';
 import { api, Schedule } from '@/services/api';
 import { useLatestRequest } from './useLatestRequest';
+import { getScheduleMarkerColor } from '@/utils/scheduleMarker';
 
-const LEVEL_COLORS: Record<string, string> = {
-  '0': '#ADB5BD', '1': '#E53030', '2': '#FFE500', '3': '#33CC33',
-  '4': '#F5F5F5', '5': '#3B92C5', A: '#7B2FBE',
-};
 type EventItem = { date: string; title: string; color: string; requested?: boolean };
 type FriendGroup = { id: number; name: string; memberCount: number };
 const toEvents = (schedules: Schedule[]): EventItem[] => schedules.map((s) => ({
   date: s.scheduleDate, title: s.invitationStatus === 'pending' ? `일정등록 요청 · ${s.title}` : s.title, requested: s.invitationStatus === 'pending',
-  color: s.invitationStatus === 'pending' ? '#FFD166' : LEVEL_COLORS[String(s.minLevel ?? '')] ?? 'rgba(255,255,255,0.3)',
+  color: getScheduleMarkerColor(s),
 }));
 
 export function useCalendarSchedules() {

@@ -1,3 +1,4 @@
+import { parseSta, splitSta } from '@/utils/sta';
 import PopupBackdrop from '@/components/PopupBackdrop';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -75,9 +76,9 @@ export default function ProfileEditScreen() {
           setShoesSize(p.shoesSize != null ? String(p.shoesSize) : '');
           setFinSize(p.finSize != null ? String(p.finSize) : '');
           if (p.sta != null) {
-            const parts = String(p.sta).split('.');
-            setStaMin(parts[0] ?? '');
-            setStaSec(parts[1] ?? '');
+            const parts = splitSta(p.sta);
+            setStaMin(parts.minutes);
+            setStaSec(parts.seconds);
           }
           setDynb(p.dynb != null ? String(p.dynb) : '');
           setDyn(p.dyn != null ? String(p.dyn) : '');
@@ -138,6 +139,7 @@ export default function ProfileEditScreen() {
 
   const handleSave = async () => {
     try {
+      const sta = parseSta(staMin, staSec);
       setSaving(true);
 
       if (imageChanged && profileImage) {
@@ -154,7 +156,7 @@ export default function ProfileEditScreen() {
         organizationId: isInstructor ? (selectedOrg?.id ?? null) : undefined,
         shoesSize: toNum(shoesSize) as any,
         finSize: finSize.trim() || null,
-        sta: (staMin.trim() || staSec.trim()) ? toNum(`${staMin.trim() || '0'}.${staSec.trim() || '0'}`) : null,
+        sta,
         dynb: toNum(dynb),
         dyn: toNum(dyn),
         dnf: toNum(dnf),

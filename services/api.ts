@@ -134,6 +134,7 @@ export type Schedule = {
   participantNames: string[];
   participants?: ScheduleParticipantSummary[];
   minLevel?: string | number | null;
+  minCourseLevel?: number | null;
 };
 
 export type ScheduleParticipant = {

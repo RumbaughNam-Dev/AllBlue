@@ -1,3 +1,4 @@
+import { formatSta } from '@/utils/sta';
 import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, Image, ScrollView, Platform, Alert } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -144,7 +145,7 @@ export default function ProfileScreen() {
               <View style={styles.recordRow}>
                 <View style={styles.recordItem}>
                   <Text style={styles.recordLabel}>STA</Text>
-                  <Text style={styles.recordValue}>{formatRecord(profile?.sta ?? null, '초')}</Text>
+                  <Text style={styles.recordValue}>{formatSta(profile?.sta)}</Text>
                 </View>
               </View>
               <View style={styles.recordRow}>
@@ -236,26 +237,23 @@ export default function ProfileScreen() {
                 </View>
               </Pressable>
             )}
-            {/* 자격증 등록 요청 - 햄버거 메뉴로 이동
-            {profile?.level !== 5 && (
-              <Pressable
-                style={({ pressed }) => [styles.certButton, pressed && { opacity: 0.85 }]}
-                onPress={async () => {
-                  try {
-                    const res = await api.checkCertPending();
-                    if (res.pending) {
-                      Alert.alert('알림', '이미 신청한 등록요청이 있습니다.\n요청 처리가 끝날때까지 기다려주세요.');
-                      return;
-                    }
-                    router.push('/cert-upload');
-                  } catch (e: any) {
-                    if (!e._handled) router.push('/cert-upload');
+            <Pressable
+              style={({ pressed }) => [styles.certButton, pressed && { opacity: 0.85 }]}
+              onPress={async () => {
+                try {
+                  const res = await api.checkCertPending();
+                  if (res.pending) {
+                    Alert.alert('알림', '이미 신청한 등록요청이 있습니다.\n요청 처리가 끝날때까지 기다려주세요.');
+                    return;
                   }
-                }}
-              >
-                <Text style={styles.certButtonText}>자격증 등록 요청</Text>
-              </Pressable>
-            )} */}
+                  router.push('/cert-upload');
+                } catch (e: any) {
+                  if (!e._handled) router.push('/cert-upload');
+                }
+              }}
+            >
+              <Text style={styles.certButtonText}>자격증 등록 요청</Text>
+            </Pressable>
             <Pressable
               style={({ pressed }) => [styles.editButton, pressed && { opacity: 0.85 }]}
               onPress={() => router.push('/profile-edit')}

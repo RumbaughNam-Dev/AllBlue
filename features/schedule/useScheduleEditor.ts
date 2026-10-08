@@ -22,6 +22,8 @@ export const CATEGORIES = [
   { code: 'ETC', label: '기타' },
 ];
 export const STUDENT_CATEGORIES = ['EXPERIENCE', 'CERTIFICATION', 'LECTURE'];
+// 임시 노출 제한: null로 바꾸면 모든 교육기관을 다시 표시한다.
+const SCHEDULE_ASSOCIATION_NAMES: readonly string[] | null = ['AIDA International'];
 export const HOURS = Array.from({ length: 24 }, (_, i) => i);
 export const MINUTES = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
 export type Pool = { id: number; name: string };
@@ -447,7 +449,10 @@ export function useScheduleEditor() {
     if (associations.length === 0) {
       try {
         const res = await api.getAssociations();
-        setAssociations(res.associations ?? []);
+        setAssociations((res.associations ?? []).filter(
+          (association) => SCHEDULE_ASSOCIATION_NAMES === null
+            || SCHEDULE_ASSOCIATION_NAMES.includes(association.name.trim()),
+        ));
       } catch {}
     }
     setShowAvailableLicensePicker(false);

@@ -164,6 +164,7 @@ test('profile remains dismissible during loading and after a failed request', as
     '@/components/Spinner': {}, '@/components/LevelBadge': {},
     '@/contexts/AuthContext': { useAuth: () => ({ user: { id: 1 } }) },
     '@/utils/userRole': loadModule('utils/userRole.ts', {}),
+    '@/utils/sta': loadModule('utils/sta.ts', {}),
   }).default;
   function nodes(tree) { return !tree ? [] : Array.isArray(tree) ? tree.flatMap(nodes) : typeof tree === 'object' ? [tree, ...nodes(tree.children)] : []; }
   const render = () => h.render(() => view({ userId: 'member', onClose: () => closed++ }));
@@ -273,6 +274,7 @@ test('calendar filter changes cannot be overwritten by a late previous filter re
   const latest = loadModule('utils/latestRequest.ts', {});
   const requestHook = loadModule('hooks/useLatestRequest.ts', { react: h.react, '@/utils/latestRequest': latest });
   const { useCalendarSchedules } = loadModule('hooks/useCalendarSchedules.ts', {
+    '@/utils/scheduleMarker': loadModule('utils/scheduleMarker.ts', {}),
     react: h.react,
     'react-native': { AppState: {
       currentState: 'active',
@@ -474,7 +476,7 @@ for (const file of ['app/profile.tsx', 'components/UserProfileView.tsx']) {
   ]]) {
     test(`${file}: displays only recorded certifications (${certifications ? 'multiple associations' : 'legacy level only'})`, async () => {
       const h = hookDriver();
-      const result = { user: { id: 2, nickname: 'diver' }, profile: { level: '5' }, certifications, isMyStudent: true };
+      const result = { user: { id: 2, nickname: 'diver' }, profile: { level: '5', sta: 4.01 }, certifications, isMyStudent: true };
       const screen = loadModule(file, {
         react: { ...h.react, createElement: (type, props, ...children) => ({ type, props, children }) },
         'react-native': { StyleSheet: { create: x => x }, Platform: { OS: 'ios' } },
@@ -485,6 +487,7 @@ for (const file of ['app/profile.tsx', 'components/UserProfileView.tsx']) {
         '@/contexts/AuthContext': { useAuth: () => ({ user: result.user, updateUser() {} }) },
         '@/components/Spinner': {}, '@/components/LevelBadge': {},
         '@/utils/userRole': loadModule('utils/userRole.ts', {}),
+        '@/utils/sta': loadModule('utils/sta.ts', {}),
         '@/services/api': { api: {
           getProfile: async () => result, getUserProfile: async () => result,
           getCertPendingCount: async () => ({ count: 0 }), getInquiryPendingCount: async () => ({ count: 0 }),
@@ -500,6 +503,7 @@ for (const file of ['app/profile.tsx', 'components/UserProfileView.tsx']) {
         else if (value?.children) walk(value.children);
       };
       walk(h.render(renderProfile));
+      assert.ok(texts.includes('4분 1초'));
       if (file === 'components/UserProfileView.tsx') assert.equal(texts.includes('다이빙 로그'), false, 'unqualified viewer must ignore stale isMyStudent=true');
       assert.equal(texts.includes('강사'), false);
       assert.equal(texts.includes('Lv.4'), false);
@@ -822,13 +826,16 @@ for (const isEdit of [false, true]) {
   test(`AIDA selection replaces content in the open picker (${isEdit ? 'edit' : 'create'})`, async () => {
     const response = deferred();
     const h = temporaryEditorFixture({
-      getAssociations: async () => ({ associations: [{ id: 1, name: 'AIDA International' }] }),
+      getAssociations: async () => ({ associations: [
+        { id: 2, name: 'PADI' }, { id: 1, name: 'AIDA International' }, { id: 3, name: 'SSI' },
+      ] }),
       getAvailableLicenses: () => response.promise,
       getScheduleDetail: async () => ({ schedule: { title: '수정', scheduleDate: '2026-10-08', categoryCode: 'TRAINING', participants: [] } }),
     }, isEdit ? { id: '42' } : {});
     h.render(); await flush();
     h.render().handleSelectUser({ id: 23, nickname: 'Diver' });
     await h.render().handleAddLicense();
+    assert.deepEqual(Array.from(h.render().associations, (a) => a.name), ['AIDA International']);
     const request = h.render().handleSelectAssociation(1);
     let view = h.render();
     assert.equal(view.showAssociationPicker, true, 'keep the same native modal open during the request');

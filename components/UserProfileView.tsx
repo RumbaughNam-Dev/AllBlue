@@ -1,3 +1,4 @@
+import { formatSta } from '@/utils/sta';
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, Image, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -135,7 +136,7 @@ export default function UserProfileView({ userId, onClose, onOpenLog }: Props) {
             <View style={styles.recordRow}>
               <View style={styles.recordItem}>
                 <Text style={styles.recordLabel}>STA</Text>
-                <Text style={styles.recordValue}>{formatRecord(profile?.sta ?? null, '초')}</Text>
+                <Text style={styles.recordValue}>{formatSta(profile?.sta)}</Text>
               </View>
             </View>
             <View style={styles.recordRow}>
