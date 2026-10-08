@@ -377,7 +377,7 @@ export default function ScheduleDetailScreen() {
                 {/* 라이센스 정보 / 디브리핑 버튼 */}
                 {(() => {
                   const isOwnLog = !!user?.id && p.userId === user.id;
-                  const showLicense = isOwnLog || (showLogs && !p.isGuest && isQualifiedInstructor && p.canViewDivingLog === true);
+                  const showLicense = isOwnLog || ((showLogs || (accepted && category === 'TRAINING' && isOwner)) && !p.isGuest && isQualifiedInstructor && p.canViewDivingLog === true);
                   const showDebriefing = accepted && (showLogs || category === 'TRAINING') && !p.isGuest && isOwner && !isOwnLog && isQualifiedInstructor && p.canWriteDebriefing === true;
                   if (!showLicense && !showDebriefing) return null;
                   return (

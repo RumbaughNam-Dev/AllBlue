@@ -415,10 +415,13 @@ test('schedule detail reloads on app return without a navigation focus change', 
   await flush();
 });
 
-for (const [overall, personal, status, expected, canViewDivingLog = true, viewerLevel = '5'] of [
+for (const [overall, personal, status, expected, canViewDivingLog = true, viewerLevel = '5', owner = true] of [
   ['CERTIFICATION', 'LECTURE', 'accepted', ['다이빙 로그', '디브리핑']],
-  ['CERTIFICATION', 'TRAINING', 'accepted', ['면책동의서', '의료진술서', '디브리핑']],
-  ['TRAINING', null, 'accepted', ['면책동의서', '의료진술서', '디브리핑']],
+  ['CERTIFICATION', 'TRAINING', 'accepted', ['면책동의서', '의료진술서', '다이빙 로그', '디브리핑']],
+  ['TRAINING', null, 'accepted', ['면책동의서', '의료진술서', '다이빙 로그', '디브리핑']],
+  ['TRAINING', 'TRAINING', 'accepted', ['면책동의서', '의료진술서', '다이빙 로그', '디브리핑'], true, 'A'],
+  ['TRAINING', 'TRAINING', 'accepted', [], true, '5', false],
+  ['TRAINING', 'TRAINING', 'pending', ['일정등록 요청을 보냈어요!']],
   ['TRAINING', 'TRAINING', 'accepted', ['면책동의서', '의료진술서'], false],
   ['TRAINING', 'TRAINING', 'accepted', ['면책동의서', '의료진술서'], true, '0'],
   ['TRAINING', 'CERTIFICATION', 'accepted', ['면책동의서', '의료진술서', '다이빙 로그', '디브리핑']],
@@ -430,11 +433,11 @@ for (const [overall, personal, status, expected, canViewDivingLog = true, viewer
   ['CERTIFICATION', 'CERTIFICATION', 'pending', ['일정등록 요청을 보냈어요!']],
   ['CERTIFICATION', 'CERTIFICATION', 'rejected', ['일정등록 요청을 거부했어요. 😢', '요청 지우기', '다시 요청하기']],
 ]) {
-  test(`participant controls follow personal ${personal}/${status}, permission=${canViewDivingLog}, viewer=${viewerLevel}, not overall ${overall}`, async () => {
+  test(`participant controls follow personal ${personal}/${status}, permission=${canViewDivingLog}, viewer=${viewerLevel}, owner=${owner}, not overall ${overall}`, async () => {
     const h = hookDriver();
     const { createLatestRequest } = loadModule('utils/latestRequest.ts', {});
     const request = createLatestRequest();
-    const data = { id: 12, categoryCode: overall, isOwner: true, scheduleDate: '2026-09-23', participants: [{ id: 2, nickname: 'Student', categoryCode: personal, invitationStatus: status, canViewDivingLog, canWriteDebriefing: canViewDivingLog }] };
+    const data = { id: 12, categoryCode: overall, isOwner: owner, scheduleDate: '2026-09-23', participants: [{ id: 2, nickname: 'Student', categoryCode: personal, invitationStatus: status, canViewDivingLog, canWriteDebriefing: canViewDivingLog }] };
     const Screen = loadModule('app/schedule-detail.tsx', {
       react: { ...h.react, createElement: (type, props, ...children) => ({ type, props, children }) },
       'react-native': { StyleSheet: { create: value => value }, Platform: { OS: 'ios' }, AppState: { currentState: 'active', addEventListener: () => ({ remove() {} }) }, Alert: { alert() {} } },
