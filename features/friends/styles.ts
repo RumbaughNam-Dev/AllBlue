@@ -117,7 +117,6 @@ export const styles = StyleSheet.create({
     color: Colors.brand.white,
   },
   pinIcon: {
-    fontSize: 12,
     marginLeft: 8,
   },
   friendMemo: {

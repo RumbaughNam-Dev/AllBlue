@@ -1,5 +1,6 @@
+import { getTabBarContentClearance } from '@/utils/tabBarLayout';
 import React, { useState, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, useWindowDimensions, LayoutChangeEvent, PanResponder, Animated, Easing } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, useWindowDimensions, LayoutChangeEvent, PanResponder, Animated, Easing, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/Colors';
 import MonthPicker from '@/components/MonthPicker';
@@ -36,7 +37,7 @@ export default function Calendar({ events = [], onDatePress, onMonthChange, sche
   const filters = filterOptions ?? DEFAULT_FILTERS;
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const TAB_BAR_HEIGHT = 56 + insets.bottom / 2 + 4 + 16; // tabRow + padding + extra
+  const bottomSpace = getTabBarContentClearance(insets.bottom, Platform.OS);
   const [year, setYear] = useState(new Date().getFullYear());
   const [month, setMonth] = useState(new Date().getMonth());
   const [showMonthPicker, setShowMonthPicker] = useState(false);
@@ -221,7 +222,7 @@ export default function Calendar({ events = [], onDatePress, onMonthChange, sche
       <View style={styles.divider} />
 
       {/* Calendar Grid - fills remaining space */}
-      <Animated.View style={[styles.gridArea, { marginBottom: TAB_BAR_HEIGHT, transform: [{ translateX: slideAnim }] }]} onLayout={onGridLayout} {...panResponder.panHandlers}>
+      <Animated.View style={[styles.gridArea, { marginBottom: bottomSpace, transform: [{ translateX: slideAnim }] }]} onLayout={onGridLayout} {...panResponder.panHandlers}>
         {weeks.map((week, wi) => (
           <View key={wi}>
             <View style={[styles.weekRow, { height: rowHeight }]}>

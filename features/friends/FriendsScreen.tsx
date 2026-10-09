@@ -1,6 +1,7 @@
+import PinnedFriendsList from './PinnedFriendsList';
 import PopupBackdrop from '@/components/PopupBackdrop';
 import ProfileLink from '@/components/ProfileLink';
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, Pressable, Alert, Modal, TextInput, ActivityIndicator, ScrollView, Animated } from 'react-native';
 
 import Colors from '@/constants/Colors';
@@ -25,13 +26,27 @@ export default function FriendsScreen() {
     switchTab, fetchGroups, fetchFriends, handleCreateGroup,
     handleGroupSelect, onSearchChange, handleSearchAdd, maskPhone,
     handleLongPress, closeMenu, saveMemo, getMenuItems,
-    sortedFriends,
+    sortedFriends, reorderPinnedFriends, orderSaving,
   } = useFriends();
+  const listRef = useRef<FlatList<CloseFriend>>(null);
+  const listViewport = useRef<View>(null);
+  const scrollOffset = useRef(0);
+  const viewport = useRef({ top: 0, height: 0, contentHeight: 0 });
+  const [dragging, setDragging] = useState(false);
+  const pinnedFriends = activeTab === 'close' ? sortedFriends.filter(friend => friend.pinned) : [];
+  const listFriends = activeTab === 'close' ? sortedFriends.filter(friend => !friend.pinned) : sortedFriends;
+  const autoScroll = (pageY: number) => {
+    const { top, height, contentHeight } = viewport.current;
+    const visibleBottom = top + height - bottomSpace - 70;
+    const direction = pageY < top + 60 ? -1 : pageY > visibleBottom - 60 ? 1 : 0;
+    const next = Math.max(0, Math.min(contentHeight - height, scrollOffset.current + direction * 8));
+    if (direction && next !== scrollOffset.current) listRef.current?.scrollToOffset({ offset: next, animated: false });
+  };
   const searchBottomClearance = Math.max(insets.bottom, 1);
-  const renderFriendCard = ({ item }: { item: CloseFriend }) => (
+  const renderFriendCard = ({ item, handle }: { item: CloseFriend; handle?: React.ReactNode }) => (
     <Pressable
       style={styles.friendCard}
-      onPress={() => handleLongPress(item)}
+      onPress={() => { if (!dragging) handleLongPress(item); }}
     >
       <ProfileLink userId={item.userId} label={item.nickname}><ProfileAvatar profileImage={item.profileImage} nickname={item.nickname} level={item.level} /></ProfileLink>
 
@@ -45,7 +60,8 @@ export default function FriendsScreen() {
           {item.memo || '메모를 남겨주세요.'}
         </Text>
       </View>
-      {item.pinned && <Text style={styles.pinIcon}>📌</Text>}
+      {item.pinned && <Ionicons name="pin-outline" size={16} color={Colors.brand.white} style={styles.pinIcon} accessibilityLabel="상단 고정" />}
+      {handle}
     </Pressable>
   );
 
@@ -120,11 +136,30 @@ export default function FriendsScreen() {
         </Pressable>
       )}
       {/* 친구 목록 */}
+      <View ref={listViewport} style={{ flex: 1 }} onLayout={() => {
+        listViewport.current?.measureInWindow((_x, top, _width, height) => {
+          viewport.current = { ...viewport.current, top, height };
+        });
+      }}>
       <FlatList
-        data={sortedFriends}
+        ref={listRef}
+        scrollEnabled={!dragging}
+        scrollEventThrottle={16}
+        onScroll={event => { scrollOffset.current = event.nativeEvent.contentOffset.y; }}
+        onContentSizeChange={(_width, contentHeight) => { viewport.current.contentHeight = contentHeight; }}
+        ListHeaderComponent={activeTab === 'close' ? <PinnedFriendsList
+          friends={pinnedFriends}
+          disabled={orderSaving || loading}
+          renderFriend={(item, handle) => renderFriendCard({ item, handle })}
+          onReorder={reorderPinnedFriends}
+          onDraggingChange={setDragging}
+          getScrollOffset={() => scrollOffset.current}
+          autoScroll={autoScroll}
+        /> : null}
+        data={listFriends}
         keyExtractor={(item) => item.userId}
         renderItem={renderFriendCard}
-        ListEmptyComponent={loading ? <ActivityIndicator color="white" /> : loadError ? null : (
+        ListEmptyComponent={pinnedFriends.length > 0 ? null : loading ? <ActivityIndicator color="white" /> : loadError ? null : (
           <View style={styles.emptyArea}>
             <Text style={styles.emptyText}>
               {activeTab === 'close' ? '등록된 친한 친구가 없습니다.\n아래 버튼으로 등록해보세요.' :
@@ -138,7 +173,9 @@ export default function FriendsScreen() {
         showsVerticalScrollIndicator={false}
         windowSize={7}
         maxToRenderPerBatch={15}
+        removeClippedSubviews={false}
       />
+      </View>
 
       {/* 친한친구 등록 버튼 */}
       {activeTab === 'close' && (

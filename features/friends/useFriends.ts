@@ -1,6 +1,9 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { readPinnedOrder, sortPinnedFriends } from '@/utils/pinnedFriends';
+import { getTabBarContentClearance } from '@/utils/tabBarLayout';
 import { maskPhone } from '@/utils/format';
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { Alert, TextInput, Platform, Animated, Easing, useWindowDimensions, Keyboard } from 'react-native';
+import { AppState, Alert, TextInput, Platform, Animated, Easing, useWindowDimensions, Keyboard } from 'react-native';
 
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -12,7 +15,6 @@ import { useUserSearch } from '@/hooks/useSearch';
 
 import { api, CloseFriend } from '@/services/api';
 
-export const TAB_BAR_HEIGHT = 56;
 export type TabType = string;
 export type FriendGroup = { id: number; name: string; memberCount: number };
 export const FIXED_TABS = ['close', 'buddy', 'student'];
@@ -20,12 +22,16 @@ export const FIXED_TABS = ['close', 'buddy', 'student'];
 export function useFriends() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const bottomSpace = TAB_BAR_HEIGHT + (insets.bottom / 2) + 20;
+  const bottomSpace = getTabBarContentClearance(insets.bottom, Platform.OS);
 
   const [activeTab, setActiveTab] = useState<TabType>('close');
   const activeTabRef = useRef(activeTab);
   activeTabRef.current = activeTab;
   const [friends, setFriends] = useState<CloseFriend[]>([]);
+  const [pinnedOrder, setPinnedOrder] = useState<string[]>([]);
+  const [orderSaving, setOrderSaving] = useState(false);
+  const orderSavingRef = useRef(false);
+  const accountRef = useRef<string | undefined>(undefined);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const friendsRequest = useLatestRequest();
@@ -110,6 +116,8 @@ export function useFriends() {
   const {
     user,
   } = useAuth();
+  const orderStorageKey = user?.id ? `pinned-friend-order:${user.id}` : undefined;
+  accountRef.current = orderStorageKey;
   const isInstructor = hasInstructorAccess(user?.level);
 
   const fixedTabs: { key: TabType; label: string }[] = [
@@ -151,7 +159,12 @@ export function useFriends() {
     try {
       let items: CloseFriend[] = [];
       if (activeTab === 'close') {
-        items = (await api.getCloseFriends()).friends ?? [];
+        const [response, savedOrder] = await Promise.all([
+          api.getCloseFriends(),
+          orderStorageKey ? AsyncStorage.getItem(orderStorageKey) : Promise.resolve(null),
+        ]);
+        items = response.friends ?? [];
+        if (isCurrent()) setPinnedOrder(readPinnedOrder(savedOrder));
       } else if (activeTab === 'buddy') {
         items = ((await api.getDiveBuddies(1, 50)).buddies ?? []).map((b) => ({
           ...b, memo: b.lastDiveDate ? `마지막 다이빙: ${b.lastDiveDate}` : undefined,
@@ -167,7 +180,7 @@ export function useFriends() {
     } finally {
       if (isCurrent()) setLoading(false);
     }
-  }, [activeTab, activeGroupId, isInstructor, friendsRequest]);
+  }, [activeTab, activeGroupId, isInstructor, friendsRequest, orderStorageKey]);
 
   useEffect(() => {
     if (!isInstructor && activeTab === 'student') switchTab('close');
@@ -177,8 +190,27 @@ export function useFriends() {
     useCallback(() => {
       fetchGroups();
       fetchFriends();
-      return () => { friendsRequest.invalidate(); groupsRequest.invalidate(); };
-    }, [fetchGroups, fetchFriends, friendsRequest, groupsRequest])
+      let disposed = false;
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const scheduleRefresh = () => {
+        if (activeTab !== 'buddy' || disposed) return;
+        timer = setTimeout(async () => {
+          if (AppState.currentState === 'active') await fetchFriends();
+          scheduleRefresh();
+        }, 60_000);
+      };
+      scheduleRefresh();
+      const subscription = activeTab === 'buddy' ? AppState.addEventListener('change', state => {
+        if (state === 'active') void fetchFriends();
+      }) : undefined;
+      return () => {
+        disposed = true;
+        clearTimeout(timer);
+        subscription?.remove();
+        friendsRequest.invalidate();
+        groupsRequest.invalidate();
+      };
+    }, [fetchGroups, fetchFriends, friendsRequest, groupsRequest, activeTab])
   );
 
   const handleCreateGroup = async () => {
@@ -367,13 +399,31 @@ export function useFriends() {
     return items;
   };
 
-  const sortedFriends = [...friends].sort((a, b) => {
-    if (activeTab === 'close') {
-      if (a.pinned && !b.pinned) return -1;
-      if (!a.pinned && b.pinned) return 1;
+  const sortedFriends = activeTab === 'close' ? sortPinnedFriends(friends, pinnedOrder) : friends;
+
+  const reorderPinnedFriends = async (ids: string[]) => {
+    if (activeTabRef.current !== 'close' || !orderStorageKey || orderSavingRef.current) return;
+    const pinned = friends.filter(friend => friend.pinned).map(friend => friend.userId);
+    if (ids.length !== pinned.length || new Set(ids).size !== ids.length
+      || ids.some(id => !pinned.includes(id))) return;
+    const previous = pinnedOrder;
+    friendsRequest.invalidate();
+    setLoading(false);
+    orderSavingRef.current = true;
+    setOrderSaving(true);
+    setPinnedOrder(ids);
+    try {
+      await AsyncStorage.setItem(orderStorageKey, JSON.stringify(ids));
+    } catch {
+      if (accountRef.current === orderStorageKey) {
+        setPinnedOrder(previous);
+        Alert.alert('저장 실패', '친구 순서를 저장하지 못했습니다. 다시 시도해주세요.');
+      }
+    } finally {
+      orderSavingRef.current = false;
+      setOrderSaving(false);
     }
-    return 0;
-  });
+  };
 
   return {
     insets, bottomSpace, activeTab, loading,
@@ -388,6 +438,6 @@ export function useFriends() {
     switchTab, fetchGroups, fetchFriends, handleCreateGroup,
     handleGroupSelect, onSearchChange, handleSearchAdd, maskPhone,
     handleLongPress, closeMenu, saveMemo, getMenuItems,
-    sortedFriends,
+    sortedFriends, reorderPinnedFriends, orderSaving,
   };
 }

@@ -73,7 +73,7 @@ export default function ProfileScreen() {
         </View>
       ) : (
         <>
-          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          <View style={styles.fixedHeader}>
             {/* Profile Header */}
             <View style={styles.profileRow}>
               <View style={styles.avatarWrap}>
@@ -117,6 +117,13 @@ export default function ProfileScreen() {
               </View>
             )}
 
+          </View>
+
+          <ScrollView
+            style={styles.scrollArea}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+          >
             {/* Bio */}
             {profile?.description ? (
               <View style={styles.bioSection}>
@@ -277,6 +284,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  fixedHeader: {
+    flexShrink: 0,
+    paddingHorizontal: 24,
+  },
+  scrollArea: {
+    flex: 1,
+    minHeight: 0,
+  },
   scrollContent: {
     paddingHorizontal: 24,
     paddingBottom: 16,
@@ -415,6 +430,7 @@ const styles = StyleSheet.create({
     color: Colors.brand.white,
   },
   bottomArea: {
+    flexShrink: 0,
     paddingHorizontal: 24,
     paddingBottom: Platform.OS === 'android' ? 12 : 0,
   },

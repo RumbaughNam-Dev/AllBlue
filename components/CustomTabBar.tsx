@@ -1,3 +1,4 @@
+import { getTabBarBottomPadding, TAB_BAR_HEIGHT } from '@/utils/tabBarLayout';
 import React, { useEffect, useRef } from 'react';
 import { View, Image, Pressable, StyleSheet, Platform, Animated, Easing, LayoutChangeEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -126,7 +127,7 @@ export default function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   );
 
   return (
-    <View style={[styles.container, { paddingBottom: insets.bottom / 2 + 4 }]}>
+    <View style={[styles.container, { paddingBottom: getTabBarBottomPadding(insets.bottom, Platform.OS) }]}>
       {Platform.OS === 'ios' ? (
         <BlurView intensity={60} tint="dark" style={styles.blurContainer}>
           {content}
@@ -162,7 +163,7 @@ const styles = StyleSheet.create({
   },
   tabRow: {
     flexDirection: 'row',
-    height: 56,
+    height: TAB_BAR_HEIGHT,
     alignItems: 'center',
     padding: 4,
     overflow: 'hidden',

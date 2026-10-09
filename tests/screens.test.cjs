@@ -326,8 +326,12 @@ test('friend tabs ignore late old-tab results and refresh callbacks', async () =
   const latest = loadModule('utils/latestRequest.ts', {});
   const requestHook = loadModule('hooks/useLatestRequest.ts', { react: h.react, '@/utils/latestRequest': latest });
   const { useFriends } = loadModule('features/friends/useFriends.ts', {
+    '@react-native-async-storage/async-storage': { getItem: async () => null, setItem: async () => {} },
+    '@/utils/pinnedFriends': loadModule('utils/pinnedFriends.ts', {}),
+    '@/utils/tabBarLayout': loadModule('utils/tabBarLayout.ts', {}),
     react: h.react,
     'react-native': {
+      AppState: { currentState: 'active', addEventListener: () => ({ remove() {} }) },
       Animated: { Value: class { constructor(value) { this.value = value; } } },
       Platform: { OS: 'ios' }, Keyboard: { addListener: () => ({ remove() {} }) },
       useWindowDimensions: () => ({ height: 800 }),
@@ -878,4 +882,57 @@ test('license request failure leaves the association picker available for retry'
   assert.equal(view.showAvailableLicensePicker, false);
   assert.equal(view.availableLicensesLoading, false);
   assert.equal(h.alerts.at(-1)[1], '자격증 목록을 불러올 수 없습니다.');
+});
+
+test('pinned friend order persists per account, rejects invalid moves, and rolls back failed saves', async () => {
+  const h = hookDriver();
+  const alerts = [];
+  const stored = new Map([['pinned-friend-order:viewer', '["b","a"]']]);
+  let failSave = false;
+  const latest = loadModule('utils/latestRequest.ts', {});
+  const requestHook = loadModule('hooks/useLatestRequest.ts', { react: h.react, '@/utils/latestRequest': latest });
+  const { useFriends } = loadModule('features/friends/useFriends.ts', {
+    react: h.react,
+    '@react-native-async-storage/async-storage': {
+      getItem: async key => stored.get(key) ?? null,
+      setItem: async (key, value) => { if (failSave) throw Error('storage full'); stored.set(key, value); },
+    },
+    '@/utils/pinnedFriends': loadModule('utils/pinnedFriends.ts', {}),
+    '@/utils/tabBarLayout': loadModule('utils/tabBarLayout.ts', {}),
+    'react-native': {
+      AppState: { currentState: 'active', addEventListener: () => ({ remove() {} }) },
+      Animated: { Value: class {} }, Alert: { alert: (...args) => alerts.push(args) },
+      Platform: { OS: 'android' }, Keyboard: { addListener: () => ({ remove() {} }) },
+      useWindowDimensions: () => ({ height: 800 }),
+    },
+    'expo-router': { useRouter: () => ({}), useFocusEffect: fn => h.react.useEffect(fn, [fn]) },
+    'react-native-safe-area-context': { useSafeAreaInsets: () => ({ bottom: 24 }) },
+    '@/contexts/AuthContext': { useAuth: () => ({ user: { id: 'viewer', level: 1 } }) },
+    '@/utils/userRole': loadModule('utils/userRole.ts', {}),
+    '@/utils/format': loadModule('utils/format.ts', {}),
+    '@/hooks/useLatestRequest': requestHook,
+    '@/hooks/useSearch': { useUserSearch: () => ({ results: [] }) },
+    '@/services/api': { api: {
+      getFriendGroups: async () => ({ groups: [] }),
+      getCloseFriends: async () => ({ friends: [
+        { userId: 'a', pinned: true }, { userId: 'b', pinned: true }, { userId: 'normal' },
+      ] }),
+    } },
+  });
+  const render = () => h.render(useFriends);
+  render(); await flush();
+  assert.deepEqual(Array.from(render().sortedFriends, f => f.userId), ['b', 'a', 'normal']);
+  await render().reorderPinnedFriends(['a', 'b']);
+  assert.equal(stored.get('pinned-friend-order:viewer'), '["a","b"]');
+  await render().fetchFriends();
+  assert.deepEqual(Array.from(render().sortedFriends, f => f.userId), ['a', 'b', 'normal']);
+  await render().reorderPinnedFriends(['normal', 'b']);
+  await render().reorderPinnedFriends(['a', 'a']);
+  assert.equal(stored.get('pinned-friend-order:viewer'), '["a","b"]');
+  failSave = true;
+  await render().reorderPinnedFriends(['b', 'a']);
+  assert.deepEqual(Array.from(render().sortedFriends, f => f.userId), ['a', 'b', 'normal']);
+  assert.equal(alerts.length, 1);
+  assert.equal(render().orderSaving, false);
+  h.unmount();
 });

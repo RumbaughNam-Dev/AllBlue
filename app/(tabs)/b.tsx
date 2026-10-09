@@ -1,6 +1,8 @@
+import { getScheduleMarkerColor } from '@/utils/scheduleMarker';
+import { getTabBarContentClearance } from '@/utils/tabBarLayout';
 import React, { useState, useCallback, useRef, useMemo } from 'react';
 import {
-  View, Text, StyleSheet, SectionList, Pressable, ActivityIndicator,
+  View, Text, StyleSheet, SectionList, Pressable, ActivityIndicator, Platform,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -8,16 +10,6 @@ import Colors from '@/constants/Colors';
 import { api, Schedule } from '@/services/api';
 
 const DAY_NAMES = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
-
-const LEVEL_COLORS: Record<string, string> = {
-  '0': '#ADB5BD',
-  '1': '#E53030',
-  '2': '#FFE500',
-  '3': '#33CC33',
-  '4': '#F5F5F5',
-  '5': '#3B92C5',
-  'A': '#7B2FBE',
-};
 
 type DateSection = {
   title: string;
@@ -41,13 +33,11 @@ function getYearMonth(offset: number, base: Date = new Date()): { year: number; 
   return { year: d.getFullYear(), month: d.getMonth() + 1 };
 }
 
-const TAB_BAR_HEIGHT = 56;
-const TAB_BAR_PADDING = 40; // paddingHorizontal of tab bar container
 
 export default function TabB() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const bottomSpace = TAB_BAR_HEIGHT + (insets.bottom / 2) + 20;
+  const bottomSpace = getTabBarContentClearance(insets.bottom, Platform.OS);
   const [scheduleMap, setScheduleMap] = useState<Map<string, Schedule[]>>(new Map());
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -161,14 +151,14 @@ export default function TabB() {
     const time = formatTime(item.startHour, item.startMinute);
     const names = item.participantNames?.join(', ');
     const summary = names ? `${item.title} (${names})` : item.title;
-    const levelColor = LEVEL_COLORS[String(item.minLevel ?? '')] ?? 'rgba(255,255,255,0.2)';
+    const markerColor = getScheduleMarkerColor(item);
 
     return (
       <Pressable
         style={({ pressed }) => [styles.scheduleCard, pressed && { opacity: 0.7 }]}
         onPress={() => router.push({ pathname: '/schedule-detail', params: { id: String(item.id) } })}
       >
-        <View style={[styles.levelBar, { backgroundColor: levelColor }]} />
+        <View style={[styles.levelBar, { backgroundColor: markerColor }]} />
         <Text style={styles.scheduleText}>
           {time}  |  {item.participants?.length ? <>
             {item.title} ({item.participants.map((participant, index) => <React.Fragment key={index}>
@@ -240,7 +230,7 @@ export default function TabB() {
           />
           <View style={[styles.bottomArea, { bottom: bottomSpace }]}>
             <Pressable
-              style={({ pressed }) => [styles.addButton, pressed && { opacity: 0.85 }]}
+              style={({ pressed }) => [styles.addButton, pressed && styles.addButtonPressed]}
               onPress={() => router.push({ pathname: '/schedule-add', params: { date: '' } })}
             >
               <Text style={styles.addButtonText}>다이빙 만들기</Text>
@@ -322,9 +312,12 @@ const styles = StyleSheet.create({
   addButton: {
     height: 54,
     borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: '#306093',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  addButtonPressed: {
+    backgroundColor: '#29527D',
   },
   addButtonText: {
     fontFamily: 'SUIT-Bold',
