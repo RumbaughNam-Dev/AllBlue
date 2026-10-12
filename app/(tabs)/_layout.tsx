@@ -1,3 +1,4 @@
+import StartupPopups from '@/features/notices/StartupPopups';
 import NotificationBell from '@/features/notifications/NotificationBell';
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
@@ -20,7 +21,7 @@ export default function TabLayout() {
     if (user && user.level == null) {
       api.getProfile()
         .then((res) => {
-          if (res.profile?.level != null) updateUser({ level: res.profile.level });
+          if (res.profile?.level != null) updateUser({ level: res.profile.level, badgeLevel: res.profile.badgeLevel });
         })
         .catch(() => {});
     }
@@ -34,7 +35,7 @@ export default function TabLayout() {
           style={({ pressed }) => [styles.profileButton, pressed && { opacity: 0.6 }]}
           onPress={() => router.push('/profile')}
         >
-          <ProfileAvatar profileImage={user?.profileImage} nickname={user?.nickname} level={user?.level} />
+          <ProfileAvatar profileImage={user?.profileImage} nickname={user?.nickname} level={user?.badgeLevel ?? user?.level} />
         </Pressable>
 
         <View pointerEvents="none" style={styles.toolbarLogo}>
@@ -63,6 +64,8 @@ export default function TabLayout() {
         <Tabs.Screen name="b" />
         <Tabs.Screen name="c" />
       </Tabs>
+
+      {user && <StartupPopups key={user.id} userId={user.id} />}
 
       {/* Side Sheet */}
       <SideSheet visible={sheetVisible} onClose={() => setSheetVisible(false)} />

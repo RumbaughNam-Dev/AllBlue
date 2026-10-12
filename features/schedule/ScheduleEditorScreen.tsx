@@ -156,7 +156,7 @@ export default function ScheduleEditorScreen() {
                 {participants.map((p, i) => (
                   <View key={`${p.user.id}_${i}`} style={styles.addedCard}>
                     <ProfileLink userId={p.user.userId} label={p.user.nickname}>
-                      <ProfileAvatar profileImage={p.user.profileImage} nickname={p.user.nickname} level={p.user.level} />
+                      <ProfileAvatar profileImage={p.user.profileImage} nickname={p.user.nickname} level={p.user.badgeLevel ?? p.user.level} />
                     </ProfileLink>
                     <View style={styles.participantInfo}>
                       <ProfileLink userId={p.user.userId} label={p.user.nickname} style={styles.addedNameRow}>
@@ -239,7 +239,7 @@ export default function ScheduleEditorScreen() {
                             accessibilityLabel={`${user.nickname} 선택`}
                           >
                             <ProfileLink userId={user.userId} label={user.nickname}>
-                              <ProfileAvatar profileImage={user.profileImage} nickname={user.nickname} level={user.level} />
+                              <ProfileAvatar profileImage={user.profileImage} nickname={user.nickname} level={user.badgeLevel ?? user.level} />
                             </ProfileLink>
                             <View style={styles.participantInfo}>
                               <View style={styles.searchNameRow}>
@@ -273,7 +273,7 @@ export default function ScheduleEditorScreen() {
                             accessibilityLabel={`${friend.nickname} 선택`}
                           >
                             <ProfileLink userId={friend.userId} label={friend.nickname}>
-                              <ProfileAvatar profileImage={friend.profileImage} nickname={friend.nickname} level={friend.level} />
+                              <ProfileAvatar profileImage={friend.profileImage} nickname={friend.nickname} level={friend.badgeLevel ?? friend.level} />
                             </ProfileLink>
                             <View style={styles.participantInfo}>
                               <View style={styles.searchNameRow}>
@@ -292,7 +292,7 @@ export default function ScheduleEditorScreen() {
                 {/* Selected user card */}
                 <View style={styles.selectedCard}>
                   <ProfileLink userId={currentUser.userId} label={currentUser.nickname}>
-                    <ProfileAvatar profileImage={currentUser.profileImage} nickname={currentUser.nickname} level={currentUser.level} />
+                    <ProfileAvatar profileImage={currentUser.profileImage} nickname={currentUser.nickname} level={currentUser.badgeLevel ?? currentUser.level} />
                   </ProfileLink>
                   <View style={styles.participantInfo}>
                     <ProfileLink userId={currentUser.userId} label={currentUser.nickname} style={styles.searchNameRow}>

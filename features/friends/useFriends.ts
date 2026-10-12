@@ -378,7 +378,7 @@ export function useFriends() {
           pathname: '/schedule-add',
           params: {
             date: '',
-            prefillParticipant: JSON.stringify({ id: 0, nickname: f.nickname, name: f.name, level: f.level, userId: f.userId }),
+            prefillParticipant: JSON.stringify({ id: 0, nickname: f.nickname, name: f.name, level: f.level, badgeLevel: f.badgeLevel, userId: f.userId }),
           },
         });
       } },

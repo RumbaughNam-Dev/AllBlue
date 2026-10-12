@@ -1,3 +1,4 @@
+import type { Notice, NoticeInput, PopupSlide } from '@/features/notices/types';
 import { Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { File, UploadType } from 'expo-file-system';
@@ -95,7 +96,7 @@ export type RegisterResponse = {
 export type Profile = {
   nickname?: string;
   name?: string | null;
-  level: number | string | null;
+  level: number | string | null; badgeLevel?: string | number | null;
   description: string | null;
   shoesSize: number | null;
   finSize: string | null;
@@ -113,7 +114,7 @@ export type ScheduleParticipantSummary = {
   userId?: string | null;
   nickname: string;
   name?: string;
-  level?: string | number | null;
+  level?: string | number | null; badgeLevel?: string | number | null;
 };
 
 export type InvitationStatus = 'pending' | 'accepted' | 'rejected' | 'removed';
@@ -148,7 +149,7 @@ export type ScheduleParticipant = {
   nickname: string;
   profileImage?: string | null;
   name?: string;
-  level?: string | number | null;
+  level?: string | number | null; badgeLevel?: string | number | null;
   isGuest?: boolean;
   isTemporary?: boolean;
   hasInProgressLicense?: boolean;
@@ -259,7 +260,7 @@ export type DiveBuddy = {
   nickname: string;
   profileImage?: string | null;
   name?: string;
-  level?: string | number | null;
+  level?: string | number | null; badgeLevel?: string | number | null;
   lastDiveDate: string;
   memo?: string;
 };
@@ -270,7 +271,7 @@ export type CloseFriend = {
   nickname: string;
   profileImage?: string | null;
   name?: string;
-  level?: string | number | null;
+  level?: string | number | null; badgeLevel?: string | number | null;
   memo?: string;
   pinned?: boolean;
   licenseName?: string;
@@ -310,7 +311,7 @@ export type PendingMember = {
   profileImage?: string;
 };
 
-export type Certification = { id: number; name: string; nameKo: string | null };
+export type Certification = { id: number; name: string; nameKo: string | null; imageUrl?: string };
 export type CertificationOption = Certification & {
   levelOrder: number;
   isInstructor: number;
@@ -324,7 +325,7 @@ export type ProfileResponse = {
   isMyStudent?: boolean;
 };
 
-export type TemporaryLinkTarget = { id: number; userId: string; nickname: string; name?: string | null; profileImage?: string | null; level?: string; phoneHint?: string | null };
+export type TemporaryLinkTarget = { id: number; userId: string; nickname: string; name?: string | null; profileImage?: string | null; level?: string; badgeLevel?: string | number | null; phoneHint?: string | null };
 export type TemporaryLinkPreview = {
   source: { id: number; nickname: string }; target: TemporaryLinkTarget;
   schedules: { id: number; title: string; date: string }[];
@@ -333,6 +334,12 @@ export type TemporaryLinkPreview = {
   confirmationToken: string;
 };
 export const api = {
+  getNotices(offset = 0) { return request<{ notices: Notice[]; hasMore: boolean; canManage: boolean }>(`/notices?offset=${offset}`); },
+  getNotice(id: number) { return request<{ notice: Notice; canManage: boolean }>(`/notices/${id}`); },
+  getNoticePopups() { return request<{ items: PopupSlide[] }>('/notices/popups'); },
+  createNotice(data: NoticeInput) { return request<{ notice: Notice }>('/notices', { method: 'POST', body: JSON.stringify(data) }); },
+  updateNotice(id: number, data: NoticeInput) { return request<{ success: boolean }>(`/notices/${id}`, { method: 'PATCH', body: JSON.stringify(data) }); },
+  deleteNotice(id: number) { return request<{ success: boolean }>(`/notices/${id}`, { method: 'DELETE' }); },
   demoLogin(code: string) {
     return request<{ token: string; user: { id: string; nickname: string; name?: string; profileImage?: string; demo: boolean } }>('/auth/demo', {
       method: 'POST', body: JSON.stringify({ code }), authToken: '', ignoreUnauthorized: true,
@@ -413,7 +420,7 @@ export const api = {
   },
 
   searchUsers(q: string) {
-    return request<{ users: { id: number; userId?: string; isTemporary?: boolean; nickname: string; profileImage?: string | null; name?: string; phone: string; birthDate?: string; level?: string | number | null }[] }>(`/users/search?q=${encodeURIComponent(q)}`);
+    return request<{ users: { id: number; userId?: string; isTemporary?: boolean; nickname: string; profileImage?: string | null; name?: string; phone: string; birthDate?: string; level?: string | number | null; badgeLevel?: string | number | null }[] }>(`/users/search?q=${encodeURIComponent(q)}`);
   },
 
   getNotifications(options: { all?: boolean; before?: number; after?: number; ceiling?: number } = {}) {
@@ -612,7 +619,7 @@ export const api = {
   },
 
   getBlockedUsers() {
-    return request<{ users: { userId: string; nickname: string; name?: string; level?: string | number | null }[] }>('/friends/blocked');
+    return request<{ users: { userId: string; nickname: string; name?: string; level?: string | number | null; badgeLevel?: string | number | null }[] }>('/friends/blocked');
   },
 
   // 문의

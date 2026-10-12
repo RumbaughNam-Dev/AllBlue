@@ -9,7 +9,7 @@ type User = {
   name?: string;
   nickname: string;
   profileImage?: string;
-  level?: number | string;
+  level?: number | string; badgeLevel?: string | number | null;
 };
 
 type AuthContextType = {

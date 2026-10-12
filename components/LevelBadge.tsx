@@ -2,13 +2,12 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
 const LEVEL_CONFIG: Record<string, { label: string; bg: string; color: string }> = {
-  '0': { label: '0', bg: '#ADB5BD', color: '#FFFFFF' },
-  '1': { label: '프', bg: '#E53030', color: '#FFFFFF' },
-  '2': { label: '1', bg: '#FFE500', color: '#333333' },
-  '3': { label: '2', bg: '#33CC33', color: '#FFFFFF' },
-  '4': { label: '3', bg: '#F5F5F5', color: '#333333' },
+  '0': { label: '1', bg: '#ADB5BD', color: '#FFFFFF' },
+  '1': { label: '1', bg: '#E53030', color: '#FFFFFF' },
+  '2': { label: '2', bg: '#FFE500', color: '#333333' },
+  '3': { label: '3', bg: '#33CC33', color: '#FFFFFF' },
+  '4': { label: '4', bg: '#F5F5F5', color: '#333333' },
   '5': { label: 'I', bg: '#3B92C5', color: '#FFFFFF' },
-  'A': { label: 'A', bg: '#7B2FBE', color: '#FFFFFF' },
 };
 
 type Props = {
@@ -17,11 +16,11 @@ type Props = {
 };
 
 export default function LevelBadge({ level, size = 22 }: Props) {
-  const key = String(level ?? 0);
+  const key = String(level ?? 0).toUpperCase() === 'A' ? '0' : String(level ?? 0);
   const config = LEVEL_CONFIG[key];
   if (!config) return null;
 
-  const isItalic = key === '5' || key === 'A';
+  const isItalic = key === '5';
   const fontSize = isItalic ? size * 0.59 : size * 0.5;
 
   return (

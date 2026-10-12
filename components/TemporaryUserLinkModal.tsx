@@ -96,7 +96,7 @@ export default function TemporaryUserLinkModal({ visible, scheduleId, source, on
                 {results.error && <Text style={styles.error}>검색하지 못했습니다. 다시 검색해주세요.</Text>}
                 {!results.searching && !results.error && !!query.trim() && results.completedQuery === query.trim() && results.results.length === 0 && <Text style={styles.text}>검색된 가입 사용자가 없어요.</Text>}
                 {results.results.map(target => <View key={target.id} style={styles.person}>
-                  <ProfileAvatar nickname={target.nickname} profileImage={target.profileImage} level={target.level} />
+                  <ProfileAvatar nickname={target.nickname} profileImage={target.profileImage} level={target.badgeLevel ?? target.level} />
                   <View style={{ flex: 1 }}>
                     <Text style={styles.text}>{target.nickname}{target.name && target.name !== target.nickname ? ` (${target.name})` : ''}</Text>
                     <Text style={styles.hint}>{target.phoneHint ?? '등록된 전화번호 없음'}</Text>

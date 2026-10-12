@@ -7,7 +7,7 @@ import { View, Text, StyleSheet, FlatList, Pressable, Alert, Modal, TextInput, A
 import Colors from '@/constants/Colors';
 
 import ProfileAvatar from '@/components/ProfileAvatar';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { api, CloseFriend } from '@/services/api';
 import { useFriends, FIXED_TABS } from './useFriends';
 import { styles } from './styles';
@@ -35,11 +35,11 @@ export default function FriendsScreen() {
   const [dragging, setDragging] = useState(false);
   const pinnedFriends = activeTab === 'close' ? sortedFriends.filter(friend => friend.pinned) : [];
   const listFriends = activeTab === 'close' ? sortedFriends.filter(friend => !friend.pinned) : sortedFriends;
-  const autoScroll = (pageY: number) => {
+  const autoScroll = (pageY: number, elapsedMs: number) => {
     const { top, height, contentHeight } = viewport.current;
     const visibleBottom = top + height - bottomSpace - 70;
     const direction = pageY < top + 60 ? -1 : pageY > visibleBottom - 60 ? 1 : 0;
-    const next = Math.max(0, Math.min(contentHeight - height, scrollOffset.current + direction * 8));
+    const next = Math.max(0, Math.min(contentHeight - height, scrollOffset.current + direction * elapsedMs * 0.25));
     if (direction && next !== scrollOffset.current) listRef.current?.scrollToOffset({ offset: next, animated: false });
   };
   const searchBottomClearance = Math.max(insets.bottom, 1);
@@ -48,7 +48,7 @@ export default function FriendsScreen() {
       style={styles.friendCard}
       onPress={() => { if (!dragging) handleLongPress(item); }}
     >
-      <ProfileLink userId={item.userId} label={item.nickname}><ProfileAvatar profileImage={item.profileImage} nickname={item.nickname} level={item.level} /></ProfileLink>
+      <ProfileLink userId={item.userId} label={item.nickname}><ProfileAvatar profileImage={item.profileImage} nickname={item.nickname} level={item.badgeLevel ?? item.level} /></ProfileLink>
 
       <View style={styles.friendInfo}>
         <View style={styles.friendNameRow}>
@@ -60,7 +60,7 @@ export default function FriendsScreen() {
           {item.memo || '메모를 남겨주세요.'}
         </Text>
       </View>
-      {item.pinned && <Ionicons name="pin-outline" size={16} color={Colors.brand.white} style={styles.pinIcon} accessibilityLabel="상단 고정" />}
+      {item.pinned && <MaterialIcons name="push-pin" size={18} color={Colors.brand.white} style={styles.pinIcon} accessibilityLabel="상단 고정" />}
       {handle}
     </Pressable>
   );
@@ -377,7 +377,7 @@ export default function FriendsScreen() {
                     onPress={() => handleSearchAdd(user)}
                     disabled={addingId !== null}
                   >
-                    <ProfileLink userId={user.userId} label={user.nickname} beforeOpen={closeSearchModal}><ProfileAvatar profileImage={user.profileImage} nickname={user.nickname} level={user.level} /></ProfileLink>
+                    <ProfileLink userId={user.userId} label={user.nickname} beforeOpen={closeSearchModal}><ProfileAvatar profileImage={user.profileImage} nickname={user.nickname} level={user.badgeLevel ?? user.level} /></ProfileLink>
                     <View style={styles.searchResultInfo}>
                       <View style={styles.searchResultNameRow}>
                         <Text style={styles.searchResultName}>

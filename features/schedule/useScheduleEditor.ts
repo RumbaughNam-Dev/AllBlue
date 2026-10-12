@@ -27,7 +27,7 @@ const SCHEDULE_ASSOCIATION_NAMES: readonly string[] | null = ['AIDA Internationa
 export const HOURS = Array.from({ length: 24 }, (_, i) => i);
 export const MINUTES = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
 export type Pool = { id: number; name: string };
-export type UserResult = { id: number; userId?: string | null; nickname: string; profileImage?: string | null; name?: string; phone: string; birthDate?: string; level?: string | number | null; isGuest?: boolean; isTemporary?: boolean };
+export type UserResult = { id: number; userId?: string | null; nickname: string; profileImage?: string | null; name?: string; phone: string; birthDate?: string; level?: string | number | null; badgeLevel?: string | number | null; isGuest?: boolean; isTemporary?: boolean };
 export type ParticipantEntry = {
   user: UserResult;
   categoryCode: string;
@@ -252,7 +252,7 @@ export function useScheduleEditor() {
             }
             setParticipants(
               s.participants.map((p) => ({
-                user: { id: p.id, userId: p.userId, nickname: p.nickname, profileImage: p.profileImage, name: p.name, phone: '', level: p.level, isGuest: p.isGuest, isTemporary: p.isTemporary },
+                user: { id: p.id, userId: p.userId, nickname: p.nickname, profileImage: p.profileImage, name: p.name, phone: '', level: p.level, badgeLevel: p.badgeLevel, isGuest: p.isGuest, isTemporary: p.isTemporary },
                 categoryCode: p.categoryCode || s.categoryCode,
                 selectedLicenseIds: (p.participantLicenses || []).map((l) => l.userLicenseId),
                 newLicenses: [],

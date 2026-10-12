@@ -1,3 +1,4 @@
+import BusinessContactPopup from '@/components/BusinessContactPopup';
 import PopupBackdrop from '@/components/PopupBackdrop';
 import React, { useEffect, useRef, useState } from 'react';
 import {
@@ -20,9 +21,11 @@ type Props = {
 };
 
 const MENU_ITEMS = [
+  { key: 'notices', label: '공지사항' },
   { key: 'inquiry', label: '문의하기' },
   { key: 'blocked', label: '차단 사용자 관리' },
   { key: 'schedule-settings', label: '일정 설정' },
+  { key: 'business-contact', label: '비즈니스 문의' },
 ];
 
 export default function SideSheet({ visible, onClose }: Props) {
@@ -34,9 +37,13 @@ export default function SideSheet({ visible, onClose }: Props) {
   const backdropAnim = useRef(new Animated.Value(0)).current;
   const sheetWidth = Math.min(width * 0.75, 320);
   const [mounted, setMounted] = useState(false);
+  const [businessVisible, setBusinessVisible] = useState(false);
+  const openBusinessAfterClose = useRef(false);
 
   useEffect(() => {
     if (visible) {
+      setBusinessVisible(false);
+      openBusinessAfterClose.current = false;
       setMounted(true);
       slideAnim.setValue(width);
       backdropAnim.setValue(0);
@@ -64,8 +71,12 @@ export default function SideSheet({ visible, onClose }: Props) {
           duration: 250,
           useNativeDriver: true,
         }),
-      ]).start(() => {
-        setMounted(false);
+      ]).start(({ finished }) => {
+        if (!finished) return;
+        if (openBusinessAfterClose.current) {
+          openBusinessAfterClose.current = false;
+          setBusinessVisible(true);
+        } else setMounted(false);
       });
     }
   }, [visible]);
@@ -80,6 +91,16 @@ export default function SideSheet({ visible, onClose }: Props) {
   }, [visible, onClose]);
 
   const handleMenuPress = (key: string) => {
+    if (key === 'business-contact') {
+      openBusinessAfterClose.current = true;
+      onClose();
+      return;
+    }
+    if (key === 'notices') {
+      onClose();
+      setTimeout(() => router.push('/notices'), 300);
+      return;
+    }
     if (key === 'inquiry') {
       onClose();
       setTimeout(() => router.push('/inquiry'), 300);
@@ -111,6 +132,13 @@ export default function SideSheet({ visible, onClose }: Props) {
   };
 
   if (!mounted) return null;
+  if (businessVisible) {
+    const closeBusiness = () => { setBusinessVisible(false); setMounted(false); };
+    return <Modal transparent visible animationType="none" statusBarTranslucent onRequestClose={closeBusiness}>
+      <PopupBackdrop />
+      <BusinessContactPopup onClose={closeBusiness} />
+    </Modal>;
+  }
 
   return (
     <Modal transparent visible={mounted} animationType="none" statusBarTranslucent onRequestClose={onClose}>

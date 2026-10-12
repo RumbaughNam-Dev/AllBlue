@@ -86,7 +86,7 @@ export default function UserProfileView({ userId, onClose, onOpenLog }: Props) {
                 <Text style={styles.name}>
                   {userInfo?.nickname ?? '사용자'}{userInfo?.isTemporary ? ' · 임시 사용자' : ''}{userInfo?.name && userInfo.name !== userInfo.nickname ? ` (${userInfo.name})` : ''}
                 </Text>
-                <LevelBadge level={profile?.level} />
+                <LevelBadge level={profile?.badgeLevel ?? profile?.level} />
               </View>
               {certifications.map((cert) => (
                   <Text key={cert.id} style={styles.role}>{cert.nameKo?.trim() || cert.name}</Text>
@@ -187,7 +187,7 @@ export default function UserProfileView({ userId, onClose, onOpenLog }: Props) {
                   participantId: String(userInfo.id),
                   profileUserId: userId,
                   participantName: userInfo.name ? `${userInfo.nickname} (${userInfo.name})` : userInfo.nickname,
-                  participantLevel: profile?.level != null ? String(profile.level) : '',
+                  participantLevel: profile?.level != null ? String(profile.badgeLevel ?? profile.level) : '',
                   modal: '1',
               })}
             >

@@ -162,6 +162,8 @@ test('profile remains dismissible during loading and after a failed request', as
     'expo-status-bar': {}, '@/constants/Colors': { default: loadModule('constants/Colors.ts', {}).default, __esModule: true },
     '@/services/api': { api: { getUserProfile: () => pending.promise } },
     '@/components/Spinner': {}, '@/components/LevelBadge': {},
+        '@/components/CertificateImageViewer': 'CertificateImageViewer', '@expo/vector-icons': {},
+        '@/assets/images/certificate-badge.png': 1,
     '@/contexts/AuthContext': { useAuth: () => ({ user: { id: 1 } }) },
     '@/utils/userRole': loadModule('utils/userRole.ts', {}),
     '@/utils/sta': loadModule('utils/sta.ts', {}),
@@ -475,7 +477,7 @@ for (const [overall, personal, status, expected, canViewDivingLog = true, viewer
 
 for (const file of ['app/profile.tsx', 'components/UserProfileView.tsx']) {
   for (const certifications of [undefined, [
-    { id: 9, name: 'PADI Master Freediver', nameKo: 'PADI 마스터 프리다이버' },
+    { id: 9, name: 'PADI Master Freediver', nameKo: 'PADI 마스터 프리다이버', imageUrl: 'https://example.com/cert.jpg' },
     { id: 5, name: 'AIDA Instructor', nameKo: null },
   ]]) {
     test(`${file}: displays only recorded certifications (${certifications ? 'multiple associations' : 'legacy level only'})`, async () => {
@@ -490,10 +492,14 @@ for (const file of ['app/profile.tsx', 'components/UserProfileView.tsx']) {
         '@/constants/Colors': { default: loadModule('constants/Colors.ts', {}).default, __esModule: true },
         '@/contexts/AuthContext': { useAuth: () => ({ user: result.user, updateUser() {} }) },
         '@/components/Spinner': {}, '@/components/LevelBadge': {},
+        '@/components/CertificateImageViewer': 'CertificateImageViewer', '@expo/vector-icons': {},
+        '@/assets/images/certificate-badge.png': 1,
+        '@/utils/profileCertifications': loadModule('utils/profileCertifications.ts', {}),
         '@/utils/userRole': loadModule('utils/userRole.ts', {}),
         '@/utils/sta': loadModule('utils/sta.ts', {}),
         '@/services/api': { api: {
           getProfile: async () => result, getUserProfile: async () => result,
+          getCertificationOptions: async () => ({ data: [] }),
           getCertPendingCount: async () => ({ count: 0 }), getInquiryPendingCount: async () => ({ count: 0 }),
           getPendingMembers: async () => ({ members: [] }),
         } },
@@ -509,10 +515,23 @@ for (const file of ['app/profile.tsx', 'components/UserProfileView.tsx']) {
       walk(h.render(renderProfile));
       assert.ok(texts.includes('4분 1초'));
       if (file === 'components/UserProfileView.tsx') assert.equal(texts.includes('다이빙 로그'), false, 'unqualified viewer must ignore stale isMyStudent=true');
+      if (file === 'app/profile.tsx') assert.equal(texts.includes('보유 자격증 없음'), !certifications);
       assert.equal(texts.includes('강사'), false);
       assert.equal(texts.includes('Lv.4'), false);
       assert.equal(texts.includes('PADI 마스터 프리다이버'), !!certifications);
       assert.equal(texts.includes('AIDA Instructor'), !!certifications);
+      if (file === 'app/profile.tsx') {
+        const nodes = value => !value ? [] : Array.isArray(value) ? value.flatMap(nodes) : typeof value === 'object' ? [value, ...nodes(value.children)] : [];
+        const buttons = nodes(h.render(renderProfile)).filter(node => node.props?.accessibilityLabel?.endsWith('자격증 이미지 보기'));
+        assert.equal(buttons.length, certifications ? 1 : 0);
+        if (certifications) {
+          buttons[0].props.onPress();
+          const viewer = nodes(h.render(renderProfile)).find(node => node.type === 'CertificateImageViewer');
+          assert.equal(viewer.props.imageUrl, 'https://example.com/cert.jpg');
+          viewer.props.onClose();
+          assert.equal(nodes(h.render(renderProfile)).some(node => node.type === 'CertificateImageViewer'), false);
+        }
+      }
     });
   }
 }

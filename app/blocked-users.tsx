@@ -14,7 +14,7 @@ type BlockedUser = {
   userId: string;
   nickname: string;
   name?: string;
-  level?: string | number | null;
+  level?: string | number | null; badgeLevel?: string | number | null;
   memo?: string;
   phone?: string;
   email?: string;
@@ -82,7 +82,7 @@ export default function BlockedUsersScreen() {
           <Text style={styles.name}>
             {item.nickname}{item.name ? ` (${item.name})` : ''}
           </Text>
-          <LevelBadge level={item.level} size={18} />
+          <LevelBadge level={item.badgeLevel ?? item.level} size={18} />
         </View>
         {getSubText(item) ? (
           <Text style={styles.sub} numberOfLines={1}>{getSubText(item)}</Text>

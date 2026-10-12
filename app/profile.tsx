@@ -1,3 +1,5 @@
+import CertificateImageViewer from '@/components/CertificateImageViewer';
+import { groupProfileCertifications } from '@/utils/profileCertifications';
 import { formatSta } from '@/utils/sta';
 import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, Image, ScrollView, Platform, Alert } from 'react-native';
@@ -6,7 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import Colors from '@/constants/Colors';
 import { useAuth } from '@/contexts/AuthContext';
-import { api, Profile, Organization, Certification } from '@/services/api';
+import { api, Profile, Organization, Certification, CertificationOption } from '@/services/api';
 import Spinner from '@/components/Spinner';
 import LevelBadge from '@/components/LevelBadge';
 
@@ -19,7 +21,10 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user, updateUser } = useAuth();
+  const [certificateImage, setCertificateImage] = useState<string | null>(null);
   const [certifications, setCertifications] = useState<Certification[]>([]);
+  const [certificationOptions, setCertificationOptions] = useState<CertificationOption[]>([]);
+  const certificationGroups = groupProfileCertifications(certifications, certificationOptions);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [pendingCount, setPendingCount] = useState(0);
@@ -30,8 +35,9 @@ export default function ProfileScreen() {
   useFocusEffect(
     useCallback(() => {
       setLoading(true);
-      api.getProfile()
-        .then((res) => {
+      Promise.all([api.getProfile(), api.getCertificationOptions().catch(() => null)])
+        .then(([res, options]) => {
+          if (options) setCertificationOptions(options.data);
           setProfile(res.profile);
           setCertifications(res.certifications ?? []);
           if (res.user) {
@@ -63,9 +69,19 @@ export default function ProfileScreen() {
   );
 
 
+  const certificateRow = (label: string, imageUrl?: string, indented = false) => (
+    <View style={[styles.certificationRow, indented && styles.certificationItem]}>
+      <Text style={[styles.role, { flexShrink: 1 }]}>{label}</Text>
+      {!!imageUrl && <Pressable onPress={() => setCertificateImage(imageUrl)} accessibilityRole="button" accessibilityLabel={`${label} 자격증 이미지 보기`} style={styles.imageButton}>
+        <Image source={require('@/assets/images/certificate-badge.png')} style={{ width: 18, height: 18 }} resizeMode="contain" />
+      </Pressable>}
+    </View>
+  );
+
   return (
     <View style={[styles.container, { paddingTop: insets.top + 16, paddingBottom: insets.bottom }]}>
       <StatusBar style="light" />
+      {certificateImage && <CertificateImageViewer key={certificateImage} imageUrl={certificateImage} onClose={() => setCertificateImage(null)} />}
 
       {loading ? (
         <View style={styles.loadingArea}>
@@ -85,7 +101,7 @@ export default function ProfileScreen() {
                   </View>
                 )}
                 <View style={styles.avatarBadge}>
-                  <LevelBadge level={profile?.level} size={24} />
+                  <LevelBadge level={profile?.badgeLevel ?? profile?.level} size={24} />
                 </View>
               </View>
               <View style={styles.nameArea}>
@@ -93,11 +109,20 @@ export default function ProfileScreen() {
                   <Text style={styles.name}>
                     {user?.nickname ?? '사용자'}{user?.name ? ` (${user.name})` : ''}
                   </Text>
-                  <LevelBadge level={profile?.level} />
+                  <LevelBadge level={profile?.badgeLevel ?? profile?.level} />
                 </View>
-                {certifications.map((cert) => (
-                  <Text key={cert.id} style={styles.role}>{cert.nameKo?.trim() || cert.name}</Text>
-                ))}
+                {certificationGroups.length ? certificationGroups.map((group, index) => (
+                  <View key={`${group.association}-${index}`} style={styles.certificationGroup}>
+                    {group.labels.length === 1 ? (
+                      certificateRow([group.association, group.labels[0]].filter(Boolean).join(' '), group.imageUrls?.[0])
+                    ) : (
+                      <>
+                        <Text style={styles.role}>{group.association}</Text>
+                        {group.labels.map((label, i) => <React.Fragment key={i}>{certificateRow(`• ${label}`, group.imageUrls?.[i], true)}</React.Fragment>)}
+                      </>
+                    )}
+                  </View>
+                )) : <Text style={styles.role}>보유 자격증 없음</Text>}
               </View>
               <Pressable
                 style={({ pressed }) => [styles.closeButton, pressed && { opacity: 0.6 }]}
@@ -337,7 +362,7 @@ const styles = StyleSheet.create({
   nameArea: {
     flex: 1,
     justifyContent: 'center',
-    height: 84,
+    minHeight: 84,
   },
   nameRow: {
     flexDirection: 'row',
@@ -350,7 +375,12 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: Colors.brand.white,
   },
+  certificationRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  imageButton: { width: 44, height: 32, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  certificationGroup: { marginTop: 3 },
+  certificationItem: { paddingLeft: 8 },
   role: {
+    lineHeight: 20,
     fontFamily: 'SUIT-Regular',
     fontSize: 14,
     color: 'rgba(255,255,255,0.55)',

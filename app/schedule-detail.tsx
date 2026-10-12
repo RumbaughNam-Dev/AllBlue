@@ -264,7 +264,7 @@ export default function ScheduleDetailScreen() {
               return (
               <View key={`${p.isGuest ? 'g' : 'u'}_${p.id}`} style={styles.participantCard}>
                 <View style={styles.participantHeader}>
-                  <ProfileLink userId={p.isGuest || (p.isTemporary && !isOwner) ? null : p.userId} label={p.nickname}><ProfileAvatar profileImage={p.isGuest ? null : p.profileImage} nickname={p.nickname} level={p.level} /></ProfileLink>
+                  <ProfileLink userId={p.isGuest || (p.isTemporary && !isOwner) ? null : p.userId} label={p.nickname}><ProfileAvatar profileImage={p.isGuest ? null : p.profileImage} nickname={p.nickname} level={p.badgeLevel ?? p.level} /></ProfileLink>
                   <View style={styles.participantInfo}>
                     <ProfileLink userId={p.isGuest || (p.isTemporary && !isOwner) ? null : p.userId} label={p.nickname} style={styles.participantNameRow}>
                       <Text style={styles.participantName}>
@@ -395,7 +395,7 @@ export default function ScheduleDetailScreen() {
                                 participantId: String(p.id),
                                 profileUserId: p.isGuest ? undefined : p.userId ?? undefined,
                                 participantName: p.name ? `${p.nickname} (${p.name})` : p.nickname,
-                                participantLevel: p.level != null ? String(p.level) : '',
+                                participantLevel: p.level != null ? String(p.badgeLevel ?? p.level) : '',
                               },
                             });
                           }}

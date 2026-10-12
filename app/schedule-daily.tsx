@@ -132,7 +132,7 @@ export default function ScheduleDailyScreen() {
                               <Text style={styles.scheduleParticipants}>
                                 {'  - '}{p.nickname}{p.name ? ` (${p.name})` : ''}{' '}
                               </Text>
-                              <LevelBadge level={p.level} size={18} />
+                              <LevelBadge level={p.badgeLevel ?? p.level} size={18} />
                             </View>
                           ))}
                         </View>
