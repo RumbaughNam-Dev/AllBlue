@@ -9,6 +9,7 @@ import Spinner from '@/components/Spinner';
 import LevelBadge from '@/components/LevelBadge';
 import { useAuth } from '@/contexts/AuthContext';
 import { hasInstructorAccess } from '@/utils/userRole';
+import { groupProfileCertifications } from '@/utils/profileCertifications';
 
 function formatRecord(val: number | null, unit?: string): string {
   if (val === null || val === undefined) return '--';
@@ -24,6 +25,7 @@ export default function UserProfileView({ userId, onClose, onOpenLog }: Props) {
 
   const { user: me } = useAuth();
   const [certifications, setCertifications] = useState<Certification[]>([]);
+  const certificationGroups = groupProfileCertifications(certifications);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [userInfo, setUserInfo] = useState<{ id: number; isTemporary?: boolean; nickname: string; name?: string; profileImage?: string } | null>(null);
   const [isMyStudent, setIsMyStudent] = useState(false);
@@ -88,9 +90,12 @@ export default function UserProfileView({ userId, onClose, onOpenLog }: Props) {
                 </Text>
                 <LevelBadge level={profile?.badgeLevel ?? profile?.level} />
               </View>
-              {certifications.map((cert) => (
-                  <Text key={cert.id} style={styles.role}>{cert.nameKo?.trim() || cert.name}</Text>
-                ))}
+              {certificationGroups.length ? certificationGroups.map((group, index) => (
+                <View key={`${group.association}-${index}`}>
+                  {!!group.association && <Text style={styles.role}>{group.association}</Text>}
+                  {group.labels.map((label, i) => <Text key={i} style={styles.role}>{group.association ? `  • ${label}` : label}</Text>)}
+                </View>
+              )) : <Text style={styles.role}>보유 자격증 없음</Text>}
             </View>
             <Pressable
               style={({ pressed }) => [styles.closeButton, pressed && { opacity: 0.6 }]}

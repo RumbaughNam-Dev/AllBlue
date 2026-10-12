@@ -21,10 +21,10 @@ test('keeps every distinct instructor qualification and hides ordinary levels in
 test('empty holdings stay empty even with catalog entries', () => {
   assert.deepEqual(result([], [cert(1, 4, 'AIDA 4')]), []);
 });
-test('preserves Korean names and qualifications missing from catalog', () => {
+test('uses English names even when Korean names exist or the catalog is unavailable', () => {
   const owned = { ...cert(1, 4, 'AIDA 4'), nameKo: 'AIDA 4레벨' };
-  assert.deepEqual(result([owned]), [{ association: 'AIDA International', labels: ['4레벨'] }]);
-  assert.deepEqual(result([owned], []), [{ association: '', labels: ['AIDA 4레벨'] }]);
+  assert.deepEqual(result([owned]), [{ association: 'AIDA International', labels: ['4'] }]);
+  assert.deepEqual(result([{ id: owned.id, name: owned.name, nameKo: owned.nameKo }], []), [{ association: '', labels: ['AIDA 4'] }]);
 });
 
 test('images follow the selected qualification, never a lower or different qualification', () => {
@@ -37,4 +37,24 @@ test('multiple instructor images keep their own positions, and catalog fallback 
   const owned = [{ ...cert(1, 5, 'Instructor', 1), imageUrl: 'instructor.jpg' }, cert(2, 5, 'Youth Instructor', 1), { ...cert(3, 6, 'Trainer', 1), imageUrl: 'trainer.jpg' }];
   assert.deepEqual(result(owned)[0].imageUrls, ['instructor.jpg', null, 'trainer.jpg']);
   assert.deepEqual(result([owned[0]], [])[0].imageUrls, ['instructor.jpg']);
+});
+
+const aidaInstructor = (id, code, name, imageUrl) => ({ ...cert(id, 5, name, 1), code, imageUrl });
+const base = aidaInstructor(10, 'AIDA-INST', 'AIDA Instructor', 'base.jpg');
+const master = aidaInstructor(11, 'AIDA-MASTER-INST', 'AIDA Master Instructor', 'master.jpg');
+const trainer = aidaInstructor(12, 'AIDA-INST-TRAINER', 'AIDA Instructor Trainer', 'trainer.jpg');
+const youth = aidaInstructor(13, 'AIDA-YOUTH-INST', 'AIDA Youth Instructor', 'youth.jpg');
+for (const [owned, labels, images] of [
+  [[base, master, trainer, youth], ['Instructor Trainer', 'Youth Instructor'], ['trainer.jpg', 'youth.jpg']],
+  [[youth, master, base], ['Master Instructor', 'Youth Instructor'], ['master.jpg', 'youth.jpg']],
+  [[base, youth], ['Instructor', 'Youth Instructor'], ['base.jpg', 'youth.jpg']],
+  [[trainer, master], ['Instructor Trainer'], ['trainer.jpg']],
+  [[youth], ['Youth Instructor'], ['youth.jpg']],
+]) test(`AIDA hierarchy: ${labels.join(' + ')}`, () => {
+  assert.deepEqual(result(owned, []), [{ association: 'AIDA International', labels, imageUrls: images }]);
+});
+test('AIDA hierarchy also works with a legacy profile response and current catalog', () => {
+  const owned = [base, master, trainer, youth];
+  const legacy = owned.map(({ id, name, nameKo, imageUrl }) => ({ id, name, nameKo, imageUrl }));
+  assert.deepEqual(result(legacy, owned), result(owned, []));
 });

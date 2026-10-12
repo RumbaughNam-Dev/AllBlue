@@ -166,6 +166,7 @@ test('profile remains dismissible during loading and after a failed request', as
         '@/assets/images/certificate-badge.png': 1,
     '@/contexts/AuthContext': { useAuth: () => ({ user: { id: 1 } }) },
     '@/utils/userRole': loadModule('utils/userRole.ts', {}),
+    '@/utils/profileCertifications': loadModule('utils/profileCertifications.ts', {}),
     '@/utils/sta': loadModule('utils/sta.ts', {}),
   }).default;
   function nodes(tree) { return !tree ? [] : Array.isArray(tree) ? tree.flatMap(nodes) : typeof tree === 'object' ? [tree, ...nodes(tree.children)] : []; }

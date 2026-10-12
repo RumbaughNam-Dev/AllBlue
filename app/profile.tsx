@@ -113,14 +113,8 @@ export default function ProfileScreen() {
                 </View>
                 {certificationGroups.length ? certificationGroups.map((group, index) => (
                   <View key={`${group.association}-${index}`} style={styles.certificationGroup}>
-                    {group.labels.length === 1 ? (
-                      certificateRow([group.association, group.labels[0]].filter(Boolean).join(' '), group.imageUrls?.[0])
-                    ) : (
-                      <>
-                        <Text style={styles.role}>{group.association}</Text>
-                        {group.labels.map((label, i) => <React.Fragment key={i}>{certificateRow(`• ${label}`, group.imageUrls?.[i], true)}</React.Fragment>)}
-                      </>
-                    )}
+                    {!!group.association && <Text style={styles.role}>{group.association}</Text>}
+                    {group.labels.map((label, i) => <React.Fragment key={i}>{certificateRow(group.association ? `• ${label}` : label, group.imageUrls?.[i], !!group.association)}</React.Fragment>)}
                   </View>
                 )) : <Text style={styles.role}>보유 자격증 없음</Text>}
               </View>

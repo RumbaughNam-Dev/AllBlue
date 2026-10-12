@@ -311,7 +311,11 @@ export type PendingMember = {
   profileImage?: string;
 };
 
-export type Certification = { id: number; name: string; nameKo: string | null; imageUrl?: string };
+export type Certification = {
+  id: number; name: string; nameKo: string | null; imageUrl?: string;
+  code?: string | null; levelOrder?: number; isInstructor?: number;
+  association?: { code: string; name: string; nameKo: string | null };
+};
 export type CertificationOption = Certification & {
   levelOrder: number;
   isInstructor: number;
