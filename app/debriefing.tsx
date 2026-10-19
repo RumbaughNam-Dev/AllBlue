@@ -1,8 +1,10 @@
+import { useVisibleKeyboardInput } from '@/hooks/useVisibleKeyboardInput';
+import { achievementValueText, parseAchievementValue, requirementLabel } from '@/utils/achievementValue';
 import ProfileLink from '@/components/ProfileLink';
 import React, { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import {
   View, Text, StyleSheet, SectionList, TextInput, Pressable, Alert,
-  KeyboardAvoidingView, Platform, Animated,
+  KeyboardAvoidingView, Platform, Animated, Keyboard, TouchableWithoutFeedback, ScrollView,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -11,15 +13,16 @@ import Colors from '@/constants/Colors';
 import { api, UserLicense, AchievementRequirement } from '@/services/api';
 import Spinner from '@/components/Spinner';
 
-function RequirementItem({ item, onToggle, onUncheck }: {
+function RequirementItem({ item, passed, disabled, onToggle, onUncheck }: {
   item: AchievementRequirement;
+  passed: boolean;
+  disabled: boolean;
   onToggle: (id: number, passed: boolean) => void;
   onUncheck: (id: number) => Promise<{ success: boolean; message?: string }>;
 }) {
-  const [passed, setPassed] = useState(item.isCompleted);
   const [busy, setBusy] = useState(false);
-  const strikeAnim = useRef(new Animated.Value(item.isCompleted ? 1 : 0)).current;
-  const checkAnim = useRef(new Animated.Value(item.isCompleted ? 1 : 0)).current;
+  const strikeAnim = useRef(new Animated.Value(passed ? 1 : 0)).current;
+  const checkAnim = useRef(new Animated.Value(passed ? 1 : 0)).current;
   const [textWidth, setTextWidth] = useState(0);
 
   const animateCheck = () => {
@@ -37,7 +40,8 @@ function RequirementItem({ item, onToggle, onUncheck }: {
   };
 
   const handlePress = async () => {
-    if (busy) return;
+    if (busy || disabled) return;
+    Keyboard.dismiss();
     const next = !passed;
 
     if (!next && item.isCompleted) {
@@ -49,7 +53,6 @@ function RequirementItem({ item, onToggle, onUncheck }: {
           Alert.alert('알림', result.message || '취소 처리에 실패했습니다.');
           return;
         }
-        setPassed(false);
         onToggle(item.id, false);
         animateUncheck();
       } catch {
@@ -58,7 +61,6 @@ function RequirementItem({ item, onToggle, onUncheck }: {
         setBusy(false);
       }
     } else {
-      setPassed(next);
       onToggle(item.id, next);
       if (next) animateCheck();
       else animateUncheck();
@@ -80,10 +82,10 @@ function RequirementItem({ item, onToggle, onUncheck }: {
     outputRange: [0, textWidth],
   });
 
-  const displayText = (item.nameKo || item.name) + (item.displayValue ? ` (${item.displayValue})` : '');
+  const displayText = requirementLabel(item) + (item.displayValue ? ` (${item.displayValue})` : '');
 
   return (
-    <Pressable style={styles.requirementRow} onPress={handlePress}>
+    <Pressable style={styles.requirementRow} onPress={handlePress} disabled={busy || disabled} accessibilityRole="checkbox" accessibilityState={{ checked: passed, disabled: busy || disabled }}>
       <View style={styles.reqDot} />
       <View style={styles.reqTextWrap}>
         <Animated.Text style={[styles.requirementText, { color: textColor }]}>
@@ -120,20 +122,28 @@ export default function DebriefingScreen() {
     participantCategory?: string;
   }>();
   const guestUser = isGuest === '1';
+  const keyboardInput = useVisibleKeyboardInput();
+  const memoRef = useRef<TextInput | null>(null);
+  const valueRefs = useRef(new Map<number, TextInput>());
 
   const [licenses, setLicenses] = useState<UserLicense[]>([]);
   const [loading, setLoading] = useState(true);
   const [memo, setMemo] = useState('');
+  const [valueDrafts, setValueDrafts] = useState<Record<number, string>>({});
   const [saving, setSaving] = useState(false);
   const [passedIds, setPassedIds] = useState<Set<number>>(new Set());
-  const [uncheckedIds, setUncheckedIds] = useState<Set<number>>(new Set());
   const [showCompleted, setShowCompleted] = useState(false);
   // 원래 통과 상태였던 항목 id를 기억
   const [originalCompletedIds, setOriginalCompletedIds] = useState<Set<number>>(new Set());
 
   const handleUncheck = useCallback(async (id: number): Promise<{ success: boolean; message?: string }> => {
     try {
-      return await api.toggleAchievement(id, Number(participantId), false);
+      const result = await api.toggleAchievement(id, Number(participantId), false);
+      if (result.success) {
+        setLicenses((prev) => prev.map((lic) => ({ ...lic, requirements: lic.requirements.map((req) =>
+          req.id === id ? { ...req, isCompleted: false, completedByMe: false } : req) })));
+      }
+      return result;
     } catch (e: any) {
       return { success: false, message: e.message || '취소 처리에 실패했습니다.' };
     }
@@ -209,9 +219,10 @@ export default function DebriefingScreen() {
     let current: ReqSection | null = null;
     for (const req of inProgressLicense.requirements) {
       if (req.reqType === 'GROUP') {
-        current = { groupName: req.nameKo || req.name, data: [] };
+        current = { groupName: requirementLabel(req), data: [] };
         sections.push(current);
-      } else if (current) {
+      } else {
+        if (!current) { current = { groupName: '', data: [] }; sections.push(current); }
         if (showCompleted || !req.isCompleted) {
           current.data.push(req);
         }
@@ -221,9 +232,24 @@ export default function DebriefingScreen() {
   }, [inProgressLicense, showCompleted]);
 
   const handleSave = async () => {
+    Keyboard.dismiss();
     if (saving) return;
+    // Validate every draft before persisting any changes.
+    let values: { id: number; value: number | null }[];
+    try {
+      values = (inProgressLicense?.requirements ?? [])
+        .filter((item) => Object.prototype.hasOwnProperty.call(valueDrafts, item.id))
+        .map((item) => ({ id: item.id, value: parseAchievementValue(valueDrafts[item.id], item.unit) }));
+    } catch (error: any) {
+      Alert.alert('입력 확인', error.message);
+      return;
+    }
     setSaving(true);
     try {
+      for (const entry of values) {
+        const result = await api.saveAchievementValue(entry.id, Number(participantId), entry.value);
+        if (!result.success) { Alert.alert('알림', result.message || '수치 저장에 실패했습니다.'); return; }
+      }
       // 새로 체크한 요건 통과 처리 (체크 해제는 터치 시 즉시 처리됨)
       const passPromises = Array.from(passedIds).map((reqId) =>
         api.toggleAchievement(reqId, Number(participantId), true)
@@ -237,8 +263,11 @@ export default function DebriefingScreen() {
         }
       }
 
-      // 디브리핑 레코드 항상 저장
-      await api.saveDebriefing(Number(scheduleId), Number(participantId), memo.trim());
+      // 과정 체크/수치와 별개로, 메모가 있을 때만 디브리핑을 생성합니다.
+      if (memo.trim()) {
+        const result = await api.saveDebriefing(Number(scheduleId), Number(participantId), memo.trim());
+        if (!result.success) { Alert.alert('알림', '디브리핑 저장에 실패했습니다.'); return; }
+      }
 
       Alert.alert('알림', '저장되었습니다.', [{ text: '확인', onPress: () => router.back() }]);
     } catch (e: any) {
@@ -253,10 +282,31 @@ export default function DebriefingScreen() {
     || inProgressLicense?.licenseNameKo
     || inProgressLicense?.licenseName;
 
+  const memoEditor = (
+    <View style={styles.memoSection}>
+      <Text style={styles.memoLabel}>디브리핑 메모</Text>
+      <TextInput
+        ref={memoRef}
+        onFocus={() => keyboardInput.focus(memoRef.current)}
+        onBlur={() => keyboardInput.blur(memoRef.current)}
+        style={styles.memoInput}
+        placeholder="오늘 교육 내용, 피드백, 다음 시간 목표 등을 기록하세요."
+        placeholderTextColor="rgba(255,255,255,0.25)"
+        multiline
+        numberOfLines={5}
+        textAlignVertical="top"
+        value={memo}
+        onChangeText={setMemo}
+        editable={!saving}
+      />
+    </View>
+  );
+
   return (
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
     <KeyboardAvoidingView
       style={[styles.container, { paddingTop: insets.top }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={0}
     >
       <StatusBar style="light" />
@@ -275,7 +325,7 @@ export default function DebriefingScreen() {
         <View style={styles.loadingArea}><Spinner /></View>
       ) : (
         <>
-          {/* 상단 정보 + 라이센스 통과 처리 */}
+          {/* 상단 정보 + 과정성취표 */}
           <View style={styles.topArea}>
             <View style={styles.infoSection}>
               <View style={styles.infoRow}>
@@ -299,8 +349,8 @@ export default function DebriefingScreen() {
               <>
                 <View style={styles.divider} />
                 <View style={styles.sectionTitleRow}>
-                  <Text style={styles.sectionTitle}>라이센스 통과 처리</Text>
-                  <Pressable style={styles.segmentWrap} onPress={() => setShowCompleted((v) => !v)}>
+                  <Text style={styles.sectionTitle}>과정성취표</Text>
+                  <Pressable style={styles.segmentWrap} onPress={() => { Keyboard.dismiss(); setShowCompleted((v) => !v); }}>
                     <View style={[styles.segmentItem, !showCompleted && styles.segmentItemActive]}>
                       <Text style={[styles.segmentText, !showCompleted && styles.segmentTextActive]}>To-Do</Text>
                     </View>
@@ -311,15 +361,44 @@ export default function DebriefingScreen() {
                 </View>
 
                 <SectionList
+                  ref={keyboardInput.listRef}
+                  onLayout={keyboardInput.onLayout}
+                  onScroll={keyboardInput.onScroll}
+                  scrollEventThrottle={16}
+                  removeClippedSubviews={false}
                   sections={filteredSections}
+                  extraData={{ valueDrafts, passedIds, saving, memo }}
+                  keyboardShouldPersistTaps="handled"
+                  keyboardDismissMode="none"
+                  ListFooterComponent={memoEditor}
                   keyExtractor={(item) => String(item.id)}
-                  renderSectionHeader={({ section }) => (
+                  renderSectionHeader={({ section }) => section.groupName ? (
                     <View style={styles.stickyGroupHeader}>
                       <Text style={styles.groupHeaderText}>{section.groupName}</Text>
                     </View>
-                  )}
+                  ) : null}
                   renderItem={({ item }) => (
-                    <RequirementItem item={item} onToggle={handleRequirementToggle} onUncheck={handleUncheck} />
+                    <View>
+                      <RequirementItem item={item} passed={passedIds.has(item.id) || item.isCompleted} disabled={saving} onToggle={handleRequirementToggle} onUncheck={handleUncheck} />
+                      {item.reqType === 'MEASURE' && (
+                        <View style={styles.valueRow}>
+                          <TextInput
+                            ref={(input) => { if (input) valueRefs.current.set(item.id, input); else valueRefs.current.delete(item.id); }}
+                            onFocus={() => keyboardInput.focus(valueRefs.current.get(item.id) ?? null)}
+                            onBlur={() => keyboardInput.blur(valueRefs.current.get(item.id) ?? null)}
+                            style={styles.valueInput}
+                            accessibilityLabel={`${item.name} 기록`}
+                            placeholder={item.unit === 'SEC' ? '분:초 (예: 4:01)' : '수치 입력'}
+                            placeholderTextColor="rgba(255,255,255,0.3)"
+                            keyboardType={item.unit === 'SEC' ? 'numbers-and-punctuation' : 'decimal-pad'}
+                            value={valueDrafts[item.id] ?? achievementValueText(item.measuredValue, item.unit)}
+                            onChangeText={(text) => setValueDrafts((prev) => ({ ...prev, [item.id]: text }))}
+                            editable={!saving}
+                          />
+                          <Text style={styles.valueUnit}>{item.unit === 'SEC' ? '분:초' : item.unit === 'METER' ? 'm' : item.unit}</Text>
+                        </View>
+                      )}
+                    </View>
                   )}
                   stickySectionHeadersEnabled={true}
                   showsVerticalScrollIndicator={true}
@@ -328,40 +407,15 @@ export default function DebriefingScreen() {
                 />
               </>
             ) : (
-              <>
+              <ScrollView ref={keyboardInput.scrollRef} onLayout={keyboardInput.onLayout} onScroll={keyboardInput.onScroll} scrollEventThrottle={16} style={styles.requirementsList} keyboardShouldPersistTaps="handled" keyboardDismissMode="none">
                 <View style={styles.divider} />
-                <Text style={styles.memoLabel}>디브리핑 메모</Text>
-                <TextInput
-                  style={styles.memoInputInline}
-                  placeholder="오늘 교육 내용, 피드백, 다음 시간 목표 등을 기록하세요."
-                  placeholderTextColor="rgba(255,255,255,0.25)"
-                  multiline
-                  numberOfLines={5}
-                  textAlignVertical="top"
-                  value={memo}
-                  onChangeText={setMemo}
-                />
-              </>
+                {memoEditor}
+              </ScrollView>
             )}
           </View>
 
           {/* 하단 */}
           <View style={[styles.bottomArea, { paddingBottom: insets.bottom + 12 }]}>
-            {!guestUser && inProgressLicense && (
-              <>
-                <Text style={styles.memoLabel}>디브리핑 메모</Text>
-                <TextInput
-                  style={styles.memoInput}
-                  placeholder="오늘 교육 내용, 피드백, 다음 시간 목표 등을 기록하세요."
-                  placeholderTextColor="rgba(255,255,255,0.25)"
-                  multiline
-                  numberOfLines={5}
-                  textAlignVertical="top"
-                  value={memo}
-                  onChangeText={setMemo}
-                />
-              </>
-            )}
             <Pressable
               style={({ pressed }) => [styles.saveButton, pressed && { opacity: 0.85 }, saving && { opacity: 0.5 }]}
               onPress={handleSave}
@@ -373,6 +427,7 @@ export default function DebriefingScreen() {
         </>
       )}
     </KeyboardAvoidingView>
+    </TouchableWithoutFeedback>
   );
 }
 
@@ -436,6 +491,9 @@ const styles = StyleSheet.create({
     color: Colors.brand.white,
   },
 
+  valueRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 20, marginBottom: 12 },
+  valueInput: { flex: 1, minHeight: 40, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.08)', color: '#fff', fontFamily: 'SUIT-Regular', fontSize: 14 },
+  valueUnit: { color: 'rgba(255,255,255,0.6)', fontSize: 13, minWidth: 40 },
   requirementsList: { flex: 1 },
   requirementsContent: { paddingBottom: 8 },
   stickyGroupHeader: {
@@ -493,6 +551,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24, paddingTop: 12,
     borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)',
   },
+  memoSection: { paddingTop: 12 },
   memoLabel: {
     fontFamily: 'SUIT-SemiBold', fontSize: 14, color: 'rgba(255,255,255,0.6)',
     marginBottom: 8,

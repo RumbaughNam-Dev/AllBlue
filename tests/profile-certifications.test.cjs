@@ -9,13 +9,13 @@ const result = (owned, catalog = owned) => JSON.parse(JSON.stringify(groupProfil
 test('shows highest owned ordinary qualification per association, not highest catalog qualification', () => {
   const owned = [cert(1, 2, 'AIDA 2'), cert(2, 4, 'AIDA 4'), cert(3, 2, 'PADI Freediver', 0, padi)];
   assert.deepEqual(result(owned, [...owned, cert(4, 5, 'Instructor', 1)]), [
-    { association: 'AIDA International', labels: ['4'] }, { association: 'PADI', labels: ['Freediver'] },
+    { association: 'AIDA International', labels: ['AIDA Level 4'] }, { association: 'PADI', labels: ['PADI Freediver'] },
   ]);
 });
 test('keeps every distinct instructor qualification and hides ordinary levels in that association', () => {
   const instructor = cert(2, 5, 'AIDA Instructor', 1);
   assert.deepEqual(result([cert(1, 4, 'AIDA 4'), instructor, instructor, cert(3, 6, 'Trainer Instructor', 1), cert(4, 5, 'Youth Instructor', 1)]), [
-    { association: 'AIDA International', labels: ['Instructor', 'Trainer Instructor', 'Youth Instructor'] },
+    { association: 'AIDA International', labels: ['AIDA Instructor', 'AIDA Trainer Instructor', 'AIDA Youth Instructor'] },
   ]);
 });
 test('empty holdings stay empty even with catalog entries', () => {
@@ -23,7 +23,7 @@ test('empty holdings stay empty even with catalog entries', () => {
 });
 test('uses English names even when Korean names exist or the catalog is unavailable', () => {
   const owned = { ...cert(1, 4, 'AIDA 4'), nameKo: 'AIDA 4레벨' };
-  assert.deepEqual(result([owned]), [{ association: 'AIDA International', labels: ['4'] }]);
+  assert.deepEqual(result([owned]), [{ association: 'AIDA International', labels: ['AIDA Level 4'] }]);
   assert.deepEqual(result([{ id: owned.id, name: owned.name, nameKo: owned.nameKo }], []), [{ association: '', labels: ['AIDA 4'] }]);
 });
 
@@ -51,7 +51,7 @@ for (const [owned, labels, images] of [
   [[trainer, master], ['Instructor Trainer'], ['trainer.jpg']],
   [[youth], ['Youth Instructor'], ['youth.jpg']],
 ]) test(`AIDA hierarchy: ${labels.join(' + ')}`, () => {
-  assert.deepEqual(result(owned, []), [{ association: 'AIDA International', labels, imageUrls: images }]);
+  assert.deepEqual(result(owned, []), [{ association: 'AIDA International', labels: labels.map(label => `AIDA ${label}`), imageUrls: images }]);
 });
 test('AIDA hierarchy also works with a legacy profile response and current catalog', () => {
   const owned = [base, master, trainer, youth];

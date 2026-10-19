@@ -1,8 +1,8 @@
 import StartupPopups from '@/features/notices/StartupPopups';
 import NotificationBell from '@/features/notifications/NotificationBell';
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { Tabs, useRouter } from 'expo-router';
+import React, { useState, useRef, useCallback } from 'react';
+import { AppState, View, Text, StyleSheet, Pressable } from 'react-native';
+import { Tabs, useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CustomTabBar from '@/components/CustomTabBar';
 import SideSheet from '@/components/SideSheet';
@@ -16,16 +16,29 @@ export default function TabLayout() {
   const [sheetVisible, setSheetVisible] = useState(false);
   const { user, updateUser } = useAuth();
   const router = useRouter();
+  const updateUserRef = useRef(updateUser);
+  updateUserRef.current = updateUser;
 
-  useEffect(() => {
-    if (user && user.level == null) {
-      api.getProfile()
-        .then((res) => {
-          if (res.profile?.level != null) updateUser({ level: res.profile.level, badgeLevel: res.profile.badgeLevel });
-        })
-        .catch(() => {});
-    }
-  }, []);
+  useFocusEffect(useCallback(() => {
+    if (!user?.id) return;
+    let active = true;
+    let requestId = 0;
+    const refresh = async () => {
+      const id = ++requestId;
+      try {
+        const res = await api.getProfile();
+        if (!active || id !== requestId || res.profile?.level == null) return;
+        await updateUserRef.current({ level: res.profile.level, badgeLevel: res.profile.badgeLevel ?? null });
+      } catch {
+        // Retain the cached badge while offline; retry on focus or app return.
+      }
+    };
+    void refresh();
+    const subscription = AppState.addEventListener('change', state => {
+      if (state === 'active') void refresh();
+    });
+    return () => { active = false; subscription.remove(); };
+  }, [user?.id]));
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>

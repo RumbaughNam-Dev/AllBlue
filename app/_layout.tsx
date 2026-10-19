@@ -81,14 +81,14 @@ function RootLayoutNav() {
         <Stack.Screen name="login" />
         <Stack.Screen name="register" />
         <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="profile" options={{ presentation: 'fullScreenModal', contentStyle: { backgroundColor: '#144A84' } }} />
+        <Stack.Screen name="profile" options={{ presentation: 'modal', gestureEnabled: true, animation: 'default', contentStyle: { backgroundColor: '#144A84' } }} />
         <Stack.Screen name="profile-edit" options={{ presentation: 'fullScreenModal', contentStyle: { backgroundColor: '#144A84' } }} />
         <Stack.Screen name="cert-upload" options={{ presentation: 'fullScreenModal', contentStyle: { backgroundColor: '#144A84' } }} />
         <Stack.Screen name="cert-manage" options={{ presentation: 'fullScreenModal', contentStyle: { backgroundColor: '#144A84' } }} />
         <Stack.Screen name="schedule-daily" options={{ gestureEnabled: true }} />
         <Stack.Screen name="schedule-detail" options={{ gestureEnabled: true }} />
         <Stack.Screen name="schedule-add" options={{ gestureEnabled: true, headerBackButtonMenuEnabled: false }} />
-        <Stack.Screen name="profile-view" options={{ presentation: 'fullScreenModal' }} />
+        <Stack.Screen name="profile-view" options={{ presentation: 'modal', gestureEnabled: true, animation: 'default' }} />
         <Stack.Screen name="achievement" options={{ gestureEnabled: true }} />
         <Stack.Screen name="debriefing" options={{ gestureEnabled: true }} />
         <Stack.Screen name="blocked-users" options={{ gestureEnabled: true }} />

@@ -40,7 +40,11 @@ export function groupProfileCertifications(certifications: Certification[], opti
         const prefixes = [cert.association.name, cert.association.code]
           .filter((value): value is string => !!value?.trim()).sort((a, b) => b.length - a.length);
         const prefix = prefixes.find(value => name.toLowerCase().startsWith(`${value.toLowerCase()} `));
-        return prefix ? name.slice(prefix.length).trim() : name;
+        const shortName = prefix ? name.slice(prefix.length).trim() : name;
+        const label = cert.association.code === 'AIDA' && !Number(cert.isInstructor)
+          && cert.levelOrder >= 1 && cert.levelOrder <= 4
+          ? `Level ${cert.levelOrder}` : shortName;
+        return `${cert.association.code} ${label}`;
       }),
     };
   }), ...unknown];

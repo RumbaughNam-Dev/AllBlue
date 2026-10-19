@@ -244,6 +244,21 @@ export default function ScheduleDetailScreen() {
               <Text style={[styles.refreshIcon, refreshing && { opacity: 0.3 }]}>↻</Text>
             </Pressable>
           </View>
+          {schedule.creator && (
+            <View style={styles.participantCard}>
+              <View style={styles.participantHeader}>
+                <ProfileLink userId={schedule.creator.userId} label={schedule.creator.nickname}><ProfileAvatar profileImage={schedule.creator.profileImage} nickname={schedule.creator.nickname} level={schedule.creator.badgeLevel ?? schedule.creator.level} /></ProfileLink>
+                <View style={styles.participantInfo}>
+                  <ProfileLink userId={schedule.creator.userId} label={schedule.creator.nickname} style={styles.participantNameRow}>
+                    <Text style={styles.participantName}>
+                      {schedule.creator.nickname}{schedule.creator.name && schedule.creator.name !== schedule.creator.nickname ? ` (${schedule.creator.name})` : ''}
+                    </Text>
+                  </ProfileLink>
+                  <Text style={styles.participantMetaText}>일정 생성자</Text>
+                </View>
+              </View>
+            </View>
+          )}
           {schedule.participants.length === 0 ? (
             <Text style={styles.emptyText}>{participantLabel}가 없습니다</Text>
           ) : (

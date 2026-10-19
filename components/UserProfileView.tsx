@@ -1,6 +1,6 @@
 import { formatSta } from '@/utils/sta';
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, Image, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Image, ScrollView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import Colors from '@/constants/Colors';
@@ -58,7 +58,7 @@ export default function UserProfileView({ userId, onClose, onOpenLog }: Props) {
 
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top + 16, paddingBottom: insets.bottom }]}>
+    <View style={[styles.container, { paddingTop: Platform.OS === 'ios' ? 16 : insets.top + 16, paddingBottom: insets.bottom }]}>
       <StatusBar style="light" />
 
       {loading || error ? (
@@ -92,8 +92,7 @@ export default function UserProfileView({ userId, onClose, onOpenLog }: Props) {
               </View>
               {certificationGroups.length ? certificationGroups.map((group, index) => (
                 <View key={`${group.association}-${index}`}>
-                  {!!group.association && <Text style={styles.role}>{group.association}</Text>}
-                  {group.labels.map((label, i) => <Text key={i} style={styles.role}>{group.association ? `  • ${label}` : label}</Text>)}
+                  {group.labels.map((label, i) => <Text key={i} numberOfLines={1} style={styles.role}>{label}</Text>)}
                 </View>
               )) : <Text style={styles.role}>보유 자격증 없음</Text>}
             </View>

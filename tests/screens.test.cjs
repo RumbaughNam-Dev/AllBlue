@@ -157,7 +157,7 @@ test('profile remains dismissible during loading and after a failed request', as
   const h = hookDriver(); const pending = deferred(); let closed = 0;
   const view = loadModule('components/UserProfileView.tsx', {
     react: { ...h.react, createElement: (type, props, ...children) => ({ type, props: props || {}, children }) },
-    'react-native': { View: 'View', Text: 'Text', Pressable: 'Pressable', ScrollView: 'ScrollView', StyleSheet: { create: x => x } },
+    'react-native': { View: 'View', Text: 'Text', Pressable: 'Pressable', ScrollView: 'ScrollView', StyleSheet: { create: x => x }, Platform: { OS: 'ios' } },
     'react-native-safe-area-context': { useSafeAreaInsets: () => ({ top: 0, bottom: 0 }) },
     'expo-status-bar': {}, '@/constants/Colors': { default: loadModule('constants/Colors.ts', {}).default, __esModule: true },
     '@/services/api': { api: { getUserProfile: () => pending.promise } },
@@ -519,7 +519,8 @@ for (const file of ['app/profile.tsx', 'components/UserProfileView.tsx']) {
       if (file === 'app/profile.tsx') assert.equal(texts.includes('보유 자격증 없음'), !certifications);
       assert.equal(texts.includes('강사'), false);
       assert.equal(texts.includes('Lv.4'), false);
-      assert.equal(texts.includes('PADI 마스터 프리다이버'), !!certifications);
+      assert.equal(texts.includes('PADI Master Freediver'), !!certifications);
+      assert.equal(texts.includes('PADI 마스터 프리다이버'), false);
       assert.equal(texts.includes('AIDA Instructor'), !!certifications);
       if (file === 'app/profile.tsx') {
         const nodes = value => !value ? [] : Array.isArray(value) ? value.flatMap(nodes) : typeof value === 'object' ? [value, ...nodes(value.children)] : [];
@@ -956,3 +957,51 @@ test('pinned friend order persists per account, rejects invalid moves, and rolls
   assert.equal(render().orderSaving, false);
   h.unmount();
 });
+
+for (const action of ['value-only', 'check-only', 'clear-checked', 'invalid', 'with-memo']) {
+  test(`debriefing achievement records keep check and value independent: ${action}`, async () => {
+    const h = hookDriver(), calls = [], alerts = [];
+    const req = { id: 9, name: 'STA', nameKo: '', reqType: 'MEASURE', unit: 'SEC',
+      isCompleted: action === 'clear-checked', measuredValue: 241 };
+    const native = Object.fromEntries(['View','Text','SectionList','TextInput','Pressable','KeyboardAvoidingView','TouchableWithoutFeedback','ScrollView'].map(n => [n,n]));
+    const Screen = loadModule('app/debriefing.tsx', {
+      react: { ...h.react, createElement: (type, props, ...children) => ({type,props:props||{},children}) },
+      'react-native': {...native,StyleSheet:{create:v=>v},Platform:{OS:'ios'},Keyboard:{dismiss(){}},Alert:{alert:(...args)=>alerts.push(args)}},
+      'expo-router': { useLocalSearchParams:()=>({participantId:'23',scheduleId:'42',participantCategory:'CERTIFICATION'}),useRouter:()=>({back(){}}) },
+      'react-native-safe-area-context':{useSafeAreaInsets:()=>({top:0,bottom:0})},
+      'expo-status-bar':{}, '@/components/ProfileLink':{}, '@/components/Spinner':{},
+      '@/constants/Colors':{default:{brand:{}},__esModule:true},
+      '@/hooks/useVisibleKeyboardInput': { useVisibleKeyboardInput: () => ({ listRef: {current:null}, scrollRef:{current:null}, focus(){}, blur(){}, onLayout(){}, onScroll(){} }) },
+      '@/utils/achievementValue':loadModule('utils/achievementValue.ts',{}),
+      '@/services/api':{api:{getUserAchievements:async()=>({licenses:[{id:1,status:'IN_PROGRESS',requirements:[
+        {id:8,name:'Theory Exam',nameKo:'이론시험',reqType:'SKILL'},req]}]}),
+        saveAchievementValue:async(...args)=>{calls.push(['value',...args]);return{success:true};},
+        toggleAchievement:async(...args)=>{calls.push(['check',...args]);return{success:true};},
+        saveDebriefing:async(...args)=>{calls.push(['memo',...args]);return{success:true};},
+      }},
+    }).default;
+    const nodes=t=>!t?[]:Array.isArray(t)?t.flatMap(nodes):typeof t==='object'?[t,...nodes(t.children),...nodes(t.props?.ListFooterComponent)]:[];
+    const render=()=>h.render(Screen);
+    render();await flush();let tree=render();
+    if(action==='clear-checked'){
+      const toggle=nodes(tree).find(n=>n.type==='Pressable'&&nodes(n).some(c=>c.type==='Text'&&c.children.includes('To-Do')));
+      toggle.props.onPress();tree=render();
+    }
+    const list=nodes(tree).find(n=>n.type==='SectionList');
+    assert.equal(list.props.sections[0].data[0].name,'Theory Exam','root theory task must be visible');
+    const row=list.props.renderItem({item:req});
+    const input=nodes(row).find(n=>n.type==='TextInput');
+    const checkbox=nodes(row).find(n=>typeof n.type==='function');
+    if(action==='check-only')checkbox.props.onToggle(9,true);
+    else if (action === 'with-memo') {
+      nodes(tree).find(n => n.type === 'TextInput' && n.props.multiline).props.onChangeText('  다음 시간에는 이퀄라이징 연습  ');
+    } else input.props.onChangeText(action==='value-only'?'4:1':action==='clear-checked'?'':'4:90');
+    tree=render();
+    const save=nodes(tree).find(n=>n.type==='Pressable'&&nodes(n).some(c=>c.type==='Text'&&c.children.includes('저장')));
+    await save.props.onPress();
+    if(action==='invalid'){assert.equal(calls.length,0);assert.equal(alerts[0][0],'입력 확인');}
+    else if(action==='with-memo'){assert.deepEqual(calls.map(c=>c[0]),['memo']);assert.equal(calls[0][3],'다음 시간에는 이퀄라이징 연습');}
+    else if(action==='check-only')assert.deepEqual(calls.map(c=>c[0]),['check']);
+    else {assert.deepEqual(calls.map(c=>c[0]),['value']);assert.equal(calls[0][3],action==='clear-checked'?null:241);}
+  });
+}

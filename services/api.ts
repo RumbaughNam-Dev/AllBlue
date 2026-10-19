@@ -179,6 +179,14 @@ export type ScheduleDetail = {
   visibility?: string;
   isOwner: boolean;
   myParticipantId?: number;
+  creator?: {
+    id: number;
+    userId: string;
+    nickname: string;
+    name?: string | null;
+    profileImage?: string | null;
+    level?: string | number | null; badgeLevel?: string | number | null;
+  };
   participants: ScheduleParticipant[];
 };
 
@@ -222,6 +230,7 @@ export type AchievementRequirement = {
   completedAt: string | null;
   completedBy: number | null;
   completedByMe: boolean;
+  measuredValue?: number | null;
   children?: AchievementRequirement[];
 };
 
@@ -507,6 +516,13 @@ export const api = {
     return request<{ success: boolean }>(`/debriefing`, {
       method: 'POST',
       body: JSON.stringify({ scheduleId, participantId, content }),
+    });
+  },
+
+  saveAchievementValue(requirementId: number, userId: number, value: number | null) {
+    return request<{ success: boolean; message?: string }>(`/achievement/value`, {
+      method: 'POST',
+      body: JSON.stringify({ requirementId, userId, value }),
     });
   },
 

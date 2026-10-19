@@ -1,3 +1,5 @@
+import { loadDebriefingPage } from '@/utils/debriefingPage';
+import { achievementValueText, requirementLabel } from '@/utils/achievementValue';
 import ProfileLink from '@/components/ProfileLink';
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import {
@@ -44,7 +46,7 @@ function buildSections(requirements: AchievementRequirement[], allCompleted: boo
       currentSection.data.push(item);
     } else {
       currentSection = {
-        group: { id: 0, name: 'Performance', nameKo: '수행 평가', reqGroup: 'PERFORMANCE', reqType: 'GROUP', code: null, unit: '', minValue: null, displayValue: null, isOptional: false, isCompleted: false, completedAt: null, completedBy: null, completedByMe: false },
+        group: { id: 0, name: '', nameKo: '', reqGroup: 'PERFORMANCE', reqType: 'GROUP', code: null, unit: '', minValue: null, displayValue: null, isOptional: false, isCompleted: false, completedAt: null, completedBy: null, completedByMe: false },
         data: [allCompleted ? { ...req, isCompleted: true } : req],
       };
       result.push(currentSection);
@@ -97,7 +99,7 @@ export default function AchievementScreen() {
   const fetchDebriefings = useCallback((page: number) => {
     if (!participantId || debriefingLoading) return;
     setDebriefingLoading(true);
-    api.getDebriefings(Number(participantId), page, PAGE_SIZE)
+    loadDebriefingPage((nextPage) => api.getDebriefings(Number(participantId), nextPage, PAGE_SIZE), page)
       .then((res) => {
         setDebriefings((prev) => {
           const merged = page === 1 ? res.debriefings : [...prev, ...res.debriefings];
@@ -108,7 +110,7 @@ export default function AchievementScreen() {
           return merged;
         });
         setDebriefingHasMore(res.hasMore);
-        setDebriefingPage(page);
+        setDebriefingPage(res.page);
       })
       .catch(() => {})
       .finally(() => setDebriefingLoading(false));
@@ -135,6 +137,9 @@ export default function AchievementScreen() {
         <View key={item.id} style={styles.measureRow}>
           <View style={styles.measureInfo}>
             <Text style={[styles.measureLabel, item.isCompleted && styles.completedText]}>{item.name}</Text>
+            <Text style={styles.measureValue}>
+              {item.measuredValue == null ? '미입력' : `${achievementValueText(item.measuredValue, item.unit)}${item.unit === 'SEC' ? '' : ' m'}`}
+            </Text>
             {item.displayValue && (
               <Text style={[styles.measureValue, item.isCompleted && styles.completedText]}>{item.displayValue}</Text>
             )}
@@ -148,7 +153,7 @@ export default function AchievementScreen() {
     return (
       <View key={item.id} style={styles.skillRow}>
         <Text style={[styles.skillName, item.isCompleted && styles.completedText]}>
-          {item.nameKo || item.name}{item.isOptional ? ' (Optional)' : ''}
+          {requirementLabel(item)}
         </Text>
         <View style={[styles.checkCircle, item.isCompleted ? styles.checkDone : styles.checkUndone]}>
           <Text style={[styles.checkMark, item.isCompleted ? styles.checkMarkDone : styles.checkMarkUndone]}>✓</Text>
@@ -193,12 +198,12 @@ export default function AchievementScreen() {
               const done = isSectionCompleted(section);
               return (
                 <View key={section.group.id || idx}>
-                  <View style={styles.groupRow}>
-                    <Text style={styles.groupName}>{section.group.nameKo || section.group.name}</Text>
+                  {!!section.group.name && <View style={styles.groupRow}>
+                    <Text style={styles.groupName}>{requirementLabel(section.group)}</Text>
                     <View style={[styles.checkCircle, done ? styles.checkDone : styles.checkUndone]}>
                       <Text style={[styles.checkMark, done ? styles.checkMarkDone : styles.checkMarkUndone]}>✓</Text>
                     </View>
-                  </View>
+                  </View>}
                   {section.data.map((item) => renderRequirement(item))}
                 </View>
               );
@@ -209,18 +214,14 @@ export default function AchievementScreen() {
     );
   };
 
-  const renderDebriefingItem = ({ item }: { item: DebriefingItem }) => (
+  const renderDebriefingItem = ({ item }: { item: DebriefingItem }) => item.content?.trim() ? (
     <View style={styles.debriefingCard}>
       <Text style={styles.debriefingMeta}>
         {item.createdByName} 강사  ·  {formatDebriefingDate(item.createdAt)}
       </Text>
-      {item.content ? (
-        <Text style={styles.debriefingContent}>{item.content}</Text>
-      ) : (
-        <Text style={styles.debriefingEmpty}>메모 없음</Text>
-      )}
+      <Text style={styles.debriefingContent}>{item.content}</Text>
     </View>
-  );
+  ) : null;
 
   const handleLoadMore = () => {
     if (debriefingHasMore && !debriefingLoading) {

@@ -69,9 +69,9 @@ export default function ProfileScreen() {
   );
 
 
-  const certificateRow = (label: string, imageUrl?: string, indented = false) => (
-    <View style={[styles.certificationRow, indented && styles.certificationItem]}>
-      <Text style={[styles.role, { flexShrink: 1 }]}>{label}</Text>
+  const certificateRow = (label: string, imageUrl?: string) => (
+    <View style={styles.certificationRow}>
+      <Text numberOfLines={1} style={[styles.role, styles.certificationText]}>{label}</Text>
       {!!imageUrl && <Pressable onPress={() => setCertificateImage(imageUrl)} accessibilityRole="button" accessibilityLabel={`${label} 자격증 이미지 보기`} style={styles.imageButton}>
         <Image source={require('@/assets/images/certificate-badge.png')} style={{ width: 18, height: 18 }} resizeMode="contain" />
       </Pressable>}
@@ -79,7 +79,7 @@ export default function ProfileScreen() {
   );
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top + 16, paddingBottom: insets.bottom }]}>
+    <View style={[styles.container, { paddingTop: Platform.OS === 'ios' ? 16 : insets.top + 16, paddingBottom: insets.bottom }]}>
       <StatusBar style="light" />
       {certificateImage && <CertificateImageViewer key={certificateImage} imageUrl={certificateImage} onClose={() => setCertificateImage(null)} />}
 
@@ -113,8 +113,7 @@ export default function ProfileScreen() {
                 </View>
                 {certificationGroups.length ? certificationGroups.map((group, index) => (
                   <View key={`${group.association}-${index}`} style={styles.certificationGroup}>
-                    {!!group.association && <Text style={styles.role}>{group.association}</Text>}
-                    {group.labels.map((label, i) => <React.Fragment key={i}>{certificateRow(group.association ? `• ${label}` : label, group.imageUrls?.[i], !!group.association)}</React.Fragment>)}
+                    {group.labels.map((label, i) => <React.Fragment key={i}>{certificateRow(label, group.imageUrls?.[i])}</React.Fragment>)}
                   </View>
                 )) : <Text style={styles.role}>보유 자격증 없음</Text>}
               </View>
@@ -369,10 +368,10 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: Colors.brand.white,
   },
-  certificationRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  imageButton: { width: 44, height: 32, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  certificationRow: { flexDirection: 'row', alignItems: 'center', minHeight: 20, gap: 4 },
+  certificationText: { flexShrink: 1, lineHeight: 18, includeFontPadding: false, textAlignVertical: 'center' },
+  imageButton: { width: 44, height: 18, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   certificationGroup: { marginTop: 3 },
-  certificationItem: { paddingLeft: 8 },
   role: {
     lineHeight: 20,
     fontFamily: 'SUIT-Regular',
