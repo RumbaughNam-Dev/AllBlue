@@ -399,6 +399,7 @@ test('schedule detail reloads on app return without a navigation focus change', 
     '@/components/Spinner': {}, '@/components/ProfileAvatar': {}, '@/components/ProfileLink': {},
     '@/contexts/AuthContext': { useAuth: () => ({ user: { id: 'teacher', level: '5' } }) },
     '@/utils/userRole': loadModule('utils/userRole.ts', {}),
+    '@/utils/profileCertifications': loadModule('utils/profileCertifications.ts', {}),
   }).default;
   const render = () => h.render(screen);
   const emit = (state) => listeners.forEach((listener) => listener(state));
@@ -459,6 +460,7 @@ for (const [overall, personal, status, expected, canViewDivingLog = true, viewer
       '@/components/Spinner': {}, '@/components/ProfileAvatar': {}, '@/components/ProfileLink': {},
     '@/contexts/AuthContext': { useAuth: () => ({ user: { id: 'teacher', level: viewerLevel } }) },
     '@/utils/userRole': loadModule('utils/userRole.ts', {}),
+    '@/utils/profileCertifications': loadModule('utils/profileCertifications.ts', {}),
     }).default;
     h.render(Screen); await flush();
     const tree = h.render(Screen);

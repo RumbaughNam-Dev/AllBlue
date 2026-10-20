@@ -186,6 +186,7 @@ export type ScheduleDetail = {
     name?: string | null;
     profileImage?: string | null;
     level?: string | number | null; badgeLevel?: string | number | null;
+    certifications?: Certification[];
   };
   participants: ScheduleParticipant[];
 };

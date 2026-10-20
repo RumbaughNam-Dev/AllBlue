@@ -18,6 +18,7 @@ import Spinner from '@/components/Spinner';
 import ProfileAvatar from '@/components/ProfileAvatar';
 import { useAuth } from '@/contexts/AuthContext';
 import { hasInstructorAccess } from '@/utils/userRole';
+import { groupProfileCertifications } from '@/utils/profileCertifications';
 
 const STUDENT_CATEGORIES = ['EXPERIENCE', 'CERTIFICATION', 'LECTURE'];
 const DOCUMENT_CATEGORIES = ['EXPERIENCE', 'CERTIFICATION', 'TRAINING'];
@@ -92,6 +93,8 @@ export default function ScheduleDetailScreen() {
   const participantLabel = schedule
     ? (STUDENT_CATEGORIES.includes(schedule.categoryCode) ? '교육생' : '참석자')
     : '참석자';
+
+  const creatorCertifications = groupProfileCertifications(schedule?.creator?.certifications ?? []).flatMap(group => group.labels);
 
   const isOwner = schedule?.isOwner ?? false;
   const myParticipantId = schedule?.myParticipantId;
@@ -210,6 +213,31 @@ export default function ScheduleDetailScreen() {
         <View style={styles.loadingArea}><Spinner /></View>
       ) : schedule ? (
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          {/* Creator */}
+          {schedule.creator && (
+            <>
+              <View style={[styles.sectionRow, { minHeight: 28 }]}>
+                <Text style={styles.sectionLabel}>만든 사람</Text>
+              </View>
+              <View style={styles.participantCard}>
+                <View style={styles.participantHeader}>
+                  <ProfileLink userId={schedule.creator.userId} label={schedule.creator.nickname}><ProfileAvatar profileImage={schedule.creator.profileImage} nickname={schedule.creator.nickname} level={schedule.creator.badgeLevel ?? schedule.creator.level} /></ProfileLink>
+                  <View style={styles.participantInfo}>
+                    <ProfileLink userId={schedule.creator.userId} label={schedule.creator.nickname} style={styles.participantNameRow}>
+                      <Text style={styles.participantName}>
+                        {schedule.creator.nickname}{schedule.creator.name && schedule.creator.name !== schedule.creator.nickname ? ` (${schedule.creator.name})` : ''}
+                      </Text>
+                    </ProfileLink>
+                    {creatorCertifications.length
+                      ? creatorCertifications.map((label, i) => <Text key={i} numberOfLines={1} style={styles.participantMetaText}>{label}</Text>)
+                      : <Text style={styles.participantMetaText}>보유 자격증 없음</Text>}
+                  </View>
+                </View>
+              </View>
+              <View style={styles.divider} />
+            </>
+          )}
+
           {/* Info rows */}
           <View style={styles.infoSection}>
             <View style={styles.infoRow}>
@@ -244,21 +272,6 @@ export default function ScheduleDetailScreen() {
               <Text style={[styles.refreshIcon, refreshing && { opacity: 0.3 }]}>↻</Text>
             </Pressable>
           </View>
-          {schedule.creator && (
-            <View style={styles.participantCard}>
-              <View style={styles.participantHeader}>
-                <ProfileLink userId={schedule.creator.userId} label={schedule.creator.nickname}><ProfileAvatar profileImage={schedule.creator.profileImage} nickname={schedule.creator.nickname} level={schedule.creator.badgeLevel ?? schedule.creator.level} /></ProfileLink>
-                <View style={styles.participantInfo}>
-                  <ProfileLink userId={schedule.creator.userId} label={schedule.creator.nickname} style={styles.participantNameRow}>
-                    <Text style={styles.participantName}>
-                      {schedule.creator.nickname}{schedule.creator.name && schedule.creator.name !== schedule.creator.nickname ? ` (${schedule.creator.name})` : ''}
-                    </Text>
-                  </ProfileLink>
-                  <Text style={styles.participantMetaText}>일정 생성자</Text>
-                </View>
-              </View>
-            </View>
-          )}
           {schedule.participants.length === 0 ? (
             <Text style={styles.emptyText}>{participantLabel}가 없습니다</Text>
           ) : (
