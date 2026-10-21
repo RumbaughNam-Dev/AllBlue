@@ -25,7 +25,6 @@ const MENU_ITEMS = [
   { key: 'inquiry', label: '문의하기' },
   { key: 'blocked', label: '차단 사용자 관리' },
   { key: 'schedule-settings', label: '일정 설정' },
-  { key: 'business-contact', label: '비즈니스 문의' },
 ];
 
 export default function SideSheet({ visible, onClose }: Props) {
@@ -187,12 +186,18 @@ export default function SideSheet({ visible, onClose }: Props) {
           ))}
         </View>
 
-        {/* Logout & Withdraw */}
+        {/* Logout, Ad Inquiry & Withdraw */}
         <Pressable
           style={({ pressed }) => [styles.logoutButton, pressed && { opacity: 0.6 }]}
           onPress={handleLogout}
         >
           <Text style={styles.logoutText}>로그아웃</Text>
+        </Pressable>
+        <Pressable
+          style={({ pressed }) => [styles.withdrawButton, pressed && { opacity: 0.6 }]}
+          onPress={() => handleMenuPress('business-contact')}
+        >
+          <Text style={styles.logoutText}>광고 문의</Text>
         </Pressable>
         <Pressable
           style={({ pressed }) => [styles.withdrawButton, pressed && { opacity: 0.6 }]}

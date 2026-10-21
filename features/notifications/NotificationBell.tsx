@@ -140,7 +140,7 @@ export default function NotificationBell() {
           ] }]}>
           <View style={styles.header}>
             <View style={styles.headingGroup}>
-              <View style={styles.eyebrowLine}><View style={styles.accentLine} /><Text style={styles.eyebrow}>all<Text style={{ color: '#00E5FF' }}>b</Text>lue</Text></View>
+              <View style={styles.eyebrowLine}><Text style={styles.eyebrow}>all<Text style={{ color: '#00E5FF' }}>b</Text>lue</Text></View>
               <Text accessibilityRole="header" style={styles.heading}>알림</Text>
               <Text style={styles.subtitle}>함께하는 다이빙의 새로운 소식</Text>
             </View>
@@ -226,7 +226,6 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', paddingHorizontal: 24, paddingTop: 26, paddingBottom: 22 },
   headingGroup: { flex: 1 },
   eyebrowLine: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 10 },
-  accentLine: { width: 16, height: 2, borderRadius: 1, backgroundColor: '#92DDEB' },
   eyebrow: { color: Colors.brand.white, fontSize: 10, letterSpacing: 4, fontFamily: 'SUIT-Regular' },
   heading: { color: Colors.brand.white, fontSize: 28, lineHeight: 36, fontFamily: 'SUIT-Bold' },
   subtitle: { color: '#A8BFD6', fontSize: 13, lineHeight: 20, fontFamily: 'SUIT-Regular', marginTop: 5 },

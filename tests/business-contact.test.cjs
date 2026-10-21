@@ -33,9 +33,10 @@ test('business popup waits until the side menu finishes closing', () => {
   }).default;
   const render = () => h.render(() => Screen(props)); render(); let tree = render();
   const menu = nodes(tree).filter(n => n.type === 'Pressable');
-  const settings = menu.findIndex(n => text(n) === '일정 설정');
-  assert.equal(text(menu[settings + 1]), '비즈니스 문의');
-  menu[settings + 1].props.onPress(); tree = render();
+  const logout = menu.findIndex(n => text(n) === '로그아웃');
+  assert.deepEqual(menu.slice(logout, logout + 3).map(text), ['로그아웃', '광고 문의', '회원탈퇴']);
+  assert.equal(menu.some(n => text(n) === '비즈니스 문의'), false);
+  menu[logout + 1].props.onPress(); tree = render();
   assert.equal(nodes(tree).some(n => n.type === 'BusinessPopup'), false);
   finish({ finished: true }); tree = render();
   assert.ok(nodes(tree).some(n => n.type === 'BusinessPopup'));

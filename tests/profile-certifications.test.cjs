@@ -58,3 +58,11 @@ test('AIDA hierarchy also works with a legacy profile response and current catal
   const legacy = owned.map(({ id, name, nameKo, imageUrl }) => ({ id, name, nameKo, imageUrl }));
   assert.deepEqual(result(legacy, owned), result(owned, []));
 });
+
+test('admin-entered qualifications show their own name and image after catalog ones', () => {
+  const custom = { id: -42, name: '  Molchanovs Wave 2 ', nameKo: null, imageUrl: 'https://cdn/cert.jpg' };
+  assert.deepEqual(result([cert(1, 4, 'AIDA 4'), custom], [cert(1, 4, 'AIDA 4'), cert(42, 5, 'Instructor', 1)]), [
+    { association: 'AIDA International', labels: ['AIDA Level 4'] },
+    { association: '', labels: ['Molchanovs Wave 2'], imageUrls: ['https://cdn/cert.jpg'] },
+  ]);
+});

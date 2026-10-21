@@ -27,6 +27,8 @@ export default function CertManageScreen() {
   const [approveTarget, setApproveTarget] = useState<CertRequest | null>(null);
   const [licenseOptions, setLicenseOptions] = useState<CertificationOption[]>([]);
   const [selectedLicense, setSelectedLicense] = useState<CertificationOption | null>(null);
+  const [customSelected, setCustomSelected] = useState(false);
+  const [customName, setCustomName] = useState('');
   const [optionsLoading, setOptionsLoading] = useState(false);
   const [optionsError, setOptionsError] = useState(false);
   const [approving, setApproving] = useState(false);
@@ -46,6 +48,8 @@ export default function CertManageScreen() {
   const handleApprove = async (item: CertRequest) => {
     setApproveTarget(item);
     setSelectedLicense(null);
+    setCustomSelected(false);
+    setCustomName('');
     setLicenseOptions([]);
     setOptionsLoading(true);
     setOptionsError(false);
@@ -60,12 +64,15 @@ export default function CertManageScreen() {
   };
 
   const submitApprove = async () => {
-    if (!approveTarget || !selectedLicense || approving) return;
+    const name = customName.trim();
+    if (!approveTarget || approving || (customSelected ? !name : !selectedLicense)) return;
     setApproving(true);
     try {
-      await api.approveCert(approveTarget.id, selectedLicense.id);
+      if (customSelected) await api.approveCert(approveTarget.id, { customName: name });
+      else await api.approveCert(approveTarget.id, { licenseId: selectedLicense!.id });
       setApproveTarget(null);
-      Alert.alert('승인 완료', `${approveTarget.userName}님의 ${selectedLicense.nameKo || selectedLicense.name} 자격증을 등록했습니다.`);
+      const label = customSelected ? name : selectedLicense!.nameKo || selectedLicense!.name;
+      Alert.alert('승인 완료', `${approveTarget.userName}님의 ${label} 자격증을 등록했습니다.`);
       fetchRequests();
     } catch (e: any) {
       if (!e._handled) Alert.alert('실패', e.message ?? '잠시 후 다시 시도해주세요.');
@@ -73,6 +80,8 @@ export default function CertManageScreen() {
       setApproving(false);
     }
   };
+
+  const canApprove = !approving && (customSelected ? !!customName.trim() : !!selectedLicense);
 
   const handleReject = (item: CertRequest) => {
     setRejectTarget(item);
@@ -194,7 +203,7 @@ export default function CertManageScreen() {
 
       <Modal visible={!!approveTarget} transparent animationType="fade"
         onRequestClose={() => { if (!approving) setApproveTarget(null); }}>
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <PopupBackdrop />
           <Pressable style={styles.modalBackdrop} disabled={approving} onPress={() => setApproveTarget(null)} />
           <View style={[styles.modalContent, { maxHeight: '80%' }]}>
@@ -209,11 +218,19 @@ export default function CertManageScreen() {
                 style={{ flexGrow: 0 }}
                 data={licenseOptions}
                 keyExtractor={(item) => String(item.id)}
-                ListEmptyComponent={<Text style={styles.modalSubtitle}>등록된 자격증이 없습니다.</Text>}
+                keyboardShouldPersistTaps="handled"
+                ListFooterComponent={
+                  <Pressable disabled={approving} accessibilityRole="radio"
+                    accessibilityState={{ selected: customSelected }}
+                    onPress={() => { setSelectedLicense(null); setCustomSelected(true); }}
+                    style={[styles.licenseOption, customSelected && styles.licenseSelected]}>
+                    <Text style={styles.licenseName}>직접 입력</Text>
+                  </Pressable>
+                }
                 renderItem={({ item }) => (
                   <Pressable disabled={approving} accessibilityRole="radio"
                     accessibilityState={{ selected: selectedLicense?.id === item.id }}
-                    onPress={() => setSelectedLicense(item)}
+                    onPress={() => { setCustomSelected(false); setSelectedLicense(item); }}
                     style={[styles.licenseOption, selectedLicense?.id === item.id && styles.licenseSelected]}>
                     <Text style={styles.licenseAssociation}>{item.association.nameKo || item.association.name}</Text>
                     <Text style={styles.licenseName}>{item.nameKo || item.name}</Text>
@@ -221,17 +238,30 @@ export default function CertManageScreen() {
                 )}
               />
             )}
+            {customSelected && (
+              <TextInput
+                style={[styles.modalInput, { minHeight: 0, marginTop: 8 }]}
+                value={customName}
+                onChangeText={setCustomName}
+                placeholder="자격증 명칭을 입력해주세요"
+                placeholderTextColor="rgba(255,255,255,0.3)"
+                maxLength={120}
+                editable={!approving}
+                autoFocus
+                accessibilityLabel="자격증 명칭"
+              />
+            )}
             <View style={styles.modalActions}>
               <Pressable style={styles.modalCancelBtn} disabled={approving} onPress={() => setApproveTarget(null)}>
                 <Text style={styles.modalCancelText}>취소</Text>
               </Pressable>
-              <Pressable style={[styles.approveButton, { opacity: selectedLicense && !approving ? 1 : 0.4 }]}
-                disabled={!selectedLicense || approving} onPress={submitApprove}>
+              <Pressable style={[styles.approveButton, { opacity: canApprove ? 1 : 0.4 }]}
+                disabled={!canApprove} onPress={submitApprove}>
                 <Text style={styles.approveText}>{approving ? '처리 중...' : '자격증 승인'}</Text>
               </Pressable>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Reject Reason Modal */}

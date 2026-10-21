@@ -991,7 +991,7 @@ for (const action of ['value-only', 'check-only', 'clear-checked', 'invalid', 'w
     }
     const list=nodes(tree).find(n=>n.type==='SectionList');
     assert.equal(list.props.sections[0].data[0].name,'Theory Exam','root theory task must be visible');
-    const row=list.props.renderItem({item:req});
+    const row=list.props.renderItem({item:req,section:list.props.sections[0]});
     const input=nodes(row).find(n=>n.type==='TextInput');
     const checkbox=nodes(row).find(n=>typeof n.type==='function');
     if(action==='check-only')checkbox.props.onToggle(9,true);

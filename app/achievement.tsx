@@ -130,11 +130,11 @@ export default function AchievementScreen() {
     return section.data.every((c) => c.isOptional || c.isCompleted);
   };
 
-  const renderRequirement = (item: AchievementRequirement) => {
+  const renderRequirement = (item: AchievementRequirement, grouped: boolean) => {
     const isMeasure = item.reqType === 'MEASURE';
     if (isMeasure) {
       return (
-        <View key={item.id} style={styles.measureRow}>
+        <View key={item.id} style={[styles.measureRow, grouped && styles.groupedItem]}>
           <View style={styles.measureInfo}>
             <Text style={[styles.measureLabel, item.isCompleted && styles.completedText]}>{item.name}</Text>
             <Text style={styles.measureValue}>
@@ -151,7 +151,7 @@ export default function AchievementScreen() {
       );
     }
     return (
-      <View key={item.id} style={styles.skillRow}>
+      <View key={item.id} style={[styles.skillRow, grouped && styles.groupedItem]}>
         <Text style={[styles.skillName, item.isCompleted && styles.completedText]}>
           {requirementLabel(item)}
         </Text>
@@ -204,7 +204,7 @@ export default function AchievementScreen() {
                       <Text style={[styles.checkMark, done ? styles.checkMarkDone : styles.checkMarkUndone]}>✓</Text>
                     </View>
                   </View>}
-                  {section.data.map((item) => renderRequirement(item))}
+                  {section.data.map((item) => renderRequirement(item, !!section.group.name))}
                 </View>
               );
             })}
@@ -432,8 +432,9 @@ const styles = StyleSheet.create({
     paddingVertical: 10, marginTop: 4,
   },
   groupName: {
-    fontFamily: 'SUIT-SemiBold', fontSize: 14, color: Colors.brand.white, flex: 1,
+    fontFamily: 'SUIT-Bold', fontSize: 16, color: Colors.brand.white, flex: 1,
   },
+  groupedItem: { paddingLeft: 28 },
   skillRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingVertical: 7, paddingLeft: 16,

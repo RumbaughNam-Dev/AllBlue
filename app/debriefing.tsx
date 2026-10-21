@@ -377,8 +377,8 @@ export default function DebriefingScreen() {
                       <Text style={styles.groupHeaderText}>{section.groupName}</Text>
                     </View>
                   ) : null}
-                  renderItem={({ item }) => (
-                    <View>
+                  renderItem={({ item, section }) => (
+                    <View style={section.groupName ? styles.groupedItem : undefined}>
                       <RequirementItem item={item} passed={passedIds.has(item.id) || item.isCompleted} disabled={saving} onToggle={handleRequirementToggle} onUncheck={handleUncheck} />
                       {item.reqType === 'MEASURE' && (
                         <View style={styles.valueRow}>
@@ -501,8 +501,9 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   groupHeaderText: {
-    fontFamily: 'SUIT-SemiBold', fontSize: 14, color: 'rgba(255,255,255,0.6)',
+    fontFamily: 'SUIT-Bold', fontSize: 16, color: Colors.brand.white,
   },
+  groupedItem: { paddingLeft: 16 },
   requirementRow: {
     flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingLeft: 4,
   },

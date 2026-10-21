@@ -407,10 +407,10 @@ export const api = {
     return request<{ count: number }>('/cert/pending-count');
   },
 
-  approveCert(requestId: number, licenseId: number) {
+  approveCert(requestId: number, selection: { licenseId: number } | { customName: string }) {
     return request<{ success: boolean }>(`/cert/requests/${requestId}/approve`, {
       method: 'PATCH',
-      body: JSON.stringify({ licenseId }),
+      body: JSON.stringify(selection),
     });
   },
 
