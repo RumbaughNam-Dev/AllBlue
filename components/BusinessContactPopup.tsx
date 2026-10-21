@@ -19,15 +19,15 @@ export default function BusinessContactPopup({ onClose }: { onClose: () => void 
     }
   };
   return <View style={[styles.overlay, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }]}>
-    <Pressable style={StyleSheet.absoluteFill} accessibilityLabel="비즈니스 문의 닫기" onPress={onClose} />
+    <Pressable style={StyleSheet.absoluteFill} accessibilityLabel="광고 문의 닫기" onPress={onClose} />
     <View accessibilityViewIsModal style={styles.card}>
       <ScrollView contentContainerStyle={styles.content} bounces={false}>
         <View style={styles.header}>
           <View style={styles.symbol}><Ionicons name="chatbubbles-outline" size={25} color={Colors.brand.accent} /></View>
           <Pressable accessibilityRole="button" accessibilityLabel="닫기" onPress={onClose} style={styles.close}><Ionicons name="close" size={24} color="white" /></Pressable>
         </View>
-        <Text style={styles.title}>비즈니스 문의</Text>
-        <Text style={styles.description}>비즈니스 문의는 아래 메일이나 인스타그램 DM으로 해 주세요.</Text>
+        <Text style={styles.title}>광고 문의</Text>
+        <Text style={styles.description}>광고 문의는 아래 메일이나 인스타그램 DM으로 해 주세요.</Text>
         <Pressable accessibilityRole="button" onPress={() => void open(`mailto:${EMAIL}`)} style={({ pressed }) => [styles.button, pressed && styles.pressed]}>
           <View style={styles.icon}><Ionicons name="mail-outline" size={24} color="white" /></View>
           <View style={styles.buttonContent}><Text style={styles.buttonTitle}>메일 보내기</Text><Text style={styles.address}>{EMAIL}</Text></View>
