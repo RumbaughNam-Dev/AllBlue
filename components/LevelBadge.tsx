@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
 const LEVEL_CONFIG: Record<string, { label: string; bg: string; color: string }> = {
-  '0': { label: '1', bg: '#ADB5BD', color: '#FFFFFF' },
+  '0': { label: '0', bg: '#ADB5BD', color: '#FFFFFF' },
   '1': { label: '1', bg: '#E53030', color: '#FFFFFF' },
   '2': { label: '2', bg: '#FFE500', color: '#333333' },
   '3': { label: '3', bg: '#33CC33', color: '#FFFFFF' },

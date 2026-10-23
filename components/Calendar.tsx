@@ -7,6 +7,7 @@ import MonthPicker from '@/components/MonthPicker';
 import Spinner from '@/components/Spinner';
 import AdSlot from '@/components/AdSlot';
 import { AD_IMAGES, AD_LINKS } from '@/constants/Ads';
+import type { CalendarEvent } from '@/services/api';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 const MAX_WEEKS = 6;
@@ -22,6 +23,7 @@ type FilterOption = { key: string; label: string };
 
 type Props = {
   events?: Event[];
+  calendarEvents?: CalendarEvent[];
   onDatePress?: (date: string) => void;
   onMonthChange?: (year: number, month: number) => void;
   scheduleFilter?: string;
@@ -35,7 +37,7 @@ const DEFAULT_FILTERS: FilterOption[] = [
   { key: 'closeFriend', label: '친한친구 일정' },
 ];
 
-export default function Calendar({ events = [], onDatePress, onMonthChange, scheduleFilter = 'mine', onFilterChange, filterOptions }: Props) {
+export default function Calendar({ events = [], calendarEvents = [], onDatePress, onMonthChange, scheduleFilter = 'mine', onFilterChange, filterOptions }: Props) {
   const filters = filterOptions ?? DEFAULT_FILTERS;
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -76,6 +78,24 @@ export default function Calendar({ events = [], onDatePress, onMonthChange, sche
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     return events.filter((e) => e.date === dateStr);
   }, [events, year, month]);
+
+  const dateKey = (day: number) => `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  const findAdEvent = (dateStr: string) => calendarEvents.find((e) => e.startDate <= dateStr && dateStr <= e.endDate);
+
+  // 한 주 안에서 이벤트 구간을 이어 붙인 박스. 주를 넘어가면 끊긴 쪽 테두리를 열어 둔다.
+  const getAdSegments = (week: (number | null)[]) => calendarEvents.flatMap((ev) => {
+    const cols = week
+      .map((day, di) => (day !== null && ev.startDate <= dateKey(day) && dateKey(day) <= ev.endDate ? di : -1))
+      .filter((di) => di >= 0);
+    if (cols.length === 0) return [];
+    const startCol = cols[0];
+    const endCol = cols[cols.length - 1];
+    return [{
+      ev, startCol, span: endCol - startCol + 1,
+      openLeft: dateKey(week[startCol]!) > ev.startDate,
+      openRight: dateKey(week[endCol]!) < ev.endDate,
+    }];
+  });
 
   const prevMonth = () => {
     const newYear = month === 0 ? year - 1 : year;
@@ -235,10 +255,11 @@ export default function Calendar({ events = [], onDatePress, onMonthChange, sche
                   return <View key={di} style={{ width: cellWidth }} />;
                 }
 
-                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const dateStr = dateKey(day);
                 const isToday = dateStr === todayStr;
+                const adEvent = findAdEvent(dateStr);
                 const dayEvents = getEventsForDay(day);
-                const visibleEvents = dayEvents.slice(0, maxVisibleEvents);
+                const visibleEvents = dayEvents.slice(0, adEvent ? Math.max(0, maxVisibleEvents - 1) : maxVisibleEvents);
                 const remaining = dayEvents.length - visibleEvents.length;
 
                 return (
@@ -251,11 +272,18 @@ export default function Calendar({ events = [], onDatePress, onMonthChange, sche
                       <Text style={[
                         styles.dayNumber,
                         isToday && styles.todayNumber,
+                        adEvent && styles.adDayNumber,
                         di === 0 && styles.sundayText,
                         di === 6 && styles.saturdayText,
                       ]}>{day}</Text>
                     </View>
                     <View style={styles.eventArea}>
+                      {adEvent && (
+                        <View style={[styles.eventRow, styles.adRow]}>
+                          <Text style={styles.adFanfare}>🎉</Text>
+                          <Text style={[styles.eventText, styles.adTitle, { color: adEvent.borderColor }]} numberOfLines={1}>{adEvent.title}</Text>
+                        </View>
+                      )}
                       {visibleEvents.map((ev, ei) => (
                         <View key={ei} style={styles.eventRow}>
                           <View style={[styles.eventDot, { backgroundColor: ev.color }]} />
@@ -269,6 +297,23 @@ export default function Calendar({ events = [], onDatePress, onMonthChange, sche
                   </Pressable>
                 );
               })}
+              {getAdSegments(week).map(({ ev, startCol, span, openLeft, openRight }) => (
+                <View
+                  key={ev.id}
+                  pointerEvents="none"
+                  style={[
+                    styles.adBox,
+                    {
+                      borderColor: ev.borderColor,
+                      height: rowHeight - 4,
+                      left: startCol * cellWidth + (openLeft ? 0 : 2),
+                      width: span * cellWidth - (openLeft ? 0 : 2) - (openRight ? 0 : 2),
+                    },
+                    openLeft && styles.adBoxOpenLeft,
+                    openRight && styles.adBoxOpenRight,
+                  ]}
+                />
+              ))}
             </View>
             {wi < weeks.length - 1 && <View style={styles.weekDivider} />}
           </View>
@@ -381,6 +426,36 @@ const styles = StyleSheet.create({
   },
   weekRow: {
     flexDirection: 'row',
+  },
+  adBox: {
+    position: 'absolute',
+    top: 2,
+    borderWidth: 2.5,
+    borderRadius: 8,
+  },
+  adBoxOpenLeft: {
+    borderLeftWidth: 0,
+    borderTopLeftRadius: 0,
+    borderBottomLeftRadius: 0,
+  },
+  adBoxOpenRight: {
+    borderRightWidth: 0,
+    borderTopRightRadius: 0,
+    borderBottomRightRadius: 0,
+  },
+  // 테두리(2.5)에 붙지 않도록 안쪽으로 띄운다
+  adRow: {
+    paddingLeft: 4,
+    paddingRight: 3,
+  },
+  adFanfare: {
+    fontSize: 6,
+  },
+  adTitle: {
+    fontFamily: 'SUIT-Bold',
+  },
+  adDayNumber: {
+    fontFamily: 'SUIT-Bold',
   },
   weekDivider: {
     height: 1,

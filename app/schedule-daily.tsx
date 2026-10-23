@@ -1,13 +1,13 @@
 import React, { useState, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, Pressable, ScrollView,
+  View, Text, StyleSheet, Pressable, ScrollView, Linking,
 } from 'react-native';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import Colors from '@/constants/Colors';
 import { useLatestRequest } from '@/hooks/useLatestRequest';
-import { api, Schedule } from '@/services/api';
+import { api, CalendarEvent, Schedule } from '@/services/api';
 import Spinner from '@/components/Spinner';
 import LevelBadge from '@/components/LevelBadge';
 
@@ -17,6 +17,7 @@ export default function ScheduleDailyScreen() {
   const { date, filter = 'mine', sourceLabel } = useLocalSearchParams<{ date: string; filter?: string; sourceLabel?: string }>();
   const source = sourceLabel ?? (filter === 'instructor' ? '강사 일정' : filter === 'closeFriend' ? '친한친구 일정' : filter.startsWith('group_') ? '그룹 일정' : '내 일정');
   const [schedules, setSchedules] = useState<Schedule[]>([]);
+  const [adEvents, setAdEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const request = useLatestRequest();
@@ -31,7 +32,13 @@ export default function ScheduleDailyScreen() {
       const isCurrent = request.start();
       setLoading(true);
       setSchedules([]);
+      setAdEvents([]);
       setError(false);
+      const [y, m] = date.split('-').map(Number);
+      // 날짜 광고는 실패해도 일정 표시를 막지 않는다.
+      api.getCalendarEvents(y, m)
+        .then((res) => { if (isCurrent()) setAdEvents((res.events ?? []).filter((e) => e.startDate <= date && date <= e.endDate)); })
+        .catch(() => {});
       api.getDailySchedules(date, filter)
         .then((res) => { if (isCurrent()) setSchedules(res.schedules ?? []); })
         .catch(() => { if (isCurrent()) setError(true); })
@@ -61,6 +68,8 @@ export default function ScheduleDailyScreen() {
 
   const timelineSlots = buildTimelineSlots();
 
+  const formatShortDate = (d: string) => { const [, mm, dd] = d.split('-').map(Number); return `${mm}/${dd}`; };
+
   return (
     <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       <StatusBar style="light" />
@@ -82,16 +91,52 @@ export default function ScheduleDailyScreen() {
         <View style={styles.emptyArea}>
           <Text style={styles.emptyMessage}>일정을 불러오지 못했습니다. 잠시 후 다시 열어주세요.</Text>
         </View>
-      ) : schedules.length === 0 ? (
+      ) : schedules.length === 0 && adEvents.length === 0 ? (
         <View style={styles.emptyArea}>
           <Text style={styles.emptyMessage}>예정된 일정이 없습니다.</Text>
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          {/* 날짜 광고 이벤트: 타임라인 맨 위, 제목은 이벤트 색상 */}
+          {adEvents.length > 0 && (
+            <View>
+              <View style={styles.leadingLine}>
+                <View style={styles.timeLabelWrap} />
+                <View style={styles.lineColumn}>
+                  <View style={styles.lineLeading} />
+                </View>
+              </View>
+              <View style={styles.timelineItem}>
+                <View style={styles.timeLabelWrap}>
+                  <Text style={styles.timeText}>종일</Text>
+                </View>
+                <View style={styles.lineColumn}>
+                  <View style={styles.dotActive} />
+                  <View style={styles.lineBottom} />
+                </View>
+                <View style={styles.timelineContent}>
+                  {adEvents.map((ev) => (
+                    <Pressable
+                      key={`ad-${ev.id}`}
+                      disabled={!ev.url}
+                      style={({ pressed }) => [styles.scheduleCard, styles.adCard, pressed && { opacity: 0.7 }]}
+                      onPress={() => { if (ev.url) Linking.openURL(ev.url).catch(() => {}); }}
+                    >
+                      <Text style={[styles.scheduleTitle, { color: ev.borderColor }]}>🎉 {ev.title}</Text>
+                      <Text style={styles.scheduleDetail}>
+                        • 기간 : {ev.startDate === ev.endDate ? formatShortDate(ev.startDate) : `${formatShortDate(ev.startDate)} ~ ${formatShortDate(ev.endDate)}`}
+                      </Text>
+                      {!!ev.url && <Text style={[styles.scheduleDetail, { color: ev.borderColor }]}>• 자세히 보기 {'>'}</Text>}
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            </View>
+          )}
           {timelineSlots.map(([time, items], slotIndex) => (
             <View key={time}>
               {/* 첫 슬롯 위쪽 작대기 */}
-              {slotIndex === 0 && (
+              {slotIndex === 0 && adEvents.length === 0 && (
                 <View style={styles.leadingLine}>
                   <View style={styles.timeLabelWrap} />
                   <View style={styles.lineColumn}>
@@ -276,6 +321,9 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     minHeight: CARD_HEIGHT,
     marginTop: -3,
+  },
+  adCard: {
+    minHeight: 0,
   },
   scheduleTitle: {
     fontFamily: 'SUIT-Bold',

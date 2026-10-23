@@ -159,7 +159,7 @@ export default function ScheduleDetailScreen() {
       Alert.alert('알림', '내 일정 또는 내 문서만 조회할 수 있어요.');
       return;
     }
-    void openFormUrl(`${FORM_BASE_URL}/${uuid}?from=instructor`);
+    void openFormUrl(`${FORM_BASE_URL}/?id=${uuid}&from=instructor`);
   };
 
   const copyScheduleUrl = async () => {
@@ -179,7 +179,7 @@ export default function ScheduleDetailScreen() {
       Alert.alert('알림', '내 일정 또는 내 문서만 조회할 수 있어요.');
       return;
     }
-    const url = `${FORM_BASE_URL}/${uuid}`;
+    const url = `${FORM_BASE_URL}/?id=${uuid}`;
     await Clipboard.setStringAsync(url);
     Alert.alert('알림', 'URL이 복사되었습니다.');
   };
@@ -287,7 +287,7 @@ export default function ScheduleDetailScreen() {
 
               const openFormForSign = (uuid?: string) => {
                 if (!uuid) return;
-                void openFormUrl(`${FORM_BASE_URL}/${uuid}`);
+                void openFormUrl(`${FORM_BASE_URL}/?id=${uuid}`);
               };
 
               return (

@@ -7,7 +7,7 @@ import { useCalendarSchedules } from '@/hooks/useCalendarSchedules';
 
 export default function TabA() {
   const router = useRouter();
-  const { events, filter, filterOptions, error, retry, handleMonthChange, handleFilterChange } = useCalendarSchedules();
+  const { events, calendarEvents, filter, filterOptions, error, retry, handleMonthChange, handleFilterChange } = useCalendarSchedules();
   return (
     <View style={styles.container}>
       {error && (
@@ -17,6 +17,7 @@ export default function TabA() {
       )}
       <Calendar
         events={events}
+        calendarEvents={calendarEvents}
         onDatePress={(date) => router.push({ pathname: '/schedule-daily', params: {
           date, filter,
           sourceLabel: filter.startsWith('group_')

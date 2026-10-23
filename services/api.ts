@@ -110,6 +110,16 @@ export type Profile = {
   cnf: number | null;
 };
 
+// 캘린더 날짜 광고. startDate~endDate(YYYY-MM-DD) 구간을 borderColor 테두리로 묶어 표시
+export type CalendarEvent = {
+  id: number;
+  startDate: string;
+  endDate: string;
+  title: string;
+  url: string | null;
+  borderColor: string;
+};
+
 export type ScheduleParticipantSummary = {
   userId?: string | null;
   nickname: string;
@@ -547,6 +557,10 @@ export const api = {
       return { schedules: (result.schedules ?? []).filter((schedule) => schedule.scheduleDate === date) };
     }
     return request<{ schedules: Schedule[] }>(`/schedule/daily?date=${date}`);
+  },
+
+  getCalendarEvents(year: number, month: number) {
+    return request<{ events: CalendarEvent[] }>(`/calendar-events?year=${year}&month=${month}`);
   },
 
   getMonthlySchedules(year: number, month: number, filter?: string) {

@@ -290,6 +290,7 @@ test('calendar filter changes cannot be overwritten by a late previous filter re
     './useLatestRequest': requestHook,
     '@/services/api': { api: {
       getFriendGroups: async () => ({ groups: [] }),
+      getCalendarEvents: async () => ({ events: [] }),
       getMonthlySchedules(year, month, filter) {
         const job = { ...deferred(), year, month, filter }; pending.push(job); return job.promise;
       },

@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { AppState } from 'react-native';
-import { api, Schedule } from '@/services/api';
+import { api, CalendarEvent, Schedule } from '@/services/api';
 import { useLatestRequest } from './useLatestRequest';
 import { getScheduleMarkerColor } from '@/utils/scheduleMarker';
 
@@ -22,6 +22,9 @@ export function useCalendarSchedules() {
   const pending = useRef(new Map<string, Promise<EventItem[]>>());
   const epoch = useRef(0);
   const request = useLatestRequest();
+  // 날짜 광고는 필터와 무관하게 월 단위로 받는다. 실패해도 일정 표시에는 영향을 주지 않는다.
+  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
+  const adCache = useRef(new Map<string, CalendarEvent[]>());
   const filterOptions = useMemo(() => [
     { key: 'mine', label: '내 일정' },
     { key: 'instructor', label: '강사 일정' },
@@ -49,6 +52,15 @@ export function useCalendarSchedules() {
 
   const handleMonthChange = useCallback((year: number, month: number) => {
     currentMonth.current = { year, month };
+    const adKey = `${year}-${month}`;
+    setCalendarEvents(adCache.current.get(adKey) ?? []);
+    api.getCalendarEvents(year, month + 1)
+      .then((res) => {
+        const items = res.events ?? [];
+        adCache.current.set(adKey, items);
+        if (currentMonth.current.year === year && currentMonth.current.month === month) setCalendarEvents(items);
+      })
+      .catch(() => {});
     const isCurrent = request.start();
     setEvents(cache.current.get(`${year}-${month}_${filter}`) ?? []);
     setError(false);
@@ -98,5 +110,5 @@ export function useCalendarSchedules() {
     };
   }, [handleMonthChange, request]));
 
-  return { events, filter, filterOptions, error, retry, handleMonthChange, handleFilterChange };
+  return { events, calendarEvents, filter, filterOptions, error, retry, handleMonthChange, handleFilterChange };
 }
