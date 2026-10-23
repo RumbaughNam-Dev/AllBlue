@@ -122,7 +122,7 @@ export default function ScheduleDailyScreen() {
                       <Text style={styles.scheduleTitle}>
                         {item.title}{' '}<Text style={styles.scheduleSource}>({source})</Text>
                       </Text>
-                      <Text style={styles.scheduleDetail}>• 장소 : {item.poolName || '-'}</Text>
+                      <Text style={styles.scheduleDetail}>• 장소 : {item.poolName || item.customLocation || '-'}</Text>
                       <Text style={styles.scheduleDetail}>• 분류 : {item.categoryName}</Text>
                       <Text style={styles.scheduleDetail}>• {item.categoryCode === 'TRAINING' || item.categoryCode === 'FUN_DIVE' ? '참석자' : '교육생'} : {item.participantCount}명</Text>
                       {(item.participants ?? []).length > 0 ? (

@@ -1,0 +1,2058 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+
+<script>
+    /** 서버 메시지 한글 → 현재 언어 번역 (영문 모드에서만 동작) */
+    (function () {
+        if ("en" !== "en") return;
+
+        const DICT     = {"지원사업 관리 신청 정보 수정에 실패하였습니다..":"Failed to update the application.","존재하지 않거나 권한이 없는 투자 밋업 신청 내역입니다.":"The investor meetup application was not found or you do not have permission.","현재 상태에서는 신청을 취소할 수 없습니다.":"The application cannot be cancelled in its current status.","해당 프로젝트의 상세 정보가 존재하지 않습니다.":"Project details not found.","일치하는 신청항목이 없습니다.":"No matching application item found.","본인인증 결과 정보가 없습니다.":"No identity verification result found.","지원사업 관리 신청 정보 생성에 실패하였습니다..":"Failed to create the application.","기업을 찾을 수 없습니다.":"Company not found.","투자 밋업 신청 취소 중 오류가 발생하였습니다.":"An error occurred while cancelling the investor meetup application.","가입되지 않은 휴대폰 번호입니다.":"This phone number is not registered.","유효하지 않은 사업자등록번호입니다.":"Invalid business registration number.","신청일 기준 1개월 내 일정만 신청 가능합니다.":"You can only apply for dates within one month from today.","국세청 진위확인 서비스에 연결할 수 없습니다. 잠시 후 다시 시도해 주세요.":"Cannot connect to the National Tax Service verification system. Please try again later.","본인인증 요청 중 오류가 발생하였습니다.":"An error occurred during identity verification.","이미 설문을 작성하셨습니다.":"You have already completed this survey.","존재하지 않는 장비 대여 정보입니다.":"Equipment rental information not found.","이미 해당 기업으로 신청한 이력이 있습니다.":"You have already applied with this company.","파일 다운로드 실패":"File download failed.","이미 진행중인 설문 프로젝트가 있습니다.":"A survey project is already in progress.","해당 장소를 찾을 수 없습니다":"The place could not be found.","비밀번호 확인을 입력해주세요.":"Please confirm your password.","본인인증이 만료되었습니다. 다시 인증해 주세요.":"Identity verification has expired. Please verify again.","기업 개요 정보가 존재하지 않습니다.":"Company overview information not found.","인증번호 발송에 실패하였습니다.":"Failed to send the verification code.","없는 기업(입주\/지원) 카드 정보입니다..":"Company card information not found.","인증 시간이 만료되었습니다. 다시 발송해 주세요.":"The verification code has expired. Please request a new one.","존재하지 않는 프로젝트에는 신청이 불가합니다.":"You cannot apply to a project that does not exist.","중복 투자밋업 신청 확인중 오류가 발생하였습니다.":"An error occurred while checking for duplicate applications.","없는 기업입니다.":"Company not found.","이미 신청 중인 장비 대여 신청 내역이 존재합니다.":"You already have a pending equipment rental application.","이미 해당 기업으로 신청한 이력이 존재합니다.":"You have already applied with this company.","인증번호가 일치하지 않습니다.":"The verification code does not match.","프로젝트를 삭제에 실패했습니다.":"Failed to delete the project.","이미 존재하는 설문지명입니다.":"This survey form name already exists.","기업 코드는 필수입니다.":"Company code is required.","지원사업 홍보 신청 정보 생성에 실패하였습니다..":"Failed to create the application.","이메일 인증이 만료되었습니다. 다시 인증해 주세요.":"Email verification has expired. Please verify again.","비밀번호가 변경되었습니다. 로그아웃 후, 다시 로그인 해주세요.":"Your password has been changed. Please log out and sign in again.","이미 지원사업에 신청서가 있어서 삭제할 수 없습니다.":"It cannot be deleted because applications already exist.","프로젝트 신청 이력이 존재합니다.":"You have already applied to this project.","취소되었습니다.":"Canceled.","회원 정보 조회 실패":"Failed to retrieve member information.","현재 비밀번호를 입력해주세요.":"Please enter your current password.","현재 진행중인 평가 프로젝트가 있습니다. 상세보기에서 평가 프로젝트를 완료상태로 변경한 다음에 지원사업을 삭제해 주세요.":"An evaluation project is in progress. Please mark it as completed in the detail view before deleting this program.","존재하지 않는 장비 대여 신청 내역입니다.":"Equipment rental application not found.","정상적인 요청이 아닙니다.":"Invalid request.","존재하지 않는 프로젝트 설문지 질문입니다.":"Survey question not found.","아이디를 입력해 주세요.":"Please enter your ID.","기업 정보(NICE)가 존재하지 않습니다.":"Company information (NICE) not found.","발송 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.":"Too many requests. Please try again later.","이미 회원가입된 계정이 존재합니다.":"An account already exists.","진행중인 설문의 설문지를 변경할 수 없습니다.":"The survey form cannot be changed while the survey is in progress.","해당 회원 정보 미존재":"Member information not found.","유효하지 않은 국가코드입니다.":"Invalid country code.","사업자등록번호 인증이 만료되었습니다. 다시 인증해 주세요.":"Business registration number verification has expired. Please verify again.","존재하지 않는 프로젝트 (입주 기업 포함) 신청 항목입니다.":"Project application item not found.","지정 휴일은 예약이 불가능합니다.":"Reservations are not available on designated holidays.","휴대폰 번호를 입력해 주세요.":"Please enter your phone number.","존재하는 회원 정보":"This member already exists.","설문 프로젝트에서 사용중인 설문지입니다. 설문지를 수정할 수 없습니다. 설문지를 복제하여 설문지를 추가로 만들고 수정해 주세요.":"This survey form is in use by a survey project and cannot be edited. Please duplicate it and edit the copy.","사용중인 설문지는 삭제할 수 없습니다.":"A survey form in use cannot be deleted.","투자 밋업 신청 횟수 확인중 오류가 발생하였습니다.":"An error occurred while checking your application count.","존재하지 않는 프로젝트 정보입니다.":"Project information not found.","인증번호 발송이 필요합니다.":"Please request a verification code first.","일시적으로 발송이 중단되었습니다. 잠시 후 다시 시도해 주세요.":"Sending is temporarily suspended. Please try again later.","한 달에 신청할 수 있는 횟수는 5번 입니다.":"You can apply up to 5 times per month.","현재 비밀번호가 일치하지 않습니다.":"The current password does not match.","지원사업 홍보 신청 정보 수정에 실패하였습니다..":"Failed to update the application.","비밀번호와 비밀번호 확인이 일치하지 않습니다.":"The passwords do not match.","장소 대관 신청항목 생성에 실패하였습니다.":"Failed to create the place rental item.","유효하지 않은 회원입니다.":"Invalid member.","존재하지 않는 예약 신청 내역입니다.":"Reservation not found.","프로젝트가 존재하지 않습니다.":"Project not found.","투자 밋업 신청 횟수 확인중 오류가 발생하엿습니다..":"An error occurred while checking your application count.","회원정보가 존재하지 않습니다.":"Member information not found.","인증 시간이 만료되었습니다. 다시 시도해 주세요.":"Verification has expired. Please try again.","장비 대여 정보 생성에 실패하였습니다.":"Failed to create the equipment rental.","예약 날짜 형식이 올바르지 않습니다.":"The reservation date format is invalid.","진행 중인 예약(승인대기\/승인)이 있어 삭제할 수 없습니다.":"It cannot be deleted because there is an active reservation (pending or approved).","비밀번호는 8자리 이상 20자리 이하만 사용 가능합니다.":"The password must be 8 to 20 characters long.","사업자등록번호 형식이 올바르지 않습니다.":"The business registration number format is invalid.","이번 달에 해당 투자자 기업에 신청한 이력이 있습니다.":"You have already applied to this investor this month.","회원 정보를 찾을 수 없습니다.":"Member information not found.","본인인증 요청 정보가 없습니다. 다시 시도해 주세요.":"No identity verification request found. Please try again.","회사명에 사용할 수 없는 문자(<, >)가 포함되어 있습니다.":"The company name contains characters that are not allowed (<, >).","사업자등록번호가 누락되었습니다.":"Business registration number is missing.","해당 아이디와 번호로 가입한 회원이 없습니다.":"No account matches this ID and phone number.","휴대폰 인증이 만료되었습니다. 다시 인증해 주세요.":"Phone verification has expired. Please verify again.","이미 신청 중인 장소 대관 신청 내역이 존재합니다.":"You already have a pending place rental application.","분기별 1회만 신청 가능합니다. 해당 분기에 이미 신청 이력이 존재합니다.":"Only one application per quarter is allowed. You have already applied in this quarter.","기업 정보 연결에 실패하였습니다.":"Failed to link company information.","존재하지 않는 장소 대관 신청 내역입니다.":"Place rental application not found.","이미 가입한 휴대폰 번호입니다. 아이디\/비밀번호 찾기를 이용해 주세요.":"This phone number is already registered. Please use Find ID \/ Find Password.","회원 탈퇴 신청 실패":"Failed to process the withdrawal request.","본인인증 결과 무결성 검증에 실패하였습니다.":"Failed to validate the identity verification result.","이미 입주중인 기업입니다.":"This company is already a resident company.","해당 코멘트 삭제 권한이 없습니다.":"You do not have permission to delete this comment.","해당 시간대는 이미 마감되었습니다.":"This time slot is already fully booked.","존재하지 않는 신청항목입니다.":"Application item not found.","존재하지 않는 기업 코멘트 입니다.":"Company comment not found.","이미 가입된 이메일입니다.":"This email address is already registered.","유효하지 않은 첨부 파일 변경 요청입니다.":"Invalid attachment change request.","프로젝트 (입주 기업 포함) 생성에 실패하였습니다.":"Failed to create the project.","이미 존재하는 기업입니다.":"This company is already registered.","일요일은 예약이 불가능합니다.":"Reservations are not available on Sundays.","기업이 존재하지 않습니다.":"Company not found.","발송 가능 횟수를 초과했습니다. 24시간 후 다시 시도해 주세요.":"You have exceeded the sending limit. Please try again in 24 hours.","이미 회원가입된 DI 값 존재.":"An account already exists for this identity.","접수가 마감되었습니다.":"Applications are closed.","인증 시도 횟수를 초과했습니다. 다시 발송해 주세요.":"Too many attempts. Please request a new code.","이메일 형식을 확인해 주세요.":"Please check your email format.","존재하지 않는 투자 밋업 신청 내역입니다.":"Investor meetup application not found.","존재하지 않는 밋업 신청 내역입니다.":"Meetup application not found.","투자 밋업 신청 삭제 중 오류가 발생하였습니다.":"An error occurred while deleting the investor meetup application.","유효하지 않은 휴대폰 번호입니다.":"Invalid phone number.","지원사업 홍보 신청 정보 삭제에 실패하였습니다..":"Failed to delete the application.","회원 정보 수정 실패":"Failed to update member information.","이미 승인된 정보가 존재합니다.":"An approved record already exists.","존재하지 않는 프로젝트 설문지입니다.":"Survey form not found.","비밀번호 형식을 확인해주세요. (영문 + 숫자 8자 이상 20자 이하)":"Please check the password format (letters + numbers, 8-20 characters).","프로젝트 신청 취소 중 오류가 발생하였습니다.":"An error occurred while cancelling the application.","기업 (입주\/지원) 카드 생성에 실패하였습니다..":"Failed to create the company card.","존재하지 않은 기업 (입주\/지원) 카드입니다..":"Company card not found.","존재하지 않는 프로젝트 설문지 질문 문항입니다.":"Survey question item not found.","지원하지 않는 기업 정보 갱신 타입입니다.":"Unsupported company information update type.","본인인증 이력 미존재":"No identity verification record found.","사업자등록번호 진위확인에 실패하였습니다.":"Failed to verify the business registration number.","이용 약관 처리 실패":"Failed to process the terms agreement.","토요일은 예약이 불가능합니다.":"Reservations are not available on Saturdays.","변경할 비밀번호를 입력해주세요.":"Please enter a new password.","객관식 질문은 문항 수량이 필수입니다.(2개 이상)":"Multiple-choice questions require at least two options.","존재하지 않는 기업 정보입니다.":"Company information not found.","이미 가입된 휴대폰 번호입니다.":"This phone number is already registered.","프로젝트 정보를 찾지 못했습니다..":"Project information not found.","신청 정보를 찾지 못했거나 권한이 없습니다.":"The application was not found or you do not have permission.","등록된 이메일이 없습니다.":"No email address is registered.","본인인증 결과 복호화에 실패하였습니다.":"Failed to decrypt the identity verification result.","존재하지 않는 장소 대관 정보입니다.":"Place rental information not found.","지원사업 관리 신청 정보 삭제에 실패하였습니다..":"Failed to delete the application.","존재하지 않는 장비 대여 신청 정보입니다.":"Equipment rental application not found.","예약은 7일 전까지만 가능합니다.":"Reservations must be made at least 7 days in advance.","인증된 사업자등록번호와 일치하지 않습니다.":"This does not match the verified business registration number.","존재하지 않는 프로젝트 신청 내역입니다.":"Project application not found.","유효하지 않은 국가번호입니다.":"Invalid dialing code.","장소 대관 정보 생성에 실패하였습니다.":"Failed to create the place rental.","회원 정보가 존재하지 않습니다.":"Member information not found.","투자상담 안내 생성에 실패하였습니다.":"Failed to create the investment consultation information.","투자 밋업 신청에 실패하였습니다..":"Failed to submit the investor meetup application.","비밀번호 변경에 실패했습니다.":"Failed to change the password.","존재하지 않는 프로젝트 설문지 선택 항목입니다.":"Survey option not found.","이미 존재하는 회원정보":"This member already exists.","존재하지 않는 장소 대관 신청 정보입니다.":"Place rental application not found.","이미 존재하는 항목명입니다.":"This item name already exists.","휴대폰 인증이 필요합니다.":"Phone verification is required.","존재하지 않는 투자상담 안내 정보입니다.":"Investment consultation information not found.","이미 존재하는 회원 ID입니다.":"This user ID already exists."};
+        const PATTERNS = [{"from":"^(\\d+)초 후에 재발송할 수 있습니다\\.$","to":"You can resend in $1 seconds."},{"from":"^(\\d+)초 후에 다시 시도할 수 있습니다\\.$","to":"You can try again in $1 seconds."},{"from":"^본인인증 토큰 발급에 실패하였습니다\\.","to":"Failed to issue the identity verification token."},{"from":"^본인인증 URL 발급에 실패하였습니다\\.","to":"Failed to issue the identity verification URL."},{"from":"^본인인증 결과 조회에 실패하였습니다\\.","to":"Failed to retrieve the identity verification result."},{"from":"^정의되지 않은 신청 상태 코드","to":"Undefined application status code."}];
+
+        function translate(msg) {
+            if (!msg) return msg;
+            const key = String(msg).trim();
+            if (DICT[key]) return DICT[key];
+            for (let i = 0; i < PATTERNS.length; i++) {
+                const m = key.match(new RegExp(PATTERNS[i].from));
+                if (m) return PATTERNS[i].to.replace(/[$](\d)/g, function (_, n) { return m[n]; });
+            }
+            return msg;   /** 사전에 없으면 원문 그대로 */
+        }
+        window.translateServerMessage = translate;
+
+        /** 기존 화면 수정 없이 전체 커버 — alert 래핑 */
+        const nativeAlert = window.alert;
+        window.alert = function (msg) { nativeAlert(translate(msg)); };
+    })();
+</script>
+
+
+<title>지원사업 상세 | 스타트업플러스</title>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="format-detection" content="telephone=no" />
+<meta name="description" content="스타트업플러스 지원사업 상세 안내. 지원 대상, 접수 기간, 사업 내용을 확인하고 서울시 스타트업 통합플랫폼 ‘스타트업플러스’에서 바로 신청하세요.">
+
+<meta name="keywords" content="스타트업플러스, 스타트업 지원사업, 창업 지원, 정부지원사업, 엑셀러레이팅, 스타트업 교육, 스타트업 멘토링, 창업 정보, 지원사업 신청, 네트워킹">
+<meta name="naver-site-verification" content="436b1934bec128f8e51bc392e169d1d24bc959f6" />
+<meta name="google-site-verification" content="mQzZoluaDV8ZI22bS_uoPE_w64W8WDrqt0EkISUQi0Q" />
+
+<link rel="canonical" href="https://www.startup-plus.kr/" />
+
+<meta property="og:title" content="스타트업플러스 - 서울시 통합 창업 플랫폼">
+<meta property="og:image" content="https://www.startup-plus.kr/web/assets/other/image/opengrape_startup.png" />
+<meta property="og:url" content="https://www.startup-plus.kr/">
+<meta property="og:description" content="스타트업플러스는 서울시의 통합 창업 플랫폼입니다. 스타트업 정보 검색, 투자 매칭, 기술 거래부터 글로벌 진출까지 지원하는 최적의 창업 생태계를 경험하세요.">
+<meta property="og:site_name" content="스타트업플러스"/>
+<meta property="og:type" content="website">
+<meta property="og:locale" content="ko_KR" />
+
+<link rel="preconnect" href="https://www.google-analytics.com"/>
+<link rel="preconnect" href="https://www.googletagmanager.com"/>
+
+<link rel="alternate" hreflang="ko-KR" href="https://www.startup-plus.kr/" />
+<link rel="alternate" hreflang="en" href="https://www.startup-plus.kr/?lang=en" />
+<link rel="alternate" hreflang="x-default" href="https://www.startup-plus.kr/" />
+
+<link rel="apple-touch-icon" sizes="57x57" href="/web/assets/images/favicon/apple-icon-57x57.png">
+<link rel="apple-touch-icon" sizes="60x60" href="/web/assets/images/favicon/apple-icon-60x60.png">
+<link rel="apple-touch-icon" sizes="72x72" href="/web/assets/images/favicon/apple-icon-72x72.png">
+<link rel="apple-touch-icon" sizes="76x76" href="/web/assets/images/favicon/apple-icon-76x76.png">
+<link rel="apple-touch-icon" sizes="114x114" href="/web/assets/images/favicon/apple-icon-114x114.png">
+<link rel="apple-touch-icon" sizes="120x120" href="/web/assets/images/favicon/apple-icon-120x120.png">
+<link rel="apple-touch-icon" sizes="144x144" href="/web/assets/images/favicon/apple-icon-144x144.png">
+<link rel="apple-touch-icon" sizes="152x152" href="/web/assets/images/favicon/apple-icon-152x152.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/web/assets/images/favicon/apple-icon-180x180.png">
+
+<link rel="icon" type="image/png" sizes="16x16" href="/web/assets/images/favicon/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/web/assets/images/favicon/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="96x96" href="/web/assets/images/favicon/favicon-96x96.png">
+<link rel="shortcut icon" href="/web/assets/images/favicon/favicon.ico">
+
+<meta name="msapplication-TileColor" content="#ffffff" />
+<meta name="msapplication-TileImage" content="/web/assets/images/favicon/ms-icon-144x144.png" />
+<meta name="theme-color" content="#ffffff" />
+
+
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Karla:wght@200;300;400;500;600;700;800&family=Montserrat:wght@300;400;500&family=Noto+Sans+KR:wght@100;300;400;500;700;900&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" />
+
+<!-- CSS -->
+<link rel="stylesheet" href="/web/assets/css/utils/reset.css?update=240314" />
+<link rel="stylesheet" href="/web/assets/css/fonts.css?update=240314" />
+<link rel="stylesheet" href="/web/assets/css/main_v3.css?update=241212">
+
+
+
+
+
+
+<link rel="stylesheet" href="/assets/css/swiper/swiper-bundle.min.css">
+<link rel="stylesheet" href="/web/assets/css/plugins/slick.css">
+<link rel="stylesheet" href="/web/assets/css/plugins/slick-theme.css">
+
+
+<!-- JS -->
+<script src="/web/assets/js/jquery.min.js"></script>
+<script src="/web/assets/js/plugins/jquery-ui.min.js"></script>
+
+<script src="/assets/js/swiper/swiper-bundle.min.js"></script>
+
+
+<script src="/web/assets/js/plugins/slick.min.js"></script>
+<script src="/web/assets/js/plugins/underscore-min.js"></script>
+<script src="/web/assets/js/plugins/moment.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/web/assets/js/plugins/iscroll.js"></script>
+<script src="/assets/js/lib/xlsx.full.min.js"></script>
+
+<script src="/web/assets/js/tabPanel.js"></script>
+<script src="/web/assets/js/modal.js"></script>
+<script src="/web/assets/js/toogleBtn.js"></script>
+<script src="/assets/js/datepicker.js"></script>
+
+
+
+<script src="/web/assets/js/_util_common.js?update=20240718_2"></script>
+<script src="/web/assets/js/common/common.js"></script>
+<script src="/web/assets/js/plugins/gsap.min.js"></script>
+
+<script>
+    var ctsConfig = {
+        prefix : {
+            APP: 'sspmanager',
+            USERID : 'USER_ID',
+            USERINFO : 'userInfo',
+            TABINFO : 'tab'
+        },
+        // 로거 사용여부(true=>콘솔 로그 출력, false, 콘솔 로그 미출력)
+        logger: true,
+        // 콘텐츠 영역 화면 DOM ID
+        container : "#main-container",
+        // 콘텐츠 영역 자동 높이 계산 여부
+        containerAutoHeight: true,
+    }
+</script>
+
+
+<script src="/assets/js/application.util.js"></script>
+<script src="/assets/js/application.code.js"></script>
+<script src="/web/cts/cts.datasource.js"></script>
+<script src="/web/cts/cts.list.js"></script>
+<script src="/web/cts/cts.file.js"></script>
+<script src="/web/cts/cts.paging.js"></script>
+<script src="/web/cts/cts.validator.js"></script>
+<script src="/web/cts/cts.loading.js"></script>
+
+
+
+
+
+<script>
+  
+  
+  
+  
+
+  if(navigator.userAgent.indexOf("Trident") > 0){
+    alert("스타트업 플러스는 은 Microsoft Edge, Chrome 브라우저에 최적화 되어있습니다. " +
+            "원활한 사용을 원하시면 Microsoft Edge, Chrome 브라우저를 권장합니다. 확인버튼을 누르면 Edge브라우저로 자동으로 이동됩니다.")
+    window.location = 'microsoft-edge:' + window.location.href
+  } else if(/MSIE \d |Trident.*rv:/.test(navigator.userAgent)) {
+    alert("스타트업 플러스는 Microsoft Edge, Chrome 브라우저에 최적화 되어있습니다. " +
+            "원활한 사용을 원하시면 Microsoft Edge, Chrome 브라우저를 권장합니다.  확인버튼을 누르면 Edge브라우저로 자동으로 이동됩니다.")
+    window.location = 'microsoft-edge:http:' + window.location.href
+  }
+
+  // 언어 변경할 때 <html> 태그 안에 lang="ko", lang="en" 넣어주기
+  if("en" == "kr") { // kr -> ko로 변경하여 넣어줌
+    let krChangeKo = "en";
+    krChangeKo = "ko";
+  }
+  document.documentElement.setAttribute("lang", "en");
+
+  function showPrivacyTerm(){
+    window.open("/cms_for_portal/process/etc/indi1/list.do");
+  }
+
+  // 언어 변경 버튼 클릭 시,
+  function btnClickChangeLanguage() {
+    const lang = String(document.querySelector("text.KR tspan").innerHTML.replace(" ",""));
+    const url = new URL(document.location.href);
+    url.searchParams.set("lang", lang.toLowerCase());
+    window.location.href = url.href;
+  }
+
+  //기업 회원 체크 함수
+  function moveCompanyCheckTo(url){
+    
+    
+    alert('로그인 후 이용 가능합니다.');
+    document.forms.isLoginCheckForm.action="/cms_for_portal/process/etc/login/list.do?show_no=149&check_no=147&c_relation=245&c_relation2=830";
+    document.forms.isLoginCheckForm.return_url.value=url;
+    document.forms.isLoginCheckForm.submit();
+    
+    
+    
+    
+  }
+
+  function moveLoginCheckTo(url){
+    
+    
+    
+    alert('로그인 후 이용 가능합니다.');
+    document.forms.isLoginCheckForm.action="/cms_for_portal/process/etc/login/list.do";
+    document.forms.isLoginCheckForm.return_url.value=url;
+    document.forms.isLoginCheckForm.submit();
+    
+    
+  }
+</script>
+
+
+</head>
+<body>
+<script>
+let postfixLang = "en";
+
+</script>
+    <div id="wrap">
+    
+
+
+
+
+<form name="isLoginCheckForm" id="isLoginCheckForm" method="POST">
+    <input type="hidden" name="return_url" value="" >
+</form>
+
+<header class="site__header covered" data-subpage="true">
+    <div class="navbar">
+    
+<a href="/" class="site__logo" title="로고">
+  <span class="hp_hidden">스타트업플러스</span>
+  
+  <svg
+          version="1.1"
+          id="svg9"
+          width="1183.5555"
+          height="271.89014"
+          viewBox="0 0 1183.5556 271.89015"
+          sodipodi:docname="스타트업플러스 영문.svg"
+          inkscape:version="1.2.1 (9c6d41e410, 2022-07-14)"
+          xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+          xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+          xmlns="http://www.w3.org/2000/svg"
+          xmlns:svg="http://www.w3.org/2000/svg">
+    <defs
+            id="defs13">
+      <clipPath
+              clipPathUnits="userSpaceOnUse"
+              id="clipPath25">
+        <path
+                d="M 0,1000 H 1000 V 0 H 0 Z"
+                id="path23" />
+      </clipPath>
+      <clipPath
+              clipPathUnits="userSpaceOnUse"
+              id="clipPath51">
+        <path
+                d="m 573.439,539.942 h 80.096 v 19.324 h -80.096 z"
+                id="path49" />
+      </clipPath>
+      <linearGradient
+              x1="0"
+              y1="0"
+              x2="1"
+              y2="0"
+              gradientUnits="userSpaceOnUse"
+              gradientTransform="matrix(-80.09623,0,0,80.09623,653.53595,549.60437)"
+              spreadMethod="pad"
+              id="linearGradient65">
+        <stop
+                style="stop-opacity:1;stop-color:#5dbfe5"
+                offset="0"
+                id="stop57" />
+        <stop
+                style="stop-opacity:1;stop-color:#ffb100"
+                offset="0.32046249"
+                id="stop59" />
+        <stop
+                style="stop-opacity:1;stop-color:#ffb100"
+                offset="1"
+                id="stop61" />
+        <stop
+                style="stop-opacity:1;stop-color:#ffb100"
+                offset="1"
+                id="stop63" />
+      </linearGradient>
+      <clipPath
+              clipPathUnits="userSpaceOnUse"
+              id="clipPath75">
+        <path
+                d="m 603.661,499.187 h 19.67 v 89.899 h -19.67 z"
+                id="path73" />
+      </clipPath>
+      <linearGradient
+              x1="0"
+              y1="0"
+              x2="1"
+              y2="0"
+              gradientUnits="userSpaceOnUse"
+              gradientTransform="matrix(0,89.899307,89.899307,0,613.49658,499.18643)"
+              spreadMethod="pad"
+              id="linearGradient87">
+        <stop
+                style="stop-opacity:1;stop-color:#5dbfe5"
+                offset="0"
+                id="stop81" />
+        <stop
+                style="stop-opacity:1;stop-color:#f6ac19"
+                offset="0.32046249"
+                id="stop83" />
+        <stop
+                style="stop-opacity:1;stop-color:#f6ac19"
+                offset="1"
+                id="stop85" />
+      </linearGradient>
+      <clipPath
+              clipPathUnits="userSpaceOnUse"
+              id="clipPath97">
+        <path
+                d="M 0,1000 H 1000 V 0 H 0 Z"
+                id="path95" />
+      </clipPath>
+    </defs>
+    <sodipodi:namedview
+            id="namedview11"
+            pagecolor="#ffffff"
+            bordercolor="#000000"
+            borderopacity="0.25"
+            inkscape:showpageshadow="2"
+            inkscape:pageopacity="0.0"
+            inkscape:pagecheckerboard="0"
+            inkscape:deskcolor="#d1d1d1"
+            showgrid="false"
+            inkscape:zoom="0.61050006"
+            inkscape:cx="591.31853"
+            inkscape:cy="152.33414"
+            inkscape:window-width="1920"
+            inkscape:window-height="1017"
+            inkscape:window-x="1912"
+            inkscape:window-y="-8"
+            inkscape:window-maximized="1"
+            inkscape:current-layer="g17">
+      <inkscape:page
+              x="0"
+              y="0"
+              id="page15"
+              width="1183.5555"
+              height="271.89014" />
+    </sodipodi:namedview>
+    <g
+            id="g17"
+            inkscape:groupmode="layer"
+            inkscape:label="Page 1"
+            transform="matrix(1.3333333,0,0,-1.3333333,-75.146665,818.21065)">
+      <g
+              id="g19">
+        <g
+                id="g21"
+                clip-path="url(#clipPath25)">
+          <g
+                  id="g27"
+                  transform="translate(264.97,559.5175)">
+            <path
+                    d="m 0,0 v -81.43 h -17.47 l -0.62,9.18 c -2.49,-2.65 -5.6,-4.78 -9.24,-6.32 -4.49,-1.9 -9.33,-2.86 -14.36,-2.86 -0.56,0 -1.11,0 -1.68,0.04 l -0.08,-0.04 h -60.65 c -8.19,0 -14.29,2.2 -18.13,6.56 -3.81,4.31 -5.75,11.12 -5.75,20.24 v 39.03 h -42.83 c -3.86,0 -6.87,-0.69 -8.97,-2.06 -1.98,-1.29 -2.95,-3.13 -2.95,-5.63 0,-1.2 0.21,-2.23 0.62,-3.07 0.38,-0.8 1.12,-1.52 2.2,-2.16 1.2,-0.71 2.8,-1.39 4.75,-2.04 1.99,-0.67 4.56,-1.37 7.65,-2.11 3.38,-0.87 6.62,-1.74 9.75,-2.61 3.2,-0.89 6.08,-2.18 8.57,-3.84 2.53,-1.7 4.55,-3.98 6.01,-6.78 1.45,-2.8 2.18,-6.49 2.18,-10.95 0,-2.44 -0.4,-5.09 -1.21,-7.89 -0.82,-2.86 -2.38,-5.56 -4.64,-8.02 -2.24,-2.45 -5.39,-4.53 -9.35,-6.18 -3.94,-1.66 -9.16,-2.49 -15.51,-2.49 h -36.9 v 16.52 h 36.9 c 4.72,0 7.98,0.78 9.97,2.37 1.9,1.52 2.78,3.43 2.67,5.83 -0.09,1.95 -0.98,3.19 -2.77,3.91 -2.12,0.85 -6.01,2.02 -11.57,3.48 -4.59,1.24 -8.59,2.57 -11.91,3.94 -3.39,1.4 -6.24,3.11 -8.48,5.1 -2.26,2 -3.98,4.37 -5.12,7.04 -1.13,2.65 -1.7,5.93 -1.7,9.77 0,7.35 2.8,13.18 8.33,17.33 4.82,3.61 11.16,5.65 18.83,6.04 v 0.04 l 1.03,0.06 h 44.45 v 23.18 h 18.25 V 0 h 20.33 v -15.6 h -20.33 v -36.06 c 0,-4.69 0.72,-8.37 2.13,-10.22 1.36,-1.78 3.45,-2.65 6.38,-2.65 0,0 27.37,-0.01 27.36,0 h 32.79 c 0.39,-0.02 0.78,-0.02 1.19,-0.02 3.77,0 7.11,0.7 9.89,2.04 2.78,1.34 5.13,3.15 6.94,5.38 1.81,2.24 3.21,4.82 4.14,7.64 0.91,2.86 1.38,5.81 1.38,8.77 v 23.64 h -22.35 c -21.54,0 -22.153,-30.437 -8.546,-40.59 h -20.673 c -2.015,2.98 -3.161,5.057 -4.196,8.153 C -78.79,-33.074 -75.935,-12 -57.4,-3.34 -52.493,-1.047 -47.23,0 -41.87,0 Z"
+                    style="fill:#5dbfe5;fill-opacity:1;fill-rule:nonzero;stroke:none"
+                    id="path29" />
+          </g>
+          <g
+                  id="g31"
+                  transform="translate(470.37,559.5175)">
+            <path
+                    d="m 0,0 v -81.43 h -16.42 l -0.31,10.68 c -2.38,-2.87 -5.21,-5.25 -8.43,-7.11 -3.81,-2.21 -8.24,-3.4 -13.15,-3.53 l -0.31,-0.02 c -0.18,-0.01 -0.36,-0.02 -0.55,-0.02 -0.21,0 -0.42,0 -0.62,0.01 l 0.01,-0.01 h -56.05 c -8.19,0 -14.29,2.2 -18.13,6.56 -3.81,4.31 -5.74,11.12 -5.74,20.24 v 39.03 h -6.66 l -1.03,-0.02 H -154 c -6.51,0 -11.89,-2.14 -15.99,-6.36 -3.87,-4 -6.18,-10.93 -6.18,-18.55 v -40.9 h -18.25 v 81.24 h 18.25 v -5.64 c 1.49,0.94 3.06,1.77 4.66,2.49 4.94,2.21 10.17,3.34 15.53,3.34 h 36.28 v 23.18 h 18.25 V 0 h 20.32 v -15.6 h -20.32 v -36.06 c 0,-4.69 0.71,-8.01 2.12,-9.85 1.37,-1.79 3.45,-2.65 6.38,-2.65 h 26.03 c -1.13,3.36 -1.7,7.29 -1.7,11.76 V 0 h 18.07 v -49.81 c 0.11,-5.21 1.3,-8.86 3.52,-10.81 2.25,-1.99 5.57,-2.99 9.84,-2.99 2.84,0 5.44,0.56 7.74,1.66 2.34,1.11 4.35,2.57 5.99,4.32 1.65,1.76 2.94,3.74 3.85,5.91 0.9,2.15 1.36,4.35 1.36,6.55 V 0 Z"
+                    style="fill:#5dbfe5;fill-opacity:1;fill-rule:nonzero;stroke:none"
+                    id="path33" />
+          </g>
+          <g
+                  id="g35"
+                  transform="translate(674.9368,485.0688)">
+            <path
+                    d="m 0,0 c -5.554,-5.885 -12.728,-8.826 -21.521,-8.826 -5.091,0 -9.488,0.912 -13.191,2.744 -3.702,1.826 -6.826,4.253 -9.371,7.277 -2.546,3.02 -4.437,6.44 -5.67,10.257 -1.237,3.817 -1.852,7.712 -1.852,11.69 v 31.73 h 30.084 c 8.945,0 16.158,-2.863 21.637,-8.588 C 5.59,40.557 8.331,32.923 8.331,23.381 8.331,13.678 5.554,5.883 0,0 m 15.852,59.285 c -4.245,4.533 -9.336,8.111 -15.274,10.735 -5.941,2.625 -12.459,4.175 -19.554,4.175 h -2.408 v 0.001 h -30.221 v 29.821 h -19.67 V 74.196 h -30.222 V 54.873 h 30.222 V 14.118 -68.41 h 20.596 v 54.334 c 3.392,-4.456 7.944,-7.874 13.653,-10.258 5.706,-2.386 11.647,-3.581 17.819,-3.581 7.094,0 13.653,1.23 19.67,3.699 6.018,2.463 11.144,5.965 15.389,10.5 4.241,4.531 7.557,9.937 9.951,16.22 2.39,6.283 3.586,13.16 3.586,20.638 0,7.157 -1.196,13.837 -3.586,20.04 -2.394,6.202 -5.71,11.57 -9.951,16.103"
+                    style="fill:#5dbfe5;fill-opacity:1;fill-rule:nonzero;stroke:none"
+                    id="path37" />
+          </g>
+          <path
+                  d="m 720.01,457.369 h 21.06 v 156.289 h -21.06 z"
+                  style="fill:#5dbfe5;fill-opacity:1;fill-rule:nonzero;stroke:none"
+                  id="path39" />
+          <g
+                  id="g41"
+                  transform="translate(941.3657,500.9337)">
+            <path
+                    d="m 0,0 c -1.776,3.419 -4.206,6.162 -7.29,8.231 -3.089,2.065 -6.636,3.656 -10.646,4.771 -4.013,1.111 -8.178,2.226 -12.495,3.341 -4.014,0.954 -7.329,1.867 -9.95,2.743 -2.626,0.872 -4.745,1.789 -6.364,2.743 -1.621,0.955 -2.742,2.065 -3.356,3.341 -0.619,1.271 -0.926,2.78 -0.926,4.532 0,3.658 1.465,6.442 4.397,8.351 2.929,1.908 7.019,2.862 12.264,2.862 H -7.193 V 58.33 h -26.941 -2.314 V 58.263 C -46.628,57.931 -54.898,55.428 -61.209,50.697 -68,45.604 -71.392,38.529 -71.392,29.463 c 0,-4.771 0.695,-8.789 2.084,-12.046 1.388,-3.263 3.471,-6.125 6.248,-8.59 2.777,-2.467 6.284,-4.574 10.529,-6.321 4.242,-1.752 9.293,-3.422 15.157,-5.01 7.25,-1.909 12.265,-3.422 15.042,-4.532 2.777,-1.116 4.241,-3.185 4.396,-6.204 0.152,-3.501 -1.156,-6.362 -3.933,-8.589 -2.777,-2.227 -7.174,-3.339 -13.653,-3.339 h -49.656 c -6.597,0 -11.945,5.347 -11.945,11.944 V 42.82 58.33 H -117.95 V 1.552 c 0,-3.024 -0.618,-6.006 -1.851,-8.947 -1.238,-2.945 -2.972,-5.606 -5.207,-7.992 -2.238,-2.386 -4.939,-4.336 -8.1,-5.846 -3.163,-1.514 -6.675,-2.266 -10.529,-2.266 -5.865,0 -10.377,1.393 -13.537,4.177 -3.164,2.779 -4.824,7.752 -4.976,14.909 V 58.33 h -20.595 V -7.753 c 0,-6.678 0.962,-12.286 2.892,-16.82 1.928,-4.533 4.548,-8.231 7.868,-11.095 3.316,-2.861 7.174,-4.932 11.571,-6.203 4.396,-1.274 9.141,-1.909 14.232,-1.909 6.479,0 12.265,1.47 17.356,4.416 5.076,2.932 9.304,6.854 12.694,11.767 3.761,-9.474 12.991,-16.183 23.805,-16.183 h 56.805 c 7.867,0 14.499,1.033 19.439,3.104 4.935,2.064 8.793,4.61 11.57,7.633 2.777,3.022 4.665,6.282 5.669,9.783 1.002,3.496 1.505,6.758 1.505,9.781 C 2.661,-7.913 1.771,-3.422 0,0"
+                    style="fill:#5dbfe5;fill-opacity:1;fill-rule:nonzero;stroke:none"
+                    id="path43" />
+          </g>
+        </g>
+      </g>
+      <g
+              id="g45">
+        <g
+                id="g47"
+                clip-path="url(#clipPath51)">
+          <g
+                  id="g53">
+            <g
+                    id="g55">
+              <path
+                      d="m 573.439,539.942 h 80.096 v 19.324 h -80.096 z"
+                      style="fill:url(#linearGradient65);stroke:none"
+                      id="path67" />
+            </g>
+          </g>
+        </g>
+      </g>
+      <g
+              id="g69">
+        <g
+                id="g71"
+                clip-path="url(#clipPath75)">
+          <g
+                  id="g77">
+            <g
+                    id="g79">
+              <path
+                      d="m 603.661,499.187 h 19.67 v 89.899 h -19.67 z"
+                      style="fill:url(#linearGradient87);stroke:none"
+                      id="path89" />
+            </g>
+          </g>
+        </g>
+      </g>
+      <g
+              id="g91">
+        <g
+                id="g93"
+                clip-path="url(#clipPath97)">
+          <g
+                  id="g99"
+                  transform="translate(65.6507,417.6501)">
+            <path
+                    d="M 0,0 V 22.266 H -7.701 V 25.24 H 11.166 V 22.266 H 3.465 V 0 Z"
+                    style="fill:#f6ac19;fill-opacity:1;fill-rule:nonzero;stroke:none"
+                    id="path101" />
+          </g>
+          <g
+                  id="g103"
+                  transform="translate(95.9689,417.6501)">
+            <path
+                    d="m 0,0 h -3.395 v 11.904 c 0,3.22 -1.331,4.585 -4.167,4.585 -2.311,0 -4.831,-1.61 -4.831,-4.621 V 0 h -3.395 v 26.467 h 3.395 v -9.628 c 1.155,1.716 3.081,2.661 5.672,2.661 C -3.011,19.5 0,17.294 0,12.672 Z"
+                    style="fill:#f6ac19;fill-opacity:1;fill-rule:nonzero;stroke:none"
+                    id="path105" />
+          </g>
+          <g
+                  id="g107"
+                  transform="translate(103.6012,429.2725)">
+            <path
+                    d="m 0,0 v -0.489 h 9.593 v 0.63 c 0,2.94 -1.82,4.831 -4.726,4.831 C 2.031,4.972 0,2.94 0,0 m 12.429,-9.8 c -1.681,-1.157 -3.922,-2.102 -7.387,-2.102 -4.726,0 -8.403,2.627 -8.403,8.823 v 2.17 c 0,5.81 3.502,8.787 8.228,8.787 4.901,0 8.016,-3.116 8.016,-8.578 V -3.254 H 0 v -0.141 c 0,-3.606 2.136,-5.567 5.181,-5.567 2.486,0 4.167,0.666 5.812,1.716 z"
+                    style="fill:#f6ac19;fill-opacity:1;fill-rule:nonzero;stroke:none"
+                    id="path109" />
+          </g>
+          <g
+                  id="g111"
+                  transform="translate(132.9399,424.4779)">
+            <path
+                    d="m 0,0 c 0,-1.995 2.1,-4.131 5.04,-4.131 2.87,0 4.585,2.136 4.585,5.74 v 2.347 c 0,3.64 -1.749,5.74 -4.585,5.74 C 2.275,9.696 0,7.805 0,4.831 Z m 0.034,10.116 c 1.225,1.891 3.361,2.556 5.46,2.556 4.833,0 7.492,-2.976 7.492,-8.157 V 1.12 c 0,-5.181 -3.115,-8.227 -7.596,-8.227 -2.87,0 -4.551,1.156 -5.39,2.52 h -0.07 v -2.241 h -3.291 v 26.467 h 3.395 z"
+                    style="fill:#f6ac19;fill-opacity:1;fill-rule:nonzero;stroke:none"
+                    id="path113" />
+          </g>
+          <g
+                  id="g115"
+                  transform="translate(152.7196,429.2725)">
+            <path
+                    d="m 0,0 v -0.489 h 9.593 v 0.63 c 0,2.94 -1.822,4.831 -4.726,4.831 C 2.031,4.972 0,2.94 0,0 m 12.429,-9.8 c -1.681,-1.157 -3.922,-2.102 -7.387,-2.102 -4.726,0 -8.403,2.627 -8.403,8.823 v 2.17 c 0,5.81 3.502,8.787 8.228,8.787 4.901,0 8.016,-3.116 8.016,-8.578 V -3.254 H 0 v -0.141 c 0,-3.606 2.136,-5.567 5.181,-5.567 2.486,0 4.167,0.666 5.812,1.716 z"
+                    style="fill:#f6ac19;fill-opacity:1;fill-rule:nonzero;stroke:none"
+                    id="path117" />
+          </g>
+          <g
+                  id="g119"
+                  transform="translate(179.8179,422.7966)">
+            <path
+                    d="m 0,0 v 0.28 c 0,1.611 -0.77,2.135 -4.376,2.871 -4.236,0.875 -6.581,2.241 -6.581,5.602 v 0.42 c 0,2.659 2.17,5.181 7.142,5.181 2.59,0 4.901,-0.561 6.792,-1.891 L 1.47,9.907 c -1.261,0.945 -3.115,1.541 -5.04,1.541 -2.836,0 -3.992,-0.98 -3.992,-2.311 V 8.823 c 0,-1.506 1.156,-2.065 4.131,-2.627 C 1.225,5.322 3.431,3.922 3.431,0.386 V -0.07 c 0,-3.011 -2.836,-5.356 -7.282,-5.356 -3.186,0 -5.881,0.911 -7.701,2.311 l 1.575,2.661 C -8.262,-1.611 -6.301,-2.486 -3.99,-2.486 -1.47,-2.486 0,-1.541 0,0"
+                    style="fill:#f6ac19;fill-opacity:1;fill-rule:nonzero;stroke:none"
+                    id="path121" />
+          </g>
+          <g
+                  id="g123"
+                  transform="translate(188.5705,433.8942)">
+            <path
+                    d="M 0,0 H -3.149 V 2.906 H 0 V 7.737 H 3.397 V 2.906 h 5.04 V 0 h -5.04 v -10.886 c 0,-2.347 1.015,-2.732 2.449,-2.732 0.841,0 1.646,0.141 2.522,0.455 l 0.525,-2.729 c -0.77,-0.316 -2.206,-0.632 -3.571,-0.632 -3.641,0 -5.322,1.786 -5.322,5.638 z"
+                    style="fill:#f6ac19;fill-opacity:1;fill-rule:nonzero;stroke:none"
+                    id="path125" />
+          </g>
+          <g
+                  id="g127"
+                  transform="translate(223.7898,435.0486)">
+            <path
+                    d="m 0,0 -1.611,-2.554 c -1.784,1.295 -3.149,1.645 -5.006,1.645 -2.52,0 -4.83,-1.645 -4.83,-5.567 v -2.415 c 0,-4.131 2.381,-5.74 4.901,-5.74 2.52,0 4.026,0.734 5.392,1.75 l 1.645,-2.591 c -1.332,-1.12 -3.572,-2.206 -7.071,-2.206 -5.288,0 -8.299,3.256 -8.299,8.752 v 2.416 c 0,5.496 3.257,8.612 8.262,8.612 C -3.465,2.102 -1.575,1.191 0,0"
+                    style="fill:#f6ac19;fill-opacity:1;fill-rule:nonzero;stroke:none"
+                    id="path129" />
+          </g>
+          <path
+                  d="m 231.281,417.65 h -3.395 v 19.15 h 3.395 z m 0.107,22.3 h -3.606 v 3.711 h 3.606 z"
+                  style="fill:#f6ac19;fill-opacity:1;fill-rule:nonzero;stroke:none"
+                  id="path131" />
+          <g
+                  id="g133"
+                  transform="translate(238.1093,433.8942)">
+            <path
+                    d="M 0,0 H -3.151 V 2.906 H 0 V 7.737 H 3.395 V 2.906 h 5.04 V 0 h -5.04 v -10.886 c 0,-2.347 1.015,-2.732 2.449,-2.732 0.841,0 1.646,0.141 2.522,0.455 l 0.525,-2.729 c -0.77,-0.316 -2.206,-0.632 -3.571,-0.632 -3.641,0 -5.32,1.786 -5.32,5.638 z"
+                    style="fill:#f6ac19;fill-opacity:1;fill-rule:nonzero;stroke:none"
+                    id="path135" />
+          </g>
+          <g
+                  id="g137"
+                  transform="translate(257.1187,421.5014)">
+            <path
+                    d="m 0,0 5.042,15.299 h 3.57 l -9.941,-27.06 -3.081,1.084 2.485,6.546 -6.966,19.43 h 3.676 L -0.139,0 Z"
+                    style="fill:#f6ac19;fill-opacity:1;fill-rule:nonzero;stroke:none"
+                    id="path139" />
+          </g>
+          <g
+                  id="g141"
+                  transform="translate(278.8955,433.8942)">
+            <path
+                    d="M 0,0 H -3.151 V 2.906 H 0 v 1.891 c 0,3.849 1.925,5.635 5.565,5.635 1.225,0 2.661,-0.209 3.431,-0.491 L 8.471,7.176 c -0.875,0.245 -1.75,0.35 -2.59,0.35 -1.296,0 -2.486,-0.384 -2.486,-2.87 v -1.75 h 5.04 V 0 H 3.395 V -16.244 H 0 Z"
+                    style="fill:#f6ac19;fill-opacity:1;fill-rule:nonzero;stroke:none"
+                    id="path143" />
+          </g>
+          <g
+                  id="g145"
+                  transform="translate(303.2968,426.3684)">
+            <path
+                    d="m 0,0 v 1.784 c 0,4.06 -2.065,6.021 -5.112,6.021 -3.045,0 -5.111,-1.961 -5.111,-6.021 V 0 c 0,-4.063 2.066,-6.021 5.111,-6.021 C -2.065,-6.021 0,-4.063 0,0 m 3.431,2.065 v -2.347 c 0,-5.53 -3.292,-8.716 -8.543,-8.716 -5.251,0 -8.542,3.186 -8.542,8.716 v 2.347 c 0,5.565 3.291,8.717 8.542,8.717 5.251,0 8.543,-3.186 8.543,-8.717"
+                    style="fill:#f6ac19;fill-opacity:1;fill-rule:nonzero;stroke:none"
+                    id="path147" />
+          </g>
+          <g
+                  id="g149"
+                  transform="translate(321.713,433.4738)">
+            <path
+                    d="m 0,0 c -0.666,0.28 -1.436,0.454 -2.345,0.454 -2.522,0 -4.692,-2.099 -4.692,-5.11 v -11.168 h -3.395 v 19.15 h 3.29 V 0.28 h 0.035 c 1.12,2.135 2.835,3.396 5.637,3.396 0.875,0 1.715,-0.14 2.486,-0.386 z"
+                    style="fill:#f6ac19;fill-opacity:1;fill-rule:nonzero;stroke:none"
+                    id="path151" />
+          </g>
+          <g
+                  id="g153"
+                  transform="translate(344.7146,422.7966)">
+            <path
+                    d="m 0,0 v 0.28 c 0,1.611 -0.77,2.135 -4.376,2.871 -4.236,0.875 -6.581,2.241 -6.581,5.602 v 0.42 c 0,2.659 2.17,5.181 7.142,5.181 2.59,0 4.901,-0.561 6.792,-1.891 L 1.47,9.907 c -1.259,0.945 -3.115,1.541 -5.04,1.541 -2.836,0 -3.992,-0.98 -3.992,-2.311 V 8.823 c 0,-1.506 1.156,-2.065 4.131,-2.627 C 1.225,5.322 3.431,3.922 3.431,0.386 V -0.07 c 0,-3.011 -2.836,-5.356 -7.282,-5.356 -3.186,0 -5.881,0.911 -7.701,2.311 l 1.575,2.661 C -8.262,-1.611 -6.301,-2.486 -3.99,-2.486 -1.47,-2.486 0,-1.541 0,0"
+                    style="fill:#f6ac19;fill-opacity:1;fill-rule:nonzero;stroke:none"
+                    id="path155" />
+          </g>
+          <g
+                  id="g157"
+                  transform="translate(353.4691,433.8942)">
+            <path
+                    d="M 0,0 H -3.151 V 2.906 H 0 V 7.737 H 3.395 V 2.906 h 5.04 V 0 h -5.04 v -10.886 c 0,-2.347 1.015,-2.732 2.449,-2.732 0.841,0 1.646,0.141 2.522,0.455 l 0.525,-2.729 c -0.77,-0.316 -2.206,-0.632 -3.572,-0.632 -3.64,0 -5.319,1.786 -5.319,5.638 z"
+                    style="fill:#f6ac19;fill-opacity:1;fill-rule:nonzero;stroke:none"
+                    id="path159" />
+          </g>
+          <g
+                  id="g161"
+                  transform="translate(376.8187,426.3684)">
+            <path
+                    d="m 0,0 h -4.797 c -2.66,0 -3.71,-1.086 -3.71,-2.906 v -0.491 c 0,-1.854 1.504,-2.661 3.326,-2.661 1.68,0 2.87,0.387 3.886,1.191 C -0.386,-4.167 0,-3.326 0,-1.89 Z m -11.834,-3.606 v 0.945 c 0,3.256 2.066,5.531 6.967,5.531 L 0,2.87 v 1.12 c 0,2.556 -1.156,3.781 -3.956,3.781 -2.24,0 -3.711,-0.77 -5.496,-1.927 l -1.682,2.522 c 1.857,1.296 4.131,2.416 7.212,2.416 4.272,0 7.283,-2.241 7.283,-6.092 V -8.718 H 0.105 v 2.31 H 0.068 c -0.35,-0.699 -1.049,-1.295 -1.784,-1.715 -1.015,-0.559 -2.135,-0.875 -3.817,-0.875 -3.849,0 -6.301,2.031 -6.301,5.392"
+                    style="fill:#f6ac19;fill-opacity:1;fill-rule:nonzero;stroke:none"
+                    id="path163" />
+          </g>
+          <g
+                  id="g165"
+                  transform="translate(396.0051,433.4738)">
+            <path
+                    d="m 0,0 c -0.666,0.28 -1.436,0.454 -2.345,0.454 -2.522,0 -4.692,-2.099 -4.692,-5.11 v -11.168 h -3.395 v 19.15 h 3.29 V 0.28 h 0.035 c 1.12,2.135 2.835,3.396 5.637,3.396 0.875,0 1.715,-0.14 2.486,-0.386 z"
+                    style="fill:#f6ac19;fill-opacity:1;fill-rule:nonzero;stroke:none"
+                    id="path167" />
+          </g>
+          <g
+                  id="g169"
+                  transform="translate(401.4312,433.8942)">
+            <path
+                    d="M 0,0 H -3.149 V 2.906 H 0 V 7.737 H 3.397 V 2.906 h 5.04 V 0 h -5.04 v -10.886 c 0,-2.347 1.015,-2.732 2.449,-2.732 0.841,0 1.646,0.141 2.522,0.455 l 0.525,-2.729 c -0.77,-0.316 -2.206,-0.632 -3.571,-0.632 -3.641,0 -5.322,1.786 -5.322,5.638 z"
+                    style="fill:#f6ac19;fill-opacity:1;fill-rule:nonzero;stroke:none"
+                    id="path171" />
+          </g>
+          <g
+                  id="g173"
+                  transform="translate(413.651,436.8003)">
+            <path
+                    d="m 0,0 h 3.397 v -11.902 c 0,-3.222 1.259,-4.587 4.095,-4.587 2.31,0 4.762,1.61 4.762,4.621 V 0 h 3.395 v -19.15 h -3.29 v 2.415 H 12.322 C 11.168,-18.519 9.277,-19.5 6.653,-19.5 2.942,-19.5 0,-17.294 0,-12.672 Z"
+                    style="fill:#f6ac19;fill-opacity:1;fill-rule:nonzero;stroke:none"
+                    id="path175" />
+          </g>
+          <g
+                  id="g177"
+                  transform="translate(438.1951,424.4779)">
+            <path
+                    d="m 0,0 c 0,-1.995 2.1,-4.131 5.04,-4.131 2.872,0 4.585,2.136 4.585,5.74 v 2.347 c 0,3.64 -1.749,5.74 -4.585,5.74 C 2.275,9.696 0,7.805 0,4.831 Z m -0.07,9.941 c 1.12,1.961 3.324,2.731 5.601,2.731 4.83,0 7.455,-3.115 7.455,-8.157 V 1.12 c 0,-5.287 -3.079,-8.227 -7.666,-8.227 -2.834,0 -4.516,1.261 -5.286,2.381 v -9.593 h -3.395 v 26.641 h 3.291 z"
+                    style="fill:#f6ac19;fill-opacity:1;fill-rule:nonzero;stroke:none"
+                    id="path179" />
+          </g>
+          <g
+                  id="g181"
+                  transform="translate(456.5388,420.4174)">
+            <path
+                    d="M 0,0 H 4.024 L 1.329,-7.982 H -1.47 Z"
+                    style="fill:#f6ac19;fill-opacity:1;fill-rule:nonzero;stroke:none"
+                    id="path183" />
+          </g>
+          <g
+                  id="g185"
+                  transform="translate(484.8961,422.7966)">
+            <path
+                    d="m 0,0 v 0.28 c 0,1.611 -0.77,2.135 -4.376,2.871 -4.236,0.875 -6.581,2.241 -6.581,5.602 v 0.42 c 0,2.659 2.17,5.181 7.142,5.181 2.59,0 4.901,-0.561 6.792,-1.891 L 1.47,9.907 c -1.259,0.945 -3.115,1.541 -5.04,1.541 -2.836,0 -3.992,-0.98 -3.992,-2.311 V 8.823 c 0,-1.506 1.156,-2.065 4.131,-2.627 C 1.225,5.322 3.431,3.922 3.431,0.386 V -0.07 c 0,-3.011 -2.836,-5.356 -7.282,-5.356 -3.186,0 -5.881,0.911 -7.701,2.311 l 1.575,2.661 C -8.262,-1.611 -6.301,-2.486 -3.99,-2.486 -1.47,-2.486 0,-1.541 0,0"
+                    style="fill:#f6ac19;fill-opacity:1;fill-rule:nonzero;stroke:none"
+                    id="path187" />
+          </g>
+          <g
+                  id="g189"
+                  transform="translate(494.8393,429.2725)">
+            <path
+                    d="m 0,0 v -0.489 h 9.593 v 0.63 c 0,2.94 -1.82,4.831 -4.726,4.831 C 2.031,4.972 0,2.94 0,0 m 12.429,-9.8 c -1.681,-1.157 -3.922,-2.102 -7.387,-2.102 -4.726,0 -8.403,2.627 -8.403,8.823 v 2.17 c 0,5.81 3.502,8.787 8.228,8.787 4.901,0 8.016,-3.116 8.016,-8.578 V -3.254 H 0 v -0.141 c 0,-3.606 2.136,-5.567 5.181,-5.567 2.486,0 4.167,0.666 5.812,1.716 z"
+                    style="fill:#f6ac19;fill-opacity:1;fill-rule:nonzero;stroke:none"
+                    id="path191" />
+          </g>
+          <g
+                  id="g193"
+                  transform="translate(524.6688,426.3684)">
+            <path
+                    d="m 0,0 v 1.784 c 0,4.06 -2.065,6.021 -5.112,6.021 -3.045,0 -5.111,-1.961 -5.111,-6.021 V 0 c 0,-4.063 2.066,-6.021 5.111,-6.021 C -2.065,-6.021 0,-4.063 0,0 m 3.431,2.065 v -2.347 c 0,-5.53 -3.292,-8.716 -8.543,-8.716 -5.252,0 -8.542,3.186 -8.542,8.716 v 2.347 c 0,5.565 3.29,8.717 8.542,8.717 5.251,0 8.543,-3.186 8.543,-8.717"
+                    style="fill:#f6ac19;fill-opacity:1;fill-rule:nonzero;stroke:none"
+                    id="path195" />
+          </g>
+          <g
+                  id="g197"
+                  transform="translate(532.3694,436.8003)">
+            <path
+                    d="m 0,0 h 3.397 v -11.902 c 0,-3.222 1.259,-4.587 4.095,-4.587 2.31,0 4.762,1.61 4.762,4.621 V 0 h 3.395 v -19.15 h -3.29 v 2.415 H 12.322 C 11.168,-18.519 9.277,-19.5 6.653,-19.5 2.942,-19.5 0,-17.294 0,-12.672 Z"
+                    style="fill:#f6ac19;fill-opacity:1;fill-rule:nonzero;stroke:none"
+                    id="path199" />
+          </g>
+          <path
+                  d="m 556.948,417.65 h -3.395 v 26.467 h 3.395 z"
+                  style="fill:#f6ac19;fill-opacity:1;fill-rule:nonzero;stroke:none"
+                  id="path201" />
+          <g
+                  id="g203"
+                  transform="translate(556.1099,512.5496)">
+            <path
+                    d="m 0,0 c -5.007,-13.167 -18.293,-18.84 -31.54,-18.84 -5.05,0 -11.84,1.44 -15.61,4.63 l -0.71,0.5 V 2.37 l 1.14,-0.65 c 4.33,-2.46 9.03,-3.76 13.6,-3.76 8.83,0 18.27,4.31 18.27,16.39 0,6.33 -3.16,10.72 -9.93,13.79 -3.17,1.45 -6.84,1.75 -9.37,1.75 H -56.84 V -34.46 H -74.2 v 81.43 h 41.68 c 0.59,0 1.16,-0.02 1.71,-0.07 4.72,-0.18 9.4,-1.28 13.9,-3.27 2.27,-1 4.39,-2.18 6.32,-3.52 1.31,-0.99 2.56,-2.12 3.75,-3.4 C -3.93,33.62 -1.63,29.89 0,25.65 3.19,17.32 3.19,8.45 0,0"
+                    style="fill:#5dbfe5;fill-opacity:1;fill-rule:nonzero;stroke:none"
+                    id="path205" />
+          </g>
+        </g>
+      </g>
+    </g>
+  </svg>
+  
+</a>
+    <nav class="gnb">
+        <ul class="gnb__list">
+            <li class="gnb__item">
+                <strong class="gnb__item__title">
+                    <a href="/project">Apply</a>
+                </strong>
+                <ul class="gnb__submenu">
+                    <li class="gnb__subitem"><a href="/project">Apply for a support project</a></li>
+                    <li class="gnb__subitem gnb__subitem-2"><a href="/tech">Tech Trade-on<br/><span>(Apply for a technology market)</span></a></li>
+                    <li class="gnb__subitem"><a href="/rental/place">Apply for a Venue Rental</a></li>
+                    <li class="gnb__subitem"><a href="/rental/equipment">Equipment guide</a></li>
+                </ul>
+            </li>
+            <li class="gnb__item">
+                <strong class="gnb__item__title">
+                    <a href="/company">Find</a>
+                </strong>
+                <ul class="gnb__submenu">
+                    <li class="gnb__subitem"><a href="/company">Find a startup</a></li>
+                    <li class="gnb__subitem"><a href="/investment">Find an investor</a></li>
+                    <li class="gnb__subitem"><a href="/facility">Find a startup support facility in Seoul</a></li>
+                    
+                </ul>
+            </li>
+            <li class="gnb__item">
+                <strong class="gnb__item__title">
+                    
+                    <a href="/biz/management">Support</a>
+                </strong>
+                <ul class="gnb__submenu">
+                    <li class="gnb__subitem"><a href="/biz/management">Apply for the management of a support project</a></li>
+                    <li class="gnb__subitem"><a href="/biz/marketing">Apply for the promotion of a support project</a></li>
+                    
+                    
+                    
+                </ul>
+            </li>
+            <li class="gnb__item">
+                <strong class="gnb__item__title">
+                    <a href="/dashboard">Dashboard</a>
+                </strong>
+                <ul class="gnb__submenu">
+                    <li class="gnb__subitem"><a href="/dashboard?view#description1">Status of the global startup ecosystem</a></li>
+                    <li class="gnb__subitem"><a href="/dashboard?view#description2">Status of venture funds by Seoul</a></li>
+                    
+                    
+                    
+                    
+                    
+                    
+                    <li class="gnb__subitem"><a href="/dashboard?view#description3">Status of startups</a></li>
+                    <li class="gnb__subitem"><a href="/dashboard?view#description4">Status of partners</a></li>
+                </ul>
+            </li>
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            <li class="gnb__subbackground"></li>
+        </ul>
+    </nav>
+
+
+    
+    <div class="preference">
+        
+        <div class="preference__item" onclick="location.href='/search'" title="Search" onmouseover="this.setAttribute('data-title', this.title); this.title = '';" onmouseout="this.title = this.getAttribute('data-title');" tip="Search">
+            <svg class="svg-icon ico-search" xmlns="http://www.w3.org/2000/svg" viewbox="0 0 30 30" width="28" height="28">
+                <g class="svg-ctrlarea" transform="translate(-5 -5)" stroke="#303030">
+                    <g transform="translate(5 5)" fill="none" stroke-linejoin="round" stroke-width="2">
+                        <circle cx="11.931" cy="11.931" r="11.931" stroke="none" fill="none" />
+                        <circle cx="11.931" cy="11.931" r="10.931" fill="none" />
+                    </g>
+                    <path d="M1,1,6.766,6.766" transform="translate(23.606 24.734)" fill="none" stroke-linecap="round" stroke-width="2" />
+                </g>
+            </svg>
+        </div>
+
+        
+
+
+
+
+
+
+  
+  <a class="preference__item small-none" href="/login" title="Login" onmouseover="this.setAttribute('data-title', this.title); this.title = '';" onmouseout="this.title = this.getAttribute('data-title');" tip="Login">
+    <span class="hp_hidden">로그인</span>
+    <svg class="svg-icon ico-login" xmlns="http://www.w3.org/2000/svg" viewbox="0 0 25 30" width="28" height="28">
+      <g class="svg-ctrlarea" transform="translate(-390.264 -446.114)" stroke="#000" fill="#000">
+        <path d="M403.5,451.936v-.786a4.981,4.981,0,1,1,9.963,0v.786" transform="translate(-6.164 0.946)" fill="none"
+              stroke-linecap="round" stroke-width="2" />
+        <path d="M438.6,550.782a1.6,1.6,0,0,1-1.6-1.6V547.1a1.6,1.6,0,1,1,3.207,0v2.075A1.6,1.6,0,0,1,438.6,550.782Z"
+              transform="translate(-36.339 -84.332)" stroke="none" />
+        <g transform="translate(390.264 452.533)" fill="none" stroke-width="2">
+          <rect width="24" height="21" rx="6" stroke="none" fill="none" />
+          <rect x="1" y="1" width="22" height="19" rx="5" fill="none" stoke="none" />
+        </g>
+      </g>
+    </svg>
+  </a>
+  
+  <a class="preference__item small-none" href="/web-user/join" title="Sign Up" onmouseover="this.setAttribute('data-title', this.title); this.title = '';" onmouseout="this.title = this.getAttribute('data-title');" tip="Sign Up">
+    <span class="hp_hidden">회원가입</span>
+    <svg class="svg-icon ico-user" xmlns="http://www.w3.org/2000/svg" viewbox="0 0 35 35" width="28" height="28">
+      <g class="svg-ctrlarea" transform="translate(-1702.812 -32.5)" stroke="#303030">
+        <g transform="translate(1708 35)" fill="none" stroke-width="2">
+          <rect width="20" height="20" rx="9" stroke="none" />
+          <rect x="1" y="1" width="18" height="18" rx="8" fill="none" />
+        </g>
+        <path d="M1733.084,53.22c.135.047,5.938,1.634,7.64,9.551" transform="translate(-8.725 -0.771)" fill="none"
+              stroke-linecap="round" stroke-width="2" />
+        <path d="M1740.725,53.22c-.135.047-5.938,1.634-7.64,9.551" transform="translate(-29.084 -0.771)" fill="none"
+              stroke-linecap="round" stroke-width="2" />
+      </g>
+    </svg>
+  </a>
+
+
+
+
+
+
+        <div class="familysites__header familysites__header--ver2" title="Seoul Startup Facilities" onmouseover="this.setAttribute('data-title', this.title); this.title = '';" onmouseout="this.title = this.getAttribute('data-title');" tip="Seoul Startup Facilities">
+            <div class="familysites__tab" data-action="tab">
+                <button class="familysites__button">
+                    
+                    
+                </button>
+            </div>
+            
+            
+            
+            
+            
+            
+            <div class="familysites__content">
+                <nav class="familysites__nav">
+                    
+<ul class="scrollable">
+  
+  <li><a href="https://hubgongdeok.startup-plus.kr">Seoul Startup Hub Gongdeok</a></li>
+  
+  <li><a href="https://mplus.startup-plus.kr">Seoul Startup Hub M+</a></li>
+  
+  <li><a href="https://hubchangdong.startup-plus.kr">Seoul Startup Hub Changdong</a></li>
+  
+  <li><a href="https://hubseongsu.startup-plus.kr">Seoul Startup Hub Seongsu</a></li>
+  
+  <li><a href="https://sscgwanak.startup-plus.kr">Seoul Startup Center Gwanak</a></li>
+  
+  <li><a href="https://didimteo.startup-plus.kr">Seoul Startup Didimteo</a></li>
+  
+  
+  
+  <li><a href="https://rnbd.startup-plus.kr">Seoul Startup Growth Center</a></li>
+  
+  <li><a href="https://dongjak.startup-plus.kr">Seoul Startup Hub Dongjak</a></li>
+  
+  <li><a href="https://www.seoulup.or.kr/">Seoul Upcycling Plaza </a></li>
+  
+  <li><a href="https://yfactory.startup-plus.kr/default.do">Yongsan Prototype Center</a></li>
+  
+  <li><a href="https://scaleupcenter.startup-plus.kr/default.do">Seoul Startup Hub Scale Up Center</a></li>
+  
+  
+  
+  <li><a href="https://gvalley.startup-plus.kr/">G Valley Startup Cube</a></li>
+  
+  <li><a href="https://seoulfintechlab.startup-plus.kr">Seoul Fintech Lab</a></li>
+  
+  <li><a href="https://seoulfintechlab2.startup-plus.kr/default.do">Seoul Fintech Lab2</a></li>
+  
+  
+  
+  
+  
+  <li><a href="https://www.seoulaihub.kr">Seoul AI hub</a></li>
+  
+  <li><a href="https://www.seoulbiohub.kr">Seoul Bio Hub</a></li>
+  
+  <li><a href="https://sfsc.startup-plus.kr">Seoul Food Tech Startup Center</a></li>
+  
+  <li><a href="https://svhc.startup-plus.kr">Social Venture Hub</a></li>
+  
+  <li><a href="https://tourism.startup-plus.kr/">Seoul Tourism Plaza</a></li>
+  
+  <li><a href="https://sdf.startup-plus.kr">Seoul Design Incubating Center</a></li>
+  
+  
+  
+  
+  
+  <li><a href="https://hubmaker.startup-plus.kr/">Seoul Startup Hub Productization Support Center</a></li>
+</ul>
+
+
+                </nav>
+                
+                
+                
+            </div>
+        </div>
+
+        
+        <div
+            class="preference__item small-none"
+            onclick="btnClickChangeLanguage()"
+            
+                
+                
+                    title="한국어"
+                    tip="한국어"
+                
+            
+            onmouseover="this.setAttribute('data-title', this.title); this.title = '';"
+            onmouseout="this.title = this.getAttribute('data-title');"
+        >
+            <svg class="svg-icon ico-global" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="30" height="30" viewBox="0 0 30 24">
+                <defs>
+                    <clipPath id="gl-rect-gnb">
+                        <path d="M0,24V.75H.742V0H24V12.75H12.613V24Z" transform="translate(-0.005 0)" fill="#749ede"/>
+                    </clipPath>
+                </defs>
+                <g id="gl-lang" class="svg-ctrlarea" transform="translate(2 0)" fill="#000" stroke="#000">
+                    <rect width="40" height="40" transform="translate(0 0)" fill="none" stroke="none" />
+                    <g transform="translate(0 0)">
+                        <text class="KR" transform="translate(19.995 21)" stroke="none" font-size="10" font-family="Karla-ExtraBold, Karla" font-weight="800">
+                            
+                            
+                                
+                                
+                                    <tspan x="-6" y="1">KR</tspan>
+                                
+                            
+                        </text>
+                        <g clip-path="url(#gl-rect-gnb)">
+                            <g transform="translate(1.485 1.439)">
+                                <circle cx="10.398" cy="10.398" r="10.398" transform="translate(0 0.161)" fill="none" stroke-width="1.5"/>
+                                <path d="M-16185.125-18270h20.657" transform="translate(16185.125 18280.607)" fill="none" stroke-width="1.5"/>
+                                <path d="M-16172-18283.625v20.8" transform="translate(16182.398 18283.834)" fill="none" stroke-width="1.5"/>
+                                <path d="M-16174.622-18283.625s-4.5,2.824-4.5,10.211a13.547,13.547,0,0,0,4.5,10.4" transform="translate(16184.231 18284.066)" fill="none" stroke-width="1.5"/>
+                                <path d="M-16179.125-18283.625s4.5,2.824,4.5,10.211a13.547,13.547,0,0,1-4.5,10.4" transform="translate(16190.313 18284.066)" fill="none" stroke-width="1.5"/>
+                                <path d="M-16182.625-18278.812a14.037,14.037,0,0,0,7.938,2.273,14.29,14.29,0,0,0,7.984-2.273" transform="translate(16185.132 18282.828)" fill="none" stroke-width="1.5"/>
+                                <path d="M-16182.625-18276.539a14.037,14.037,0,0,1,7.938-2.273,14.29,14.29,0,0,1,7.984,2.273" transform="translate(16185.132 18293.643)" fill="none" stroke-width="1.5"/>
+                            </g>
+                        </g>
+                    </g>
+                </g>
+            </svg>
+        </div>
+    </div>
+    
+    </div>
+    <div class="snb__btn">
+        <div class="inner"></div>
+    </div>
+
+    
+    <div class="site__snb">
+        <div class="snb__dim"></div>
+        <div class="snb__layer">
+            <div class="snb__header">
+                <div class="preference">
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+
+                    
+
+
+
+
+
+
+  
+  <a class="preference__item small-none" href="/login" title="Login" onmouseover="this.setAttribute('data-title', this.title); this.title = '';" onmouseout="this.title = this.getAttribute('data-title');" tip="Login">
+    <span class="hp_hidden">로그인</span>
+    <svg class="svg-icon ico-login" xmlns="http://www.w3.org/2000/svg" viewbox="0 0 25 30" width="28" height="28">
+      <g class="svg-ctrlarea" transform="translate(-390.264 -446.114)" stroke="#000" fill="#000">
+        <path d="M403.5,451.936v-.786a4.981,4.981,0,1,1,9.963,0v.786" transform="translate(-6.164 0.946)" fill="none"
+              stroke-linecap="round" stroke-width="2" />
+        <path d="M438.6,550.782a1.6,1.6,0,0,1-1.6-1.6V547.1a1.6,1.6,0,1,1,3.207,0v2.075A1.6,1.6,0,0,1,438.6,550.782Z"
+              transform="translate(-36.339 -84.332)" stroke="none" />
+        <g transform="translate(390.264 452.533)" fill="none" stroke-width="2">
+          <rect width="24" height="21" rx="6" stroke="none" fill="none" />
+          <rect x="1" y="1" width="22" height="19" rx="5" fill="none" stoke="none" />
+        </g>
+      </g>
+    </svg>
+  </a>
+  
+  <a class="preference__item small-none" href="/web-user/join" title="Sign Up" onmouseover="this.setAttribute('data-title', this.title); this.title = '';" onmouseout="this.title = this.getAttribute('data-title');" tip="Sign Up">
+    <span class="hp_hidden">회원가입</span>
+    <svg class="svg-icon ico-user" xmlns="http://www.w3.org/2000/svg" viewbox="0 0 35 35" width="28" height="28">
+      <g class="svg-ctrlarea" transform="translate(-1702.812 -32.5)" stroke="#303030">
+        <g transform="translate(1708 35)" fill="none" stroke-width="2">
+          <rect width="20" height="20" rx="9" stroke="none" />
+          <rect x="1" y="1" width="18" height="18" rx="8" fill="none" />
+        </g>
+        <path d="M1733.084,53.22c.135.047,5.938,1.634,7.64,9.551" transform="translate(-8.725 -0.771)" fill="none"
+              stroke-linecap="round" stroke-width="2" />
+        <path d="M1740.725,53.22c-.135.047-5.938,1.634-7.64,9.551" transform="translate(-29.084 -0.771)" fill="none"
+              stroke-linecap="round" stroke-width="2" />
+      </g>
+    </svg>
+  </a>
+
+
+
+
+
+
+                    
+                    <div class="preference__item small-none" onclick="btnClickChangeLanguage()">
+                        <svg class="svg-icon ico-global" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="30" height="30" viewBox="0 0 30 24">
+                            <defs>
+                                <clipPath id="gl-rect-gnb">
+                                    <path d="M0,24V.75H.742V0H24V12.75H12.613V24Z" transform="translate(-0.005 0)" fill="#749ede"/>
+                                </clipPath>
+                            </defs>
+                            <g id="gl-lang" class="svg-ctrlarea" transform="translate(2 0)" fill="#000" stroke="#000">
+                                <rect width="40" height="40" transform="translate(0 0)" fill="none" stroke="none" />
+                                <g transform="translate(0 0)">
+                                    <text class="KR" transform="translate(19.995 21)" stroke="none" font-size="10" font-family="Karla-ExtraBold, Karla" font-weight="800">
+                                        
+                                        
+                                            
+                                            
+                                                <tspan x="-6" y="1">KR</tspan>
+                                            
+                                        
+                                    </text>
+                                    <g clip-path="url(#gl-rect-gnb)">
+                                        <g transform="translate(1.485 1.439)">
+                                            <circle cx="10.398" cy="10.398" r="10.398" transform="translate(0 0.161)" fill="none" stroke-width="1.5"/>
+                                            <path d="M-16185.125-18270h20.657" transform="translate(16185.125 18280.607)" fill="none" stroke-width="1.5"/>
+                                            <path d="M-16172-18283.625v20.8" transform="translate(16182.398 18283.834)" fill="none" stroke-width="1.5"/>
+                                            <path d="M-16174.622-18283.625s-4.5,2.824-4.5,10.211a13.547,13.547,0,0,0,4.5,10.4" transform="translate(16184.231 18284.066)" fill="none" stroke-width="1.5"/>
+                                            <path d="M-16179.125-18283.625s4.5,2.824,4.5,10.211a13.547,13.547,0,0,1-4.5,10.4" transform="translate(16190.313 18284.066)" fill="none" stroke-width="1.5"/>
+                                            <path d="M-16182.625-18278.812a14.037,14.037,0,0,0,7.938,2.273,14.29,14.29,0,0,0,7.984-2.273" transform="translate(16185.132 18282.828)" fill="none" stroke-width="1.5"/>
+                                            <path d="M-16182.625-18276.539a14.037,14.037,0,0,1,7.938-2.273,14.29,14.29,0,0,1,7.984,2.273" transform="translate(16185.132 18293.643)" fill="none" stroke-width="1.5"/>
+                                        </g>
+                                    </g>
+                                </g>
+                            </g>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+            <div class="snb__container">
+                <nav class="gnb">
+                    <ul class="gnb__list">
+                        <li class="gnb__item">
+                            <strong class="gnb__item__title">
+                                <a href="/project">Apply</a>
+                            </strong>
+                            <ul class="gnb__submenu">
+                                <li class="gnb__subitem"><a href="/project">Apply for a support project</a></li>
+                                <li class="gnb__subitem gnb__subitem-2"><a href="/tech">Tech Trade-on<br/><span>(Apply for a technology market)</span></a></li>
+                                <li class="gnb__subitem"><a href="/rental/place">Apply for a Venue Rental</a></li>
+                                <li class="gnb__subitem"><a href="/rental/equipment">Equipment guide</a></li>
+                            </ul>
+                        </li>
+                        <li class="gnb__item">
+                            <strong class="gnb__item__title">
+                                <a href="/company">Find</a>
+                            </strong>
+                            <ul class="gnb__submenu">
+                                <li class="gnb__subitem"><a href="/company">Find a startup</a></li>
+                                <li class="gnb__subitem"><a href="/investment">Find an investor</a></li>
+                                <li class="gnb__subitem"><a href="/facility">Find a startup support facility in Seoul</a></li>
+                                
+                            </ul>
+                        </li>
+                        <li class="gnb__item">
+                            <strong class="gnb__item__title">
+                                <a href="/support">Support</a>
+                            </strong>
+                            <ul class="gnb__submenu">
+                                <li class="gnb__subitem"><a href="/biz/management">Apply for the management of a support project</a></li>
+                                <li class="gnb__subitem"><a href="/biz/marketing">Apply for the promotion of a support project</a></li>
+                                
+                            </ul>
+                        </li>
+                        <li class="gnb__item">
+                            <strong class="gnb__item__title">
+                                <a href="/dashboard">Dashboard</a>
+                            </strong>
+                            <ul class="gnb__submenu">
+                                <li class="gnb__subitem">
+                                    <a href="/dashboard?view#description1" onclick="activeTab(0)">Status of the global startup ecosystem</a>
+                                </li>
+                                <li class="gnb__subitem">
+                                    <a href="/dashboard?view#description2" onclick="activeTab(1)">Status of venture funds by Seoul</a>
+                                </li>
+                                
+                                
+                                
+                                
+                                
+                                
+                                <li class="gnb__subitem">
+                                    <a href="/dashboard?view#description3" onclick="activeTab(3)">Status of startups</a>
+                                </li>
+                                <li class="gnb__subitem">
+                                    <a href="/dashboard?view#description4" onclick="activeTab(4)">Status of partners</a>
+                                </li>
+                            </ul>
+                        </li>
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        <li class="gnb__subbackground"></li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+    
+</header>
+<script src="/web/assets/js/ui/header.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.45/moment-timezone.min.js" integrity="sha512-EUm65YBi2BbIovgy8ZNxiNEa0xnA3LSxYYcMuYdCpxwNILaHa+IXNJcnJQo9AugzC3uQ9tsf0n2aoSRaHIfQjg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<link rel="stylesheet" href="/web/assets/css/pages/menu__apply.css">
+<main class="apply-program">
+    <section class="subpageBanner">
+        <div class="showcase__static--sub">
+            <div class="showcase__temp">
+                <i class="showcase__temp-img showcase__temp-img--triangle-dot triangle1"></i>
+                <i class="showcase__temp-img showcase__temp-img--triangle-dot triangle2"></i>
+                <i class="showcase__temp-img showcase__temp-img--circle circle1"></i>
+            </div>
+        </div>
+
+        <div class="site__inner">
+            <div class="subpageBanner__title__area">
+                <h3 class="subpageBanner__title">
+                    
+                    Apply for a support project
+                </h3>
+                <p class="subpageBanner__description">
+                    
+                    We grow together by adding more value to Seoul startups.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <div class="site__inner">
+        <div class="apply-program__content content">
+            <div class="content__view">
+                <div class="view-title d-flex align-items-center justify-content-between">
+                    
+                    <div data-project-name class="view-title__tit"></div>
+
+                    
+                        
+                            
+                                <a href="#" onclick="openLink('https://docs.google.com/forms/d/e/1FAIpQLSfjAiUcs43ldh_w_tnCFR236q5jBeZ2OBIEOv7byoTZvCxViw/viewform', '_blank'); return false;" class="common__button color-purple apply-btn">
+                                        
+                                        Shortcuts
+                                </a>
+                            
+                            
+                        
+                    
+                    
+                </div>
+
+                <div class="view-con">
+                    
+
+
+<div class="view-con__table project_detail">
+  <table class="w-2 border-lightgray">
+    <caption>분야, 사업대상, 접수기간</caption>
+    <colgroup>
+      <col style="width: 25%">
+      <col style="width: 75%">
+    </colgroup>
+    <tbody>
+      <tr>
+        <th scope="row">
+          
+          Field
+        </th>
+        <td data-business-category data-bind-type="businessCategory">
+
+        </td>
+      </tr>
+      <tr>
+          <th scope="row">
+              
+              Target age
+          </th>
+          <td data-targetAge data-bind-type = "targetAge">
+          </td>
+      </tr>
+      <tr>
+        <th scope="row">
+          
+          Business target
+        </th>
+        <td data-business-target data-bind-key="businessTarget">
+
+        </td>
+      </tr>
+      <tr>
+        <th scope="row">
+          
+          Application period
+        </th>
+        <td data-bind-type="receiptDate">
+          2026-10-19 19:00 ~ 2026-10-28 23:59
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <table class="w-2 border-lightgray">
+    <caption>사업유형, 문의처, 기관명</caption>
+    <colgroup>
+      <col style="width: 25%">
+      <col style="width: 75%">
+    </colgroup>
+    <tbody>
+      <tr>
+        <th scope="row">
+          
+          Business type
+        </th>
+        <td data-business-type data-bind-key="businessType">
+
+        </td>
+      </tr>
+      <tr>
+        <th scope="row">
+          
+          Contact<br>
+          <span style="font-size: 14px">
+                      
+                      (Email/Tel)
+                  </span>
+        </th>
+        <td data-bind-type="contact">
+          
+            taeeul.geum@dupartners.co.kr
+          
+
+          
+            /
+          
+
+          
+            0269530318
+          
+        </td>
+      </tr>
+      <tr>
+        <th scope="row">
+          
+          Organization name
+        </th>
+        <td>
+
+          <span id="submit_organ"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+<script>
+
+  function setPortalName(seqNo){
+    $.ajax({
+      url: "/api/cportal/"+seqNo,
+      headers: {'Content-Type': 'application/json'},
+      success: function(response) {
+        // console.log(response);
+        if(response && response.data && response.data.contents && response.data.contents){
+            let portalName = ctsApp.util.langPostfixEn("portalName",response.data.contents);
+            if("서울경제진흥원"){
+                $("#submit_organ").text(postfixLang === 'en' ?  "" : "서울경제진흥원")
+            }else{
+                $("#submit_organ").text(portalName)
+            }
+        }
+      }
+    })
+  }
+  if("316"){
+    setPortalName("316")
+  }
+
+  function setBusiness(){
+    /** 영문*/
+      if(postfixLang ==='en'){
+          if(`전체(무관)`){
+              let text = `전체(무관)`
+              let result = [];
+              let arr = text.split(",");
+              arr.forEach(value => {
+                  result.push(CODE_LIST.PROJECT.TARGET_AGE_EN[value]);
+              })
+              $('[data-targetAge]').html(result.join(", "));
+
+          }
+
+          if(``){
+              let text = ``;
+              $('[data-business-type]').text(text.replace("|" ,"").replaceAll("_"," "));
+          }else{
+              $('[data-business-type]').text("-")
+          }
+
+          if(``){
+              let text = ``;
+              $('[data-business-target]').text(text);
+          }else{
+              $('[data-business-target]').text("-");
+          }
+      }else{
+          /** 대상 연령*/
+          if(`전체(무관)`){
+              let text = `전체(무관)`
+              text = text.replaceAll("_", " ");
+              $('[data-targetAge]').html(text);
+
+          }
+
+          /** 사업 유형*/
+          if(`투자·정책자금 연계지원,데모데이,멘토링·컨설팅,밋업`){
+              let text = `투자·정책자금 연계지원,데모데이,멘토링·컨설팅,밋업`;
+              if(text.includes("기타|") && text.split("기타|")[1]){
+                  text = `투자·정책자금 연계지원,데모데이,멘토링·컨설팅,밋업`.replace("기타|","기타(") + ")";
+              }
+              if(text.includes("기타|") && !text.split("기타|")[1]){
+                  text = `투자·정책자금 연계지원,데모데이,멘토링·컨설팅,밋업`.replace("기타|","기타");
+              }
+              $('[data-business-type]').text(text.replaceAll("_"," "));
+          }
+          /** 사업 대상*/
+          if(`스타트업`){
+              $('[data-business-target]').text(`스타트업`);
+          }else{
+              $('[data-business-target]').text(`-`);
+          }
+      }
+
+  }
+
+  setBusiness();
+
+  let dataObject = {
+    businessCategory : {
+        value : {
+            code : `ACC`,
+            name : `액셀러레이팅`
+        },
+        cover : changeEnumText(`ACC`),
+    },
+  }
+
+
+  $('[data-business-category]').html(ctsApp.util.langEnumEn(dataObject.businessCategory))
+
+  function changeEnumText(code){
+      let result = "-"
+      switch (code){
+          case "MOV":
+              result ="Moving in";
+              break;
+          case "EDU":
+              result ="Education";
+              break;
+          case "ACC":
+              result ="Accelerating";
+              break;
+          case "MEN":
+              result = "Mentoring﹒Consulting"
+              break;
+          case "NET":
+              result = "Network"
+              break;
+          default :
+              /*RES*/
+              result = "Moving in";
+              break;
+      }
+
+      return result
+  }
+
+
+</script>
+
+
+                    
+                        <div class="view-con__line common__con-line"> <!-- 게요 -->
+                            Overview
+                        </div>
+                        <div class="view-con__txt common__con-txt">
+                            <ul>
+                                <li class="view-con__txt--flex mb-8">
+                                    <div><img src="/api/common/download?attachFilePath=%2Fproject%2Fposter%2F261019181829%ED%8F%AC%EC%8A%A4%ED%84%B0.png" alt="사업 개요"> </div>
+
+                                </li>
+                            </ul>
+                        </div>
+                    
+
+                    
+                        <div class="view-con__line common__con-line"> <!-- 사업내용 -->
+                            Support contents
+                        </div>
+                        <div class="view-con__txt common__con-txt">
+                            <ul>
+                                <li class="view-con__txt--flex mb-8">
+                                    
+                                    <div class="cts-editor-content" id="guide-data" data-guide="&lt;p&gt;서울 소재 스타트업 대상 투자 유치를 위해 2026년 하반기 (주)디유파트너스 X 서울창업허브 공덕 스타트업 성장 투자 배치 프로그램을 개최할 예정이오니 많은 관심 부탁드립니다.&amp;nbsp;&lt;/p&gt;&lt;p&gt;&amp;nbsp;&lt;/p&gt;&lt;p&gt;&amp;nbsp;&lt;/p&gt;&lt;p&gt;○ 모집대상: 서울 소재 스타트업&amp;nbsp;&lt;/p&gt;&lt;p&gt;&amp;nbsp; - 우대사항: 서울창업허브 공덕 입주기업 집중 검토&lt;/p&gt;&lt;p&gt;○ 신청기간: ~ 10. 28.(수) 18:00까지&amp;nbsp;&lt;/p&gt;&lt;p&gt;○ 제출서류: 온라인 신청서 및 IR 자료(본 양식)&amp;nbsp;&lt;/p&gt;&lt;p&gt;○ 심사방법: 서류평가 및 발표평가 2단계 심사&lt;/p&gt;&lt;p&gt;&amp;nbsp; - 서류평가 결과는 디유파트너스 측에서 별도 메일 송부 예정&amp;nbsp;&lt;/p&gt;&lt;p&gt;○ 평가지표&lt;/p&gt;&lt;p&gt;&amp;nbsp; &lt;span lang=&#034;EN-US&#034; dir=&#034;ltr&#034;&gt;1&lt;/span&gt;차 서류평가&lt;span lang=&#034;EN-US&#034; dir=&#034;ltr&#034;&gt;(&lt;/span&gt;정성&amp;nbsp;&lt;span lang=&#034;EN-US&#034; dir=&#034;ltr&#034;&gt;100&lt;/span&gt;점&lt;span lang=&#034;EN-US&#034; dir=&#034;ltr&#034;&gt;)&lt;/span&gt;&lt;/p&gt;&lt;figure class=&#034;table&#034;&gt;&lt;table&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td style=&#034;background-color:#808080;border-bottom-color:#000000;border-bottom-width:0.28pt;border-left-color:#4c4c4c;border-left-width:1.98pt;border-right-color:#000000;border-right-width:0.28pt;border-style:solid;border-top-color:#4c4c4c;border-top-width:1.98pt;height:21.36pt;padding:1.41pt 5.10pt;width:95.27pt;&#034;&gt;&lt;p style=&#034;text-align:center;&#034;&gt;&lt;span style=&#034;color:#ffffff;&#034;&gt;&lt;strong&gt;평가항목&lt;/strong&gt;&lt;/span&gt;&lt;/p&gt;&lt;/td&gt;&lt;td style=&#034;background-color:#808080;border-bottom-color:#000000;border-bottom-width:0.28pt;border-left-color:#000000;border-left-width:0.28pt;border-right-color:#000000;border-right-width:0.28pt;border-style:solid;border-top-color:#4c4c4c;border-top-width:1.98pt;height:21.36pt;padding:1.41pt 5.10pt;width:282.53pt;&#034;&gt;&lt;p style=&#034;text-align:center;&#034;&gt;&lt;span style=&#034;color:#ffffff;&#034;&gt;&lt;strong&gt;세부 평가요소&lt;/strong&gt;&lt;/span&gt;&lt;/p&gt;&lt;/td&gt;&lt;td style=&#034;background-color:#808080;border-bottom-color:#000000;border-bottom-width:0.28pt;border-left-color:#000000;border-left-width:0.28pt;border-right-color:#4c4c4c;border-right-width:1.98pt;border-style:solid;border-top-color:#4c4c4c;border-top-width:1.98pt;height:21.36pt;padding:1.41pt 5.10pt;width:56.73pt;&#034;&gt;&lt;p style=&#034;text-align:center;&#034;&gt;&lt;span style=&#034;color:#ffffff;&#034;&gt;&lt;strong&gt;배점&lt;/strong&gt;&lt;/span&gt;&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&#034;background-color:#d9d9d9;border-bottom-color:#000000;border-bottom-width:0.28pt;border-left-color:#4c4c4c;border-left-width:1.98pt;border-right-color:#000000;border-right-width:0.28pt;border-style:solid;border-top-color:#000000;border-top-width:0.28pt;height:32.68pt;padding:1.41pt 5.10pt;width:95.27pt;&#034; rowspan=&#034;2&#034;&gt;&lt;p style=&#034;text-align:center;&#034;&gt;&lt;strong&gt;사업계획 적정성&lt;/strong&gt;&lt;span lang=&#034;EN-US&#034; dir=&#034;ltr&#034;&gt;&lt;strong&gt;(25&lt;/strong&gt;&lt;/span&gt;&lt;strong&gt;점&lt;/strong&gt;&lt;span lang=&#034;EN-US&#034; dir=&#034;ltr&#034;&gt;&lt;strong&gt;)&lt;/strong&gt;&lt;/span&gt;&lt;/p&gt;&lt;/td&gt;&lt;td style=&#034;border-bottom-style:dotted;border-color:#000000;border-left-style:solid;border-right-style:solid;border-top-style:solid;border-width:0.28pt;height:16.34pt;padding:1.41pt 5.10pt;width:282.53pt;&#034;&gt;&lt;p style=&#034;text-align:center;&#034;&gt;비즈니스 모델&lt;span lang=&#034;EN-US&#034; dir=&#034;ltr&#034;&gt;(BM)&lt;/span&gt;의 명확성 및 사업화 타당성&lt;/p&gt;&lt;/td&gt;&lt;td style=&#034;border-bottom-color:#000000;border-bottom-width:0.28pt;border-left-color:#000000;border-left-width:0.28pt;border-right-color:#4c4c4c;border-right-width:1.98pt;border-style:solid;border-top-color:#000000;border-top-width:0.28pt;height:32.68pt;padding:1.41pt 5.10pt;width:56.73pt;&#034; rowspan=&#034;2&#034;&gt;&lt;p style=&#034;text-align:center;&#034;&gt;&lt;span lang=&#034;EN-US&#034; dir=&#034;ltr&#034;&gt;25&lt;/span&gt;점&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&#034;border-bottom-style:solid;border-color:#000000;border-left-style:solid;border-right-style:solid;border-top-style:dotted;border-width:0.28pt;height:16.34pt;padding:1.41pt 5.10pt;width:282.53pt;&#034;&gt;&lt;p style=&#034;text-align:center;&#034;&gt;사업 추진 전략의 실현 가능성&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&#034;background-color:#d9d9d9;border-bottom-color:#000000;border-bottom-width:0.28pt;border-left-color:#4c4c4c;border-left-width:1.98pt;border-right-color:#000000;border-right-width:0.28pt;border-style:solid;border-top-color:#000000;border-top-width:0.28pt;height:32.68pt;padding:1.41pt 5.10pt;width:95.27pt;&#034; rowspan=&#034;2&#034;&gt;&lt;p style=&#034;text-align:center;&#034;&gt;&lt;strong&gt;시장성&lt;/strong&gt;&lt;span lang=&#034;EN-US&#034; dir=&#034;ltr&#034;&gt;&lt;strong&gt;(25&lt;/strong&gt;&lt;/span&gt;&lt;strong&gt;점&lt;/strong&gt;&lt;span lang=&#034;EN-US&#034; dir=&#034;ltr&#034;&gt;&lt;strong&gt;)&lt;/strong&gt;&lt;/span&gt;&lt;/p&gt;&lt;/td&gt;&lt;td style=&#034;border-bottom-style:dotted;border-color:#000000;border-left-style:solid;border-right-style:solid;border-top-style:solid;border-width:0.28pt;height:16.34pt;padding:1.41pt 5.10pt;width:282.53pt;&#034;&gt;&lt;p style=&#034;text-align:center;&#034;&gt;목표시장 규모&lt;span lang=&#034;EN-US&#034; dir=&#034;ltr&#034;&gt;·&lt;/span&gt;성장성 및 아이템 경쟁력&lt;/p&gt;&lt;/td&gt;&lt;td style=&#034;border-bottom-color:#000000;border-bottom-width:0.28pt;border-left-color:#000000;border-left-width:0.28pt;border-right-color:#4c4c4c;border-right-width:1.98pt;border-style:solid;border-top-color:#000000;border-top-width:0.28pt;height:32.68pt;padding:1.41pt 5.10pt;width:56.73pt;&#034; rowspan=&#034;2&#034;&gt;&lt;p style=&#034;text-align:center;&#034;&gt;&lt;span lang=&#034;EN-US&#034; dir=&#034;ltr&#034;&gt;25&lt;/span&gt;점&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&#034;border-bottom-style:solid;border-color:#000000;border-left-style:solid;border-right-style:solid;border-top-style:dotted;border-width:0.28pt;height:16.34pt;padding:1.41pt 5.10pt;width:282.53pt;&#034;&gt;&lt;p style=&#034;text-align:center;&#034;&gt;핵심 고객 정의 및 확보 가능성&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&#034;background-color:#d9d9d9;border-bottom-color:#000000;border-bottom-width:0.28pt;border-left-color:#4c4c4c;border-left-width:1.98pt;border-right-color:#000000;border-right-width:0.28pt;border-style:solid;border-top-color:#000000;border-top-width:0.28pt;height:32.68pt;padding:1.41pt 5.10pt;width:95.27pt;&#034; rowspan=&#034;2&#034;&gt;&lt;p style=&#034;text-align:center;&#034;&gt;&lt;strong&gt;성장성&lt;/strong&gt;&lt;span lang=&#034;EN-US&#034; dir=&#034;ltr&#034;&gt;&lt;strong&gt;(30&lt;/strong&gt;&lt;/span&gt;&lt;strong&gt;점&lt;/strong&gt;&lt;span lang=&#034;EN-US&#034; dir=&#034;ltr&#034;&gt;&lt;strong&gt;)&lt;/strong&gt;&lt;/span&gt;&lt;/p&gt;&lt;/td&gt;&lt;td style=&#034;border-bottom-style:dotted;border-color:#000000;border-left-style:solid;border-right-style:solid;border-top-style:solid;border-width:0.28pt;height:16.34pt;padding:1.41pt 5.10pt;width:282.53pt;&#034;&gt;&lt;p style=&#034;text-align:center;&#034;&gt;매출&lt;span lang=&#034;EN-US&#034; dir=&#034;ltr&#034;&gt;·&lt;/span&gt;고객 등 핵심 지표의 성장 추이&lt;/p&gt;&lt;/td&gt;&lt;td style=&#034;border-bottom-color:#000000;border-bottom-width:0.28pt;border-left-color:#000000;border-left-width:0.28pt;border-right-color:#4c4c4c;border-right-width:1.98pt;border-style:solid;border-top-color:#000000;border-top-width:0.28pt;height:32.68pt;padding:1.41pt 5.10pt;width:56.73pt;&#034; rowspan=&#034;2&#034;&gt;&lt;p style=&#034;text-align:center;&#034;&gt;&lt;span lang=&#034;EN-US&#034; dir=&#034;ltr&#034;&gt;30&lt;/span&gt;점&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&#034;border-bottom-style:solid;border-color:#000000;border-left-style:solid;border-right-style:solid;border-top-style:dotted;border-width:0.28pt;height:16.34pt;padding:1.41pt 5.10pt;width:282.53pt;&#034;&gt;&lt;p style=&#034;text-align:center;&#034;&gt;고용 창출 및 시장 확대 가능성&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&#034;background-color:#d9d9d9;border-bottom-color:#4c4c4c;border-bottom-width:1.98pt;border-left-color:#4c4c4c;border-left-width:1.98pt;border-right-color:#000000;border-right-width:0.28pt;border-style:solid;border-top-color:#000000;border-top-width:0.28pt;height:32.68pt;padding:1.41pt 5.10pt;width:95.27pt;&#034; rowspan=&#034;2&#034;&gt;&lt;p style=&#034;text-align:center;&#034;&gt;&lt;strong&gt;투자 적합성&lt;/strong&gt;&lt;span lang=&#034;EN-US&#034; dir=&#034;ltr&#034;&gt;&lt;strong&gt;(20&lt;/strong&gt;&lt;/span&gt;&lt;strong&gt;점&lt;/strong&gt;&lt;span lang=&#034;EN-US&#034; dir=&#034;ltr&#034;&gt;&lt;strong&gt;)&lt;/strong&gt;&lt;/span&gt;&lt;/p&gt;&lt;/td&gt;&lt;td style=&#034;border-bottom-style:dotted;border-color:#000000;border-left-style:solid;border-right-style:solid;border-top-style:solid;border-width:0.28pt;height:16.34pt;padding:1.41pt 5.10pt;width:282.53pt;&#034;&gt;&lt;p style=&#034;text-align:center;&#034;&gt;&lt;span lang=&#034;EN-US&#034; dir=&#034;ltr&#034;&gt;Seed~Pre-A&amp;nbsp;&lt;/span&gt;단계 적함성 및 자금 활용 계획의 타당성&lt;/p&gt;&lt;/td&gt;&lt;td style=&#034;border-bottom-color:#4c4c4c;border-bottom-width:1.98pt;border-left-color:#000000;border-left-width:0.28pt;border-right-color:#4c4c4c;border-right-width:1.98pt;border-style:solid;border-top-color:#000000;border-top-width:0.28pt;height:32.68pt;padding:1.41pt 5.10pt;width:56.73pt;&#034; rowspan=&#034;2&#034;&gt;&lt;p style=&#034;text-align:center;&#034;&gt;&lt;span lang=&#034;EN-US&#034; dir=&#034;ltr&#034;&gt;20&lt;/span&gt;점&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&#034;border-bottom:1.98pt solid #4c4c4c;border-left:0.28pt solid #000000;border-right:0.28pt solid #000000;border-top:0.28pt dotted #000000;height:16.34pt;padding:1.41pt 5.10pt;width:282.53pt;&#034;&gt;&lt;p style=&#034;text-align:center;&#034;&gt;직접투자 및 후속투자 유치 가능성&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;&lt;/figure&gt;&lt;p&gt;&lt;span lang=&#034;EN-US&#034; dir=&#034;ltr&#034;&gt;&amp;nbsp;- 2&lt;/span&gt;차 발표평가&lt;span lang=&#034;EN-US&#034; dir=&#034;ltr&#034;&gt;(&lt;/span&gt;정성&amp;nbsp;&lt;span lang=&#034;EN-US&#034; dir=&#034;ltr&#034;&gt;100&lt;/span&gt;점&lt;span lang=&#034;EN-US&#034; dir=&#034;ltr&#034;&gt;)&lt;/span&gt;&lt;/p&gt;&lt;figure class=&#034;table&#034;&gt;&lt;table&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td style=&#034;background-color:#808080;border-bottom-color:#000000;border-bottom-width:0.28pt;border-left-color:#4c4c4c;border-left-width:1.98pt;border-right-color:#000000;border-right-width:0.28pt;border-style:solid;border-top-color:#4c4c4c;border-top-width:1.98pt;height:21.36pt;padding:1.41pt 5.10pt;width:95.27pt;&#034;&gt;&lt;p style=&#034;text-align:center;&#034;&gt;&lt;span style=&#034;color:#ffffff;&#034;&gt;&lt;strong&gt;평가항목&lt;/strong&gt;&lt;/span&gt;&lt;/p&gt;&lt;/td&gt;&lt;td style=&#034;background-color:#808080;border-bottom-color:#000000;border-bottom-width:0.28pt;border-left-color:#000000;border-left-width:0.28pt;border-right-color:#000000;border-right-width:0.28pt;border-style:solid;border-top-color:#4c4c4c;border-top-width:1.98pt;height:21.36pt;padding:1.41pt 5.10pt;width:282.53pt;&#034;&gt;&lt;p style=&#034;text-align:center;&#034;&gt;&lt;span style=&#034;color:#ffffff;&#034;&gt;&lt;strong&gt;세부 평가요소&lt;/strong&gt;&lt;/span&gt;&lt;/p&gt;&lt;/td&gt;&lt;td style=&#034;background-color:#808080;border-bottom-color:#000000;border-bottom-width:0.28pt;border-left-color:#000000;border-left-width:0.28pt;border-right-color:#4c4c4c;border-right-width:1.98pt;border-style:solid;border-top-color:#4c4c4c;border-top-width:1.98pt;height:21.36pt;padding:1.41pt 5.10pt;width:56.73pt;&#034;&gt;&lt;p style=&#034;text-align:center;&#034;&gt;&lt;span style=&#034;color:#ffffff;&#034;&gt;&lt;strong&gt;배점&lt;/strong&gt;&lt;/span&gt;&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&#034;background-color:#d9d9d9;border-bottom-color:#000000;border-bottom-width:0.28pt;border-left-color:#4c4c4c;border-left-width:1.98pt;border-right-color:#000000;border-right-width:0.28pt;border-style:solid;border-top-color:#000000;border-top-width:0.28pt;height:32.68pt;padding:1.41pt 5.10pt;width:95.27pt;&#034; rowspan=&#034;2&#034;&gt;&lt;p style=&#034;text-align:center;&#034;&gt;&lt;strong&gt;팀 역량&lt;/strong&gt;&lt;span lang=&#034;EN-US&#034; dir=&#034;ltr&#034;&gt;&lt;strong&gt;(25&lt;/strong&gt;&lt;/span&gt;&lt;strong&gt;점&lt;/strong&gt;&lt;span lang=&#034;EN-US&#034; dir=&#034;ltr&#034;&gt;&lt;strong&gt;)&lt;/strong&gt;&lt;/span&gt;&lt;/p&gt;&lt;/td&gt;&lt;td style=&#034;border-bottom-style:dotted;border-color:#000000;border-left-style:solid;border-right-style:solid;border-top-style:solid;border-width:0.28pt;height:16.34pt;padding:1.41pt 5.10pt;width:282.53pt;&#034;&gt;&lt;p style=&#034;text-align:center;&#034;&gt;대표자 및 핵심 구성원의 전문성&lt;span lang=&#034;EN-US&#034; dir=&#034;ltr&#034;&gt;·&lt;/span&gt;실행력&lt;/p&gt;&lt;/td&gt;&lt;td style=&#034;border-bottom-color:#000000;border-bottom-width:0.28pt;border-left-color:#000000;border-left-width:0.28pt;border-right-color:#4c4c4c;border-right-width:1.98pt;border-style:solid;border-top-color:#000000;border-top-width:0.28pt;height:32.68pt;padding:1.41pt 5.10pt;width:56.73pt;&#034; rowspan=&#034;2&#034;&gt;&lt;p style=&#034;text-align:center;&#034;&gt;&lt;span lang=&#034;EN-US&#034; dir=&#034;ltr&#034;&gt;25&lt;/span&gt;점&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&#034;border-bottom-style:solid;border-color:#000000;border-left-style:solid;border-right-style:solid;border-top-style:dotted;border-width:0.28pt;height:16.34pt;padding:1.41pt 5.10pt;width:282.53pt;&#034;&gt;&lt;p style=&#034;text-align:center;&#034;&gt;조직 구성의 완성도 및 네트워크&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&#034;background-color:#d9d9d9;border-bottom-color:#000000;border-bottom-width:0.28pt;border-left-color:#4c4c4c;border-left-width:1.98pt;border-right-color:#000000;border-right-width:0.28pt;border-style:solid;border-top-color:#000000;border-top-width:0.28pt;height:32.68pt;padding:1.41pt 5.10pt;width:95.27pt;&#034; rowspan=&#034;2&#034;&gt;&lt;p style=&#034;text-align:center;&#034;&gt;&lt;strong&gt;사업성&lt;/strong&gt;&lt;span lang=&#034;EN-US&#034; dir=&#034;ltr&#034;&gt;&lt;strong&gt;(25&lt;/strong&gt;&lt;/span&gt;&lt;strong&gt;점&lt;/strong&gt;&lt;span lang=&#034;EN-US&#034; dir=&#034;ltr&#034;&gt;&lt;strong&gt;)&lt;/strong&gt;&lt;/span&gt;&lt;/p&gt;&lt;/td&gt;&lt;td style=&#034;border-bottom-style:dotted;border-color:#000000;border-left-style:solid;border-right-style:solid;border-top-style:solid;border-width:0.28pt;height:16.34pt;padding:1.41pt 5.10pt;width:282.53pt;&#034;&gt;&lt;p style=&#034;text-align:center;&#034;&gt;사업화 전략의 구체성 및 타당성&lt;/p&gt;&lt;/td&gt;&lt;td style=&#034;border-bottom-color:#000000;border-bottom-width:0.28pt;border-left-color:#000000;border-left-width:0.28pt;border-right-color:#4c4c4c;border-right-width:1.98pt;border-style:solid;border-top-color:#000000;border-top-width:0.28pt;height:32.68pt;padding:1.41pt 5.10pt;width:56.73pt;&#034; rowspan=&#034;2&#034;&gt;&lt;p style=&#034;text-align:center;&#034;&gt;&lt;span lang=&#034;EN-US&#034; dir=&#034;ltr&#034;&gt;25&lt;/span&gt;점&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&#034;border-bottom-style:solid;border-color:#000000;border-left-style:solid;border-right-style:solid;border-top-style:dotted;border-width:0.28pt;height:16.34pt;padding:1.41pt 5.10pt;width:282.53pt;&#034;&gt;&lt;p style=&#034;text-align:center;&#034;&gt;&lt;span lang=&#034;EN-US&#034; dir=&#034;ltr&#034;&gt;BM&lt;/span&gt;의 차별성 및 실현 가능성&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&#034;background-color:#d9d9d9;border-bottom-color:#000000;border-bottom-width:0.28pt;border-left-color:#4c4c4c;border-left-width:1.98pt;border-right-color:#000000;border-right-width:0.28pt;border-style:solid;border-top-color:#000000;border-top-width:0.28pt;height:32.68pt;padding:1.41pt 5.10pt;width:95.27pt;&#034; rowspan=&#034;2&#034;&gt;&lt;p style=&#034;text-align:center;&#034;&gt;&lt;strong&gt;확장성&lt;/strong&gt;&lt;span lang=&#034;EN-US&#034; dir=&#034;ltr&#034;&gt;&lt;strong&gt;(20&lt;/strong&gt;&lt;/span&gt;&lt;strong&gt;점&lt;/strong&gt;&lt;span lang=&#034;EN-US&#034; dir=&#034;ltr&#034;&gt;&lt;strong&gt;)&lt;/strong&gt;&lt;/span&gt;&lt;/p&gt;&lt;/td&gt;&lt;td style=&#034;border-bottom-style:dotted;border-color:#000000;border-left-style:solid;border-right-style:solid;border-top-style:solid;border-width:0.28pt;height:16.34pt;padding:1.41pt 5.10pt;width:282.53pt;&#034;&gt;&lt;p style=&#034;text-align:center;&#034;&gt;타깃 시장 설정 및 고객 확보 전략의 적정성&lt;/p&gt;&lt;/td&gt;&lt;td style=&#034;border-bottom-color:#000000;border-bottom-width:0.28pt;border-left-color:#000000;border-left-width:0.28pt;border-right-color:#4c4c4c;border-right-width:1.98pt;border-style:solid;border-top-color:#000000;border-top-width:0.28pt;height:32.68pt;padding:1.41pt 5.10pt;width:56.73pt;&#034; rowspan=&#034;2&#034;&gt;&lt;p style=&#034;text-align:center;&#034;&gt;&lt;span lang=&#034;EN-US&#034; dir=&#034;ltr&#034;&gt;20&lt;/span&gt;점&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&#034;border-bottom-style:solid;border-color:#000000;border-left-style:solid;border-right-style:solid;border-top-style:dotted;border-width:0.28pt;height:16.34pt;padding:1.41pt 5.10pt;width:282.53pt;&#034;&gt;&lt;p style=&#034;text-align:center;&#034;&gt;경쟁사 대비 차별화 요소&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&#034;background-color:#d9d9d9;border-bottom-color:#4c4c4c;border-bottom-width:1.98pt;border-left-color:#4c4c4c;border-left-width:1.98pt;border-right-color:#000000;border-right-width:0.28pt;border-style:solid;border-top-color:#000000;border-top-width:0.28pt;height:32.68pt;padding:1.41pt 5.10pt;width:95.27pt;&#034; rowspan=&#034;2&#034;&gt;&lt;p style=&#034;text-align:center;&#034;&gt;&lt;strong&gt;투자 매력도&lt;/strong&gt;&lt;span lang=&#034;EN-US&#034; dir=&#034;ltr&#034;&gt;&lt;strong&gt;(30&lt;/strong&gt;&lt;/span&gt;&lt;strong&gt;점&lt;/strong&gt;&lt;span lang=&#034;EN-US&#034; dir=&#034;ltr&#034;&gt;&lt;strong&gt;)&lt;/strong&gt;&lt;/span&gt;&lt;/p&gt;&lt;/td&gt;&lt;td style=&#034;border-bottom-style:dotted;border-color:#000000;border-left-style:solid;border-right-style:solid;border-top-style:solid;border-width:0.28pt;height:16.34pt;padding:1.41pt 5.10pt;width:282.53pt;&#034;&gt;&lt;p style=&#034;text-align:center;&#034;&gt;밸류에이션 및 투자 조건의 적정성&lt;/p&gt;&lt;/td&gt;&lt;td style=&#034;border-bottom-color:#4c4c4c;border-bottom-width:1.98pt;border-left-color:#000000;border-left-width:0.28pt;border-right-color:#4c4c4c;border-right-width:1.98pt;border-style:solid;border-top-color:#000000;border-top-width:0.28pt;height:32.68pt;padding:1.41pt 5.10pt;width:56.73pt;&#034; rowspan=&#034;2&#034;&gt;&lt;p style=&#034;text-align:center;&#034;&gt;&lt;span lang=&#034;EN-US&#034; dir=&#034;ltr&#034;&gt;30&lt;/span&gt;점&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&#034;border-bottom:1.98pt solid #4c4c4c;border-left:0.28pt solid #000000;border-right:0.28pt solid #000000;border-top:0.28pt dotted #000000;height:16.34pt;padding:1.41pt 5.10pt;width:282.53pt;&#034;&gt;&lt;p style=&#034;text-align:center;&#034;&gt;후속 투자 및 엑시트&lt;span lang=&#034;EN-US&#034; dir=&#034;ltr&#034;&gt;(M&amp;amp;A&amp;nbsp;&lt;/span&gt;등&lt;span lang=&#034;EN-US&#034; dir=&#034;ltr&#034;&gt;)&amp;nbsp;&lt;/span&gt;가능성&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;&lt;/figure&gt;&lt;p&gt;&lt;span lang=&#034;EN-US&#034; dir=&#034;ltr&#034;&gt;&amp;nbsp;&lt;/span&gt;&lt;/p&gt;&lt;p&gt;○ 운영내용: 1:1 멘토링(컨설팅), IR 데모데이, 투자 연계&amp;nbsp;&lt;/p&gt;&lt;p&gt;○ 투자 개요&amp;nbsp;&lt;/p&gt;&lt;p&gt;&amp;nbsp; - 투자기관: (주)디유파트너스&amp;nbsp;&lt;/p&gt;&lt;p&gt;&amp;nbsp; - 검토분야: 전분야&amp;nbsp;&lt;/p&gt;&lt;p&gt;&amp;nbsp; - 투자라운드: Seed ~ Pre-A&lt;/p&gt;&lt;p&gt;※ 본 프로그램은 직접투자를 전제로 선발하지만, 선발 사실이 직접투자를 보장하는 것은 아닌 점 참고 부탁드립니다.&lt;/p&gt;" data-guide-container></div>
+                                </li>
+                            </ul>
+                        </div>
+                    
+
+                    
+                        <div class="view-con__file">
+                            <p class="fw-bold">
+                                <!-- 첨부파일 -->
+                                Attachments
+                            </p>
+                            
+                                
+                                <a href="/api/common/download?attachFilePath=%2fproject%2fattachment%2f261019181829%ed%8f%ac%ec%8a%a4%ed%84%b0.png" class="common__button attachment-btn color__bg--content outline-gray">
+                                        포스터.png
+                                </a>
+                            
+
+                            
+                                
+                                <a href="/api/common/download?attachFilePath=%2fproject%2fattachment%2f261019181829DUpartners_%ed%9a%8c%ec%82%ac%ec%86%8c%ea%b0%9c%ec%84%9c_202605.pdf" class="common__button attachment-btn color__bg--content outline-gray">
+                                        DUpartners_회사소개서_202605.pdf
+                                </a>
+                            
+
+                            
+                                
+                                <a href="/api/common/download?attachFilePath=%2fproject%2fattachment%2f261019181829%ed%8f%89%ea%b0%80%ec%a7%80%ed%91%9c.png" class="common__button attachment-btn color__bg--content outline-gray">
+                                        평가지표.png
+                                </a>
+                            
+                        </div>
+                    
+
+
+                    
+
+                    
+                        <div class="view-con__line common__con-line"> <!-- 문의처 -->
+                                Contact
+                        </div>
+                        <div class="view-con__txt common__con-txt">
+                            <ul>
+                                
+                                    <li class="view-con__txt--flex mb-8">
+                                        <span class="plus fw-bold">
+                                            <!-- 담당자명 -->
+                                            Manager name
+                                        </span>
+                                            디유파트너스 금태을 매니저
+                                    </li>
+                                
+                                
+                                    <li class="view-con__txt--flex mb-8">
+                                        <span class="plus fw-bold">
+                                            <!-- 이메일 -->
+                                            Email
+                                        </span>
+                                        taeeul.geum@dupartners.co.kr
+                                    </li>
+                                
+                                
+                                    <li class="view-con__txt--flex mb-8">
+                                        <span class="plus fw-bold">
+                                            <!-- 연락처 -->
+                                            Contact information
+                                        </span>
+                                        0269530318
+                                    </li>
+                                
+                            </ul>
+                        </div>
+                    
+                </div>
+
+                <!-- GRID : BUTTON -->
+                <div class="common__btn-box">
+                    
+                        
+                            
+                                <a href="#" onclick="openLink('https://docs.google.com/forms/d/e/1FAIpQLSfjAiUcs43ldh_w_tnCFR236q5jBeZ2OBIEOv7byoTZvCxViw/viewform', '_blank'); return false;" class="common__button color-purple apply-btn">
+                                        
+                                        Shortcuts
+                                </a>
+                            
+                            
+                        
+                    
+                    
+                    <div onclick="window.location.href='/project'" class="common__button color-gray">
+                        
+                        List
+                    </div>
+                </div> <!-- //GRID : BUTTON -->
+            </div>
+        </div>
+    </div>
+</main>
+
+<script>
+    onLoadPage();
+    
+    function onLoadPage(){
+        if($("ul.aply_item li").length==0){
+            $("div[data-name=submit-file]").remove()
+        }
+
+        let today = moment("2026-10-20 15:38:13").format('YYYY-MM-DD HH:mm');
+        let receiptBeginDate = "2026-10-19 19:00";
+        let receiptEndDate= "2026-10-28 23:59";
+        let guide = $("#guide-data").data("guide");
+
+        let guideObject ={
+            projectName : 'SBA x 디유파트너스 - 스타트업 성장 투자 배치 프로그램 참여기업 모집',
+            projectNameEN : '',
+            guide : guide,
+            guideEN : ''
+        }
+
+        $('[data-project-name]').html(ctsApp.util.langPostfixEn("projectName",guideObject))
+        $('[data-guide-container]').html(ctsApp.util.langPostfixEn("guide",guideObject));
+
+        $("[data-bind-type='receiptDate']").text(ctsApp.util.formatYYYYMMDDHHmm(receiptBeginDate) +' ~ '+ctsApp.util.formatYYYYMMDDHHmm(receiptEndDate))
+        // 사업신청 버튼처리
+        /** 지원기간 시간처리 작업부분 */
+        if(today<ctsApp.util.formatYYYYMMDDHHmm(receiptBeginDate)){
+            $("a.apply-btn").attr("href","#").text("Planned");
+            $(".common__btn-box a.apply-btn").remove();
+        } else if(today>ctsApp.util.formatYYYYMMDDHHmm(receiptEndDate)){
+            $("a.apply-btn").attr("href","#").text("closing of reception").removeClass("color-purple").addClass("color-gray");
+            $(".common__btn-box a.apply-btn").remove();
+        }
+
+    }
+
+    function openLink(url) {
+        if (!url.startsWith('http://') && !url.startsWith('https://')) {
+            url = 'http://' + url;
+        }
+        window.open(url, '_blank');
+    }
+
+</script>
+
+
+
+
+</div>
+    <!-- LOGGER(TM) TRACKING SCRIPT V.40 FOR logger.co.kr / 106412 : COMBINE TYPE / DO NOT ALTER THIS SCRIPT. -->
+    <script type="text/javascript">var _TRK_LID = "106412";var _L_TD = "ssl.logger.co.kr";var _TRK_CDMN = ".startup-plus.kr";</script>
+<script type="text/javascript">var _CDN_DOMAIN = location.protocol == "https:" ? "https://fs.bizspring.net" : "http://fs.bizspring.net";
+(function (b, s) { var f = b.getElementsByTagName(s)[0], j = b.createElement(s); j.async = true; j.src = "//fs.bizspring.net/fs4/bstrk.1.js"; f.parentNode.insertBefore(j, f); })(document, "script");
+</script>
+<noscript><img alt="Logger Script" width="1" height="1" src="https://ssl.logger.co.kr/tracker.1.tsp?u=106412&amp;js=N"/></noscript>
+<!-- END OF LOGGER TRACKING SCRIPT -->
+<footer class="site__footer">
+    <div class="site__footer__top">
+        <div class="site__inner">
+            <div class="top__section">
+                <div class="partners__banner swiper">
+                    <div class="partners__container">
+                        <div class="partners__wrap swiper-wrapper">
+                            <div class="partners__item swiper-slide">
+                                <a href="https://www.seoul.go.kr/main/index.jsp" target="_blank" rel="noopener noreferrer">
+                                    <img src="/web/assets/images/partner_logos/partner_seoul.png" alt="서울 특별시">
+                                </a>
+                            </div>
+                            <div class="partners__item swiper-slide">
+                                <a href="https://www.sba.seoul.kr/kr/index" target="_blank" rel="noopener noreferrer">
+                                    <img src="/web/assets/images/partner_logos/partner_sba.png" alt="sba">
+                                </a>
+                            </div>
+                            <div class="partners__item swiper-slide">
+                                <a href="https://www.kedkorea.com/ci/CIINT01R0.do" target="_blank" rel="noopener noreferrer">
+                                    <img src="/web/assets/images/partner_logos/partner_ked.png" alt="한국기업데이터">
+                                </a>
+                            </div>
+                            <div class="partners__item swiper-slide">
+                                <a href="https://www.kist.re.kr/ko/index.do#firstPage" target="_blank" rel="noopener noreferrer">
+                                    <img src="/web/assets/images/partner_logos/partner_kist.png" alt="한국과학기술연구원">
+                                </a>
+                            </div>
+                            <div class="partners__item swiper-slide">
+                                <a href="https://www.niceinfo.co.kr/main.nice" target="_blank" rel="noopener noreferrer">
+                                    <img src="/web/assets/images/partner_logos/partner_nice.png" alt="NICE평가정보">
+                                </a>
+                            </div>
+                            <div class="partners__item swiper-slide">
+                                <a href="https://startuprecipe.co.kr" target="_blank" rel="noopener noreferrer">
+                                    <img src="/web/assets/images/partner_logos/partner_startuprecipe.png" alt="스타트업 레시피">
+                                </a>
+                            </div>
+                            <div class="partners__item swiper-slide">
+                                <a href="https://www.innoforest.co.kr/" target="_blank" rel="noopener noreferrer">
+                                    <img src="/web/assets/images/partner_logos/partner_innoforest.png" alt="혁신의숲">
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="partners__controller">
+                        <div class="partners__controlBtn prev swiper-slide-prev" data-action="prev"><i class="common__icon common__icon--partner-prev"></i></div>
+                        <div class="partners__controlBtn pause" data-action="pause">
+                            <img src="/web/assets/images/common/ui/pause.png" alt="pause" style="width:6.5px">
+                            <img src="/web/assets/images/common/ui/play.png" alt="play" style="width:12px;">
+                        </div>
+                        <div class="partners__controlBtn swiper-slide-next" data-action="next"><i class="common__icon common__icon--partner-next"></i></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="site__footer__bottom">
+        <div class="site__inner p-0">
+            <div class="bottom__section">
+                <div class="site__logo">
+                    <a href="/">
+                        
+                            
+                            
+                                <img src="/web/assets/images/common/logo_en.svg" alt="Seoul Startup hub plus" style="width: 212px">
+                            
+                        
+                    </a>
+                    <div class="sns-items">
+                        <ul>
+                            <li><a href="https://www.youtube.com/channel/UC9pAFTdYRXDiJxnfrIxUoZQ/featured" target="_blank" rel="noopener noreferrer"><i class="common__icon common__icon--youtube">youtube</i></a></li>
+                            <li><a href="https://www.linkedin.com/company/seoulstartuphub/" target="_blank" rel="noopener noreferrer"><i class="common__icon common__icon--linkedin">linkedin</i></a></li>
+                            <!-- <li><a href="https://www.facebook.com/SeoulStartupHub/?ref=aymt_homepage_panel" target="_blank"><i class="common__icon common__icon--facebook">facebook</i></a></li> -->
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="familysites">
+                    <nav class="quick-menu">
+                        <ul>
+                            
+                            <li><a href="/term">Policy for processing personal information</a></li>
+                            
+                            <li><a href="/term?type=2">Terms and conditions</a></li>
+                        </ul>
+                    </nav>
+
+                    <div class="familysites__header">
+                        <div class="familysites__tab" data-action="tab">
+                            <button class="familysites__button">
+                                
+                                Seoul Startup Support Facility
+                            </button>
+                        </div>
+                        
+                        
+                        
+                        
+                        
+                        
+                        <div class="familysites__content">
+                            <nav class="familysites__nav">
+                                
+<ul class="scrollable">
+  
+  <li><a href="https://hubgongdeok.startup-plus.kr">Seoul Startup Hub Gongdeok</a></li>
+  
+  <li><a href="https://mplus.startup-plus.kr">Seoul Startup Hub M+</a></li>
+  
+  <li><a href="https://hubchangdong.startup-plus.kr">Seoul Startup Hub Changdong</a></li>
+  
+  <li><a href="https://hubseongsu.startup-plus.kr">Seoul Startup Hub Seongsu</a></li>
+  
+  <li><a href="https://sscgwanak.startup-plus.kr">Seoul Startup Center Gwanak</a></li>
+  
+  <li><a href="https://didimteo.startup-plus.kr">Seoul Startup Didimteo</a></li>
+  
+  
+  
+  <li><a href="https://rnbd.startup-plus.kr">Seoul Startup Growth Center</a></li>
+  
+  <li><a href="https://dongjak.startup-plus.kr">Seoul Startup Hub Dongjak</a></li>
+  
+  <li><a href="https://www.seoulup.or.kr/">Seoul Upcycling Plaza </a></li>
+  
+  <li><a href="https://yfactory.startup-plus.kr/default.do">Yongsan Prototype Center</a></li>
+  
+  <li><a href="https://scaleupcenter.startup-plus.kr/default.do">Seoul Startup Hub Scale Up Center</a></li>
+  
+  
+  
+  <li><a href="https://gvalley.startup-plus.kr/">G Valley Startup Cube</a></li>
+  
+  <li><a href="https://seoulfintechlab.startup-plus.kr">Seoul Fintech Lab</a></li>
+  
+  <li><a href="https://seoulfintechlab2.startup-plus.kr/default.do">Seoul Fintech Lab2</a></li>
+  
+  
+  
+  
+  
+  <li><a href="https://www.seoulaihub.kr">Seoul AI hub</a></li>
+  
+  <li><a href="https://www.seoulbiohub.kr">Seoul Bio Hub</a></li>
+  
+  <li><a href="https://sfsc.startup-plus.kr">Seoul Food Tech Startup Center</a></li>
+  
+  <li><a href="https://svhc.startup-plus.kr">Social Venture Hub</a></li>
+  
+  <li><a href="https://tourism.startup-plus.kr/">Seoul Tourism Plaza</a></li>
+  
+  <li><a href="https://sdf.startup-plus.kr">Seoul Design Incubating Center</a></li>
+  
+  
+  
+  
+  
+  <li><a href="https://hubmaker.startup-plus.kr/">Seoul Startup Hub Productization Support Center</a></li>
+</ul>
+
+
+                            </nav>
+                            
+                            
+                            
+                        </div>
+                    </div>
+                </div>
+
+                <div class="site__info">
+                    
+                    <strong class="info__name">Seoul Business Agency</strong>
+                    <div class="info__address">
+                        
+                        <address>Seoul Startup Hub 21, Baekbeom-ro 31-gil, Mapo-gu, Seoul</address> |
+                        CEO: Park Bo-kyung |
+                        corporate registration number: 102-82-09623 <br>
+
+                        
+                        <div class="tel">
+                            Inquiries about business promotion and support: <a href="tel:02-2115-2000">02-2115-2000</a>
+                        </div>
+
+                        
+                        <div class="tel">
+                            System error inquiry: <a href="tel:02-6952-3125">02-6952-3125</a> | help@startup-plus.kr
+                            <span class="mobile-block">10am to 5pm / Closed on weekends and holidays</span>
+                        </div>
+                    </div>
+                    <div class="info__copyright">
+                        COPYRIGHT &#169; 2021, SBA. ALL RIGHTS RESERVED.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</footer>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script src="/web/assets/js/plugins/jquery-ui.min.js"></script>
+<div class="layer-container">
+  <div class="layer-content">
+    
+    
+    <div class="auto_logout__wrap">
+      <div class="logout_title">
+        <p>
+          <span>자동 로그아웃</span> 안내
+        </p>
+      </div>
+      <div class="logout_content">
+        <div>
+          자동 로그아웃 남은 시간: <span class="logout_time"></span>
+        </div>
+        <div>
+          고객님의 안전한 서비스 이용을 위해<br/>
+          로그인 후 약 2시간 동안 서비스 이용이 없어 로그아웃 합니다.<br/><br/>
+          로그인 시간을 연장하시겠습니까?
+        </div>
+        <div class="button__wrap">
+          <div class="logout_prepare">
+            <button class="common__button color-purple"
+                    onclick="javascript:logoutExtend()">
+              연장하기
+            </button>
+            <button class="common__button" onclick="javascript:logout()">
+              로그아웃
+            </button>
+          </div>
+          <div class="logout_ok">
+            <button class="common__button color-purple"
+                    style="padding: 17px 58px;"
+                    onclick="location.href='/cms_for_portal/process/etc/login/list.do'">
+              다시 로그인
+            </button>
+            <button class="common__button"
+                    style="padding: 17px 50px;"
+                    onclick="location.href='/'">
+              메인화면 이동
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="layer-popup-close" onclick="javascript:logoutPopupClose()"></div>
+</div>
+<script>
+  function logoutPopupOpen() {
+    document.querySelector(".layer-container").style.display = "block";
+    document.querySelector(".layer-container").style.opacity = 1;
+  }
+  function logoutPopupClose() {
+    document.querySelector(".layer-container").style.display = "none";
+    document.querySelector(".layer-container").style.opacity = 0;
+  }
+  function logoutExtend() {
+    // self.location = "/common/sessionExpend.do";
+    $.ajax({
+      type: "POST",
+      url: "/front/session/extend.jsp",
+      success: function(data) {
+        logoutPopupClose();
+        sessionTime = parseInt(7200);
+        popupView = false;
+        
+        
+        
+        
+        
+        
+        
+      },
+      fail: function (error) {
+        console.log(error)
+        self.location = "/";
+      }
+    });
+  }
+  function logout() {
+    self.location = "/logout";
+  }
+  $(function() {
+    $(".layer-container").draggable({
+      containment: '.page__index',
+      scroll: false
+    });
+  });
+</script>
+
+
+
+
+
+
+<script src="/web/assets/js/ui/familysites.js"></script>
+<script src="/web/assets/js/pages/page__index.js"></script>
+<script>
+    function activeTab(type) {
+        const tabs = document.querySelectorAll(".dashboard__tab");
+        for (let idx=0; idx<tabs.length; idx++) {
+            tabs[idx].classList.remove("active");
+        }
+        switch (type) {
+            case 0:
+                tabs[0].classList.add("active");
+                break;
+            case 1:
+                tabs[1].classList.add("active");
+                break;
+            case 2:
+                tabs[2].classList.add("active");
+                break;
+            case 3:
+                tabs[3].classList.add("active");
+                break;
+            case 4:
+                tabs[4].classList.add("active");
+                break;
+        }
+    }
+</script>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-QTVN4CJBCN"></script>
+<script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-QTVN4CJBCN');
+</script>
+</body>
+</html>
+
+
+
+
+

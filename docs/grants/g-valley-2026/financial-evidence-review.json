@@ -1,0 +1,40 @@
+{
+  "checked_on": "2026-10-07",
+  "question": "최초 접수 시 2025 재무제표를 부가가치세과세표준증명으로 대체 가능한가",
+  "conclusion": "부가가치세과세표준증명을 재무 증빙으로 언급하는 공식 근거는 있음. 단 최초 접수 대체 허용은 공개 자료만으로 확정 불가.",
+  "evidence": [
+    {
+      "source": "공식 공고 2 신청 및 접수 제출서류",
+      "url": "https://www.k-startup.go.kr/afile/fileDownload/6FXLn",
+      "text": "붙임 3 직전년도 재무제표 / 예비창업자 제외",
+      "scope": "최초 접수; 개인사업자 면제 또는 대체 조항 없음"
+    },
+    {
+      "source": "공식 지원신청서 서식2 5 기타 사항 작성 유의사항 2",
+      "url": "https://www.k-startup.go.kr/afile/fileDownload/NFXLn",
+      "text": "서류심사 통과자는 아래 작성 내용에 대한 증빙자료를 작성 건별로 제출하여야 함 / 표준재무제표증명(부가가치세과세표준증명)",
+      "scope": "서류심사 통과 이후 증빙; 최초 접수에 동일 적용 여부 미명시"
+    },
+    {
+      "source": "숭실대학교 창업지원단 공지",
+      "url": "https://startup.ssu.ac.kr/board/notice/4053?boardEnName=notice&contentId=3446",
+      "finding": "공고와 지원서 첨부; 본문에 재무제표 대체 안내 없음"
+    }
+  ],
+  "search_scope": [
+    "대회명과 재무제표·부가가치세·과세표준증명·대체·간편장부·미발급·FAQ 조합 검색",
+    "K-Startup 공고 및 원본 HWP/HWPX 확인",
+    "숭실대학교 공동주관기관 공지 확인"
+  ],
+  "limitations": [
+    "공개 검색에서 대체 허용을 명시한 공식 FAQ·추가공고를 찾지 못함",
+    "운영사 홈페이지 웹 접근 오류"
+  ],
+  "next": "부가가치세과세표준증명 준비는 가능. 최초 접수 대체 가능으로 확정하지 말고 로그인 후 업로드 안내 우선 확인.",
+  "contacted_operator": false,
+  "authenticated_form_review": {
+    "method": "사용자가 열어 둔 Chrome 탭의 본문과 로드된 질문 데이터 읽기",
+    "result": "재무제표 업로드는 선택 설정, 설명은 파일명뿐이며 대체서류 안내 없음",
+    "conclusion": "최초 접수 대체 허용 여부는 여전히 미확인"
+  }
+}

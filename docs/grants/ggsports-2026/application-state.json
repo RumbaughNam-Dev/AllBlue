@@ -1,0 +1,27 @@
+{
+  "program": "2026 경기스포츠산업 공모전",
+  "status": "submitted_confirmed",
+  "updated_at": "2026-10-20",
+  "official_url": "https://ggsports.spectory.net/innovation/contest?bno=60730",
+  "application_url": "https://ggsports.spectory.net/apply/receipt",
+  "deadline": "2026-10-30T18:00:00+09:00",
+  "first_result": "2026-11-13",
+  "presentation": "2026-11-20",
+  "final_result": "2026-11-27",
+  "mandatory_presentation_if_shortlisted": true,
+  "category": "대회 운영, 관리 기술",
+  "title": "AllBlue - 프리다이빙 교육 운영 서비스",
+  "files": [
+    "submission/AllBlue_경기스포츠산업_발표자료_v4.pptx",
+    "submission/AllBlue_제품화면.zip"
+  ],
+  "validation": "work/v4 (pptx validate.py PASSED, PowerPoint PDF render QA)",
+  "pending": [],
+  "facts_note": "경력·가격계획·협업은 기존 사용자 답변 기준. 다른 개발 프로젝트 매출을 AllBlue 실적으로 기재하지 않음.",
+  "receipt_id": "ggsports_innovation_258_C_1000132",
+  "gender": "남성",
+  "launch_status": "정식 출시 전, 2026년 10월 내 정식 출시 예정",
+  "confirmation_evidence": "submission/confirmation-20261016.json",
+  "replacement_confirmed": true,
+  "replacement_evidence": "submission/replacement-confirmation-20261020.json"
+}

@@ -247,7 +247,7 @@ export default function ScheduleDetailScreen() {
             </View>
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>장소</Text>
-              <Text style={styles.infoValue}>{schedule.poolName || '-'}</Text>
+              <Text style={styles.infoValue}>{schedule.poolName || schedule.customLocation || '-'}</Text>
             </View>
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>분류</Text>

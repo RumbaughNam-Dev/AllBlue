@@ -1,0 +1,672 @@
+{
+  "project": "AllBlue",
+  "research_date": "2026-10-07",
+  "purpose": "사용자는 이 목록을 기억해 두고 하나씩 신청할 계획. 신청 준비가 간단하면서 지원금도 적당히 큰 사업을 우선한다.",
+  "business": {
+    "opened": "2025-04-07",
+    "representative_birth_year": 1986,
+    "location": "서울 구로구",
+    "entity_type": "개인사업자 (사용자 확인)",
+    "industry_code": "미확인",
+    "revenue_employees_prior_awards": "미확인",
+    "trade_name": "럼바우",
+    "representative_name": "남상현",
+    "industry": "정보통신업 / 컴퓨터 프로그래밍 서비스업",
+    "development_experience": "14년차",
+    "freediving_experience": "3년차, AIDA Level 2",
+    "partner": "AIDA Instructor, 성명·실제역할 미확인",
+    "staff": "대표자1인, 유튜브 먹보야 놀자 외부협업",
+    "prior_investment_awards_government_support": "없음 (사용자 확인)",
+    "revenue": "AllBlue 외 프로젝트 매출 연 8,844만원 발생 중(2026). 별도 프로그램 개발로 서비스 확장 계획",
+    "tax_arrears": "국세·지방세 체납 및 금융 연체 없음 (사용자 확인 2026-10-20)",
+    "loan_history": "대출·보증 신청했으나 승인 안 됨 (기관·시기 미확인)",
+    "office": "사업장 주소 = 자택. 별도 사무실은 확실히 받을 수 있는 경우에만 의향",
+    "military": "상근예비역 1년 11개월 3주",
+    "sports_credentials": "체육지도자·선수 등록 없음. AIDA Level 3 진행중",
+    "hiring_plan": "직원·연구원 채용 계획 없음. 유튜브 먹보야 놀자 협업 예정"
+  },
+  "product": "실제 저장소 /Users/rumbaughnam/Desktop/Projects/AllBlue 확인. 일정·초대·교육진도·디브리핑·서류상태 연결 코드 존재. 실서비스·매출 미확인.",
+  "recommended": {
+    "main": 10,
+    "reason": "스포츠 제품 적합성과 평균4500만원의 균형. 간단한 신청만으로 받는 사업은 아니며 서류·발표·보육·정산 필요. 2026 모집 종료, 2027 공고 미확정.",
+    "immediate": 1,
+    "immediate_caveat": "공식 본문과 HWPX 기준 개인사업자 신청 가능으로 판단. 기타 제외요건 확인 필요. 입상시200~600만원; 최소5쪽 사업계획서와 프로그램 참여·발표 필요.",
+    "low_burden_services": [
+      2,
+      3,
+      8
+    ]
+  },
+  "rules": [
+    "50개 모두 현재 신청가능하거나 적격 확정인 것은 아님.",
+    "다음 신청 때 최신 공고 재검증; 2027 시행금액일정 미확정.",
+    "같은 비용 중복수혜 금지, 사업간 동시수행 및 자부담 확인.",
+    "정부지원금/바우처/상금/대출/보증 구분. 최대액 합산 금지.",
+    "이 파일은 명시적 보관 메모이며 모든 새 채팅의 자동 로딩은 보장되지 않음."
+  ],
+  "programs": [
+    {
+      "id": 1,
+      "name": "G밸리 창업경진대회",
+      "notes": "2026-10-08 17:00 마감. K-Startup 게시 본문 및 원본 HWPX 직접 확인: 창업7년이내, 법인전용 제한 없음; 개인사업자 신청 가능으로 판단. 전재본의 법인설립 문구는 공식 첨부와 불일치. 업력은 충족, 제외업종 등 기타요건 별도. 입상시200~600만원. 최소5쪽 사업계획서, 사업자등록증, 직전년도재무제표 및 지정서식. 서류 통과 후 멘토링/모의IR/데모데이.",
+      "source": "https://www.k-startup.go.kr/web/contents/bizpbanc-ongoing.do?pbancSn=179309&schM=view",
+      "application_status": "제출 완료 → 서류심사 미선정 (2026-10-16 결과 메일)",
+      "verified_attachment": "https://www.k-startup.go.kr/afile/fileDownload/6FXLn"
+    },
+    {
+      "id": 2,
+      "name": "스타트업 법률지원",
+      "notes": "예산 확인; 기업당 최대 300만원 법률서비스, 현금 아님",
+      "source": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000121175",
+      "application_status": "미신청"
+    },
+    {
+      "id": 3,
+      "name": "서울 소상공인 상표출원",
+      "notes": "예산 확인; 소상공인 요건",
+      "source": "https://www.ipseoul.kr/Pages/NotificationCenter/NC_DetailView.aspx?category=100000000&guid=dbdb9a39-b713-f111-b404-d4f5ef4a1e33",
+      "application_status": "미신청"
+    },
+    {
+      "id": 4,
+      "name": "테스트베드 서울 장소제공형",
+      "notes": "상시; 완성 제품과 실증기관 필요; 장소제공",
+      "source": "https://sbsc.sba.kr/front/advice/testbed_write_ready.do",
+      "application_status": "미신청"
+    },
+    {
+      "id": 5,
+      "name": "SBA Kibo-Star밸리 해외진출연계",
+      "notes": "2026-10-07 마감; 보증, 보조금 아님",
+      "source": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000126270",
+      "application_status": "미신청"
+    },
+    {
+      "id": 6,
+      "name": "서울 중소기업육성자금",
+      "notes": "예산 확인; 대출",
+      "source": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000126214",
+      "application_status": "미신청"
+    },
+    {
+      "id": 7,
+      "name": "구로구 무이자·특례보증",
+      "notes": "예산 확인; 원금 상환 필요",
+      "source": "https://www.guro.go.kr/e-book/access/ecatalogt.jsp?Dir=327&callmode=normal&catimage=&eclang=ko&start=6&um=s",
+      "application_status": "미신청"
+    },
+    {
+      "id": 8,
+      "name": "개인정보 안전조치 모니터링",
+      "notes": "상시 공고; 잔여정원 확인; 보안진단",
+      "source": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000122104",
+      "application_status": "미신청"
+    },
+    {
+      "id": 9,
+      "name": "위치정보 맞춤형 컨설팅",
+      "notes": "상시; 실제 위치기반서비스 진출 조건",
+      "source": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000126188",
+      "application_status": "미신청"
+    },
+    {
+      "id": 10,
+      "name": "스포츠산업 예비초기창업",
+      "notes": "2026 모집 종료; 평균4500만원(3150~5850만원); 지원금10% 자기부담; 서류+발표",
+      "source": "https://best.kosin.ac.kr/jobcenter/index.php?idx=291916&mode=fdn&num=2&pCode=MN8000025",
+      "application_status": "미신청"
+    },
+    {
+      "id": 11,
+      "name": "초기창업패키지 일반",
+      "notes": "2026-02-13 마감; 최대1억원 평균5000만원; 3년 이내",
+      "source": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000117819",
+      "application_status": "미신청"
+    },
+    {
+      "id": 12,
+      "name": "창업중심대학 지역기반",
+      "notes": "2026-03-23 마감; 최대1억원 평균5000만원",
+      "source": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000119067",
+      "application_status": "미신청"
+    },
+    {
+      "id": 13,
+      "name": "초기관광벤처",
+      "notes": "제18회 2026-05-15 마감; 4000~8000만원 평균5400만원; 관광사업 근거",
+      "source": "https://touraz.kr/announcementList/pssrpView?curPage=1&pssrpSeqEnc=ecH8YrUogtoFQIMpAEpwjg%3D%3D",
+      "application_status": "미신청"
+    },
+    {
+      "id": 14,
+      "name": "블루 스타트업",
+      "notes": "추가모집 2026-06-02 마감; 초기기업 최대5000만원; 해양수산 인정 확인",
+      "source": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000122355",
+      "application_status": "미신청"
+    },
+    {
+      "id": 15,
+      "name": "스포츠산업 액셀러레이팅",
+      "notes": "2026-03-25 마감; 평균5500만원",
+      "source": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000119559",
+      "application_status": "미신청"
+    },
+    {
+      "id": 16,
+      "name": "해양수산 액셀러레이터",
+      "notes": "2026-04-08 마감; 해양분야 보육 투자연계",
+      "source": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000119798",
+      "application_status": "미신청"
+    },
+    {
+      "id": 17,
+      "name": "AroundX 글로벌 기업 협업",
+      "notes": "2026-03-16 마감; 최대2억원; 창구/마중 등 대안 트랙",
+      "source": "https://mss.go.kr/site/smba/ex/bbs/View.do?bcIdx=1065922&cbIdx=86",
+      "application_status": "미신청"
+    },
+    {
+      "id": 18,
+      "name": "클라우드서비스 보급확산",
+      "notes": "2026-04-21 마감; 지정공급사 자부담; 임의 서버비 환급 아님",
+      "source": "https://nipa.kr/home/bsnsAll/00/nttDetail?bbsNo=4&bsnsDtlsIemNo=35&nttNo=16664&tab=2",
+      "application_status": "미신청"
+    },
+    {
+      "id": 19,
+      "name": "데이터바우처",
+      "notes": "2026-03-31 마감; 일반 최대4500만원; 실제 데이터 구매가공",
+      "source": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000119210",
+      "application_status": "미신청"
+    },
+    {
+      "id": 20,
+      "name": "서울 IP나래",
+      "notes": "확인한 1차 종료; 기술 IP 전략",
+      "source": "https://www.ipseoul.kr/Pages/NotificationCenter/NC_DetailView.aspx?category=100000000&guid=f8db87bf-510d-f111-b404-d4f5ef4a1e33",
+      "application_status": "미신청"
+    },
+    {
+      "id": 21,
+      "name": "서울 지식재산 긴급지원",
+      "notes": "차수별 모집 재확인",
+      "source": "https://www.ipseoul.kr/Pages/NotificationCenter/NC_DetailView.aspx?category=100000000&guid=284fece4-530d-f111-b404-d4f5ef4a1e33",
+      "application_status": "미신청"
+    },
+    {
+      "id": 22,
+      "name": "서울 소상공인 IP창출 종합패키지",
+      "notes": "2026-06-17 마감; 지원1760만원 규모",
+      "source": "https://pms.ripc.org/pms/biz/applicant/notice/info.do?bizYear=2026&noticeSeq=4671",
+      "application_status": "미신청"
+    },
+    {
+      "id": 23,
+      "name": "서울 지식재산권 바우처",
+      "notes": "2026-04-24 마감",
+      "source": "https://www.ipseoul.kr/Pages/OnlineAcceptance/OA_IntellectualCreate.aspx?bizcode=BIZ202",
+      "application_status": "미신청"
+    },
+    {
+      "id": 24,
+      "name": "관광기업 혁신바우처",
+      "notes": "2026-02-27 마감; 실제 관광사업 및 자부담",
+      "source": "https://www.tourvoucher.or.kr/user/bbs/BD_selectBbs.do?q_bbsCode=1003&q_bbscttSn=20260122142716288",
+      "application_status": "미신청"
+    },
+    {
+      "id": 25,
+      "name": "관광 오픈이노베이션",
+      "notes": "2026 선정 완료; 수요기업 과제 일치 필요",
+      "source": "https://touraz.kr/biznews/550377",
+      "application_status": "미신청"
+    },
+    {
+      "id": 26,
+      "name": "BETTER里",
+      "notes": "2026-03-04 마감; 5000만원; 김제 강진 지역과제",
+      "source": "https://touraz.kr/announcementList/pssrpView?curPage=1&pssrpSeqEnc=NBUVkW7n6ik8bUAc%5E2ptZw%3D%3D",
+      "application_status": "미신청"
+    },
+    {
+      "id": 27,
+      "name": "관광 글로벌 챌린지",
+      "notes": "2026-02-05 마감; 해외진출 관광기업",
+      "source": "https://touraz.kr/announcementList/pssrpView?curPage=6&pssrpSeqEnc=iEJs6Sz9ii3RgP37TZpt1w%3D%3D",
+      "application_status": "미신청"
+    },
+    {
+      "id": 28,
+      "name": "글로벌 액셀러레이팅 GMEP",
+      "notes": "2026-03-31 마감",
+      "source": "https://www.gomentoring.or.kr/Program/board/listbody.html?a_cd=1&a_gb=board&a_item=0&page=1&po_gubun=0&po_no=4612&sm=4_1",
+      "application_status": "미신청"
+    },
+    {
+      "id": 29,
+      "name": "K-Global 창업멘토링",
+      "notes": "확인한2차 종료; ICT멘토링",
+      "source": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000123273",
+      "application_status": "미신청"
+    },
+    {
+      "id": 30,
+      "name": "수출바우처",
+      "notes": "2차2026-05-06 마감; 서비스수출 자격 확인",
+      "source": "https://www.mss.go.kr/site/ulsan/ex/bbs/View.do?bcIdx=1067489&cbIdx=254",
+      "application_status": "미신청"
+    },
+    {
+      "id": 31,
+      "name": "창동 영상콘텐츠 제작지원",
+      "notes": "2026-05-04 마감",
+      "source": "https://hub.kaia.re.kr/organSupportHub.do/view?orgKind=ORG_KIND_2&rltdId=84868",
+      "application_status": "미신청"
+    },
+    {
+      "id": 32,
+      "name": "TIPS",
+      "notes": "운영사 투자추천 필요; 일반형R&D 최대8억원; 접수일정 재확인",
+      "source": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000119754",
+      "application_status": "미신청"
+    },
+    {
+      "id": 33,
+      "name": "디딤돌 첫걸음 서울",
+      "notes": "1차2026-01-23 마감; 서울본사 업력7년이하 매출20억원미만 중기부R&D첫수행",
+      "source": "https://www.iris.go.kr/contents/retrieveBsnsAncmView.do?ancmId=017202&bsnsAncmSn=3&bsnsYyDetail=2026&chngRcveDeFro=2026%2F01%2F06&chngRcveDeTo=2026%2F01%2F23&sorgnBsnsCd=S002050",
+      "application_status": "미신청"
+    },
+    {
+      "id": 34,
+      "name": "SaaS 개발사업화",
+      "notes": "2026-04-22 마감; AI-Native 필수; 현재 조건부",
+      "source": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000120373",
+      "application_status": "미신청"
+    },
+    {
+      "id": 35,
+      "name": "공공데이터 활용기업 AI연계 성장",
+      "notes": "2026-08-14 마감; 실제 데이터 활용 필요",
+      "source": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000124359",
+      "application_status": "미신청"
+    },
+    {
+      "id": 36,
+      "name": "LBS 스타트업 챌린지",
+      "notes": "2026-06-10 마감; 위치정보 핵심서비스 필요",
+      "source": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000122130",
+      "application_status": "미신청"
+    },
+    {
+      "id": 37,
+      "name": "중소기업 스마트서비스",
+      "notes": "확인한 모집 종료; 수요/공급기업 경로 요건 확인",
+      "source": "https://www.mss.go.kr/site/smba/ex/bbs/View.do?bcIdx=1066801&cbIdx=310",
+      "application_status": "미신청"
+    },
+    {
+      "id": 38,
+      "name": "기술보호바우처",
+      "notes": "2026-03-30 마감; 기술보호 서비스",
+      "source": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000119199",
+      "application_status": "미신청"
+    },
+    {
+      "id": 39,
+      "name": "스포츠 사회적기업 창업지원",
+      "notes": "확인한 모집 종료; 평균5000만원; 사회적목적과 인증진입계획 필요",
+      "source": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000119681",
+      "application_status": "미신청"
+    },
+    {
+      "id": 40,
+      "name": "청년창업사관학교",
+      "notes": "2026-02-13 마감; 1986-01-31 이후출생 조건 확인; 2027 핵심후보 아님",
+      "source": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000118036",
+      "application_status": "미신청"
+    },
+    {
+      "id": 41,
+      "name": "서울형 보증연계 R&D",
+      "notes": "2026-05-15 마감; BIRD1단계 등 선행요건",
+      "source": "https://m.seoul.rnbd.kr/client/c030100/c030100_04.jsp?cPage=1&seqNo=281",
+      "application_status": "미신청"
+    },
+    {
+      "id": 42,
+      "name": "민관협력 오픈이노베이션 전략과제",
+      "notes": "2차2026-07-14 마감; 과제별최대1.4억원; 수요기업 과제일치 필요",
+      "source": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000123553",
+      "application_status": "미신청"
+    },
+    {
+      "id": 43,
+      "name": "스포츠산업 창업아이디어 공모전",
+      "notes": "2026-05-25 마감; 올해의K스타트업 예선",
+      "source": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000121731",
+      "application_status": "미신청"
+    },
+    {
+      "id": 44,
+      "name": "해양수산 창업콘테스트",
+      "notes": "2026-07-17 마감; 해양 관련성",
+      "source": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000123062",
+      "application_status": "미신청"
+    },
+    {
+      "id": 45,
+      "name": "관광데이터 활용 공모전",
+      "notes": "확인한웹앱모집2026-05-06 마감; TourAPI 신규/고도화 조건",
+      "source": "https://www.gjto.or.kr/board.es?act=view&bid=0003&list_no=10008&mid=a10201020000&nPage=1&tag=",
+      "application_status": "미신청"
+    },
+    {
+      "id": 46,
+      "name": "해양수산 비즈니스·공공서비스 공모전",
+      "notes": "2026-06-19 마감; 해양 공공데이터",
+      "source": "https://eiec.kdi.re.kr/policy/materialView.do?code=I0200&depth1=I0000&depth2=&device=mob&num=284972&pg=&pp=&search_txt=&topic=&type=J",
+      "application_status": "미신청"
+    },
+    {
+      "id": 47,
+      "name": "구로 CES2027 서울통합관",
+      "notes": "2026-07-31 마감; 부스와500만원바우처; 영어인력/CES입점조건",
+      "source": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000124683",
+      "application_status": "미신청"
+    },
+    {
+      "id": 48,
+      "name": "G밸리 비즈니스상담회",
+      "notes": "신청2026-08-31 종료; 행사10-14",
+      "source": "https://www.seoul.go.kr/news/news_report.do?nttNo=465570&srchCtgry=464",
+      "application_status": "미신청"
+    },
+    {
+      "id": 49,
+      "name": "구로 중소기업육성기금 융자",
+      "notes": "상반기 종료; 후속접수 확인; 대출",
+      "source": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000118105",
+      "application_status": "미신청"
+    },
+    {
+      "id": 50,
+      "name": "혁신창업사업화 정책자금",
+      "notes": "일반창업자금 대출; 예산 업종 심사",
+      "source": "https://www.mss.go.kr/site/smba/ex/bbs/View.do?bcIdx=1067487&cbIdx=310",
+      "application_status": "미신청"
+    }
+  ],
+  "product_status": {
+    "android": "플레이스토어 검토중",
+    "ios": "앱스토어 검토완료",
+    "stage": "운영환경 테스트중",
+    "actual_users": "강사·수강생 합계 5명 이내",
+    "marketing": "먹보야 놀자와 협업중, 유튜브 홍보 예정",
+    "pricing": "강사만 월3900원, 최초3개월무료",
+    "other_revenue_plan": "타업체 광고게시 등 비즈니스 활동"
+  },
+  "current_application_progress": {
+    "program": "2026 제10회 G밸리 창업경진대회",
+    "status": "사업계획서6쪽 윤문·앱 소개 이미지2장·엑셀 관리 사례 반영 및 검수 완료. 매출2개 필드 Chrome입력 완료. 원본신청서·서명·증빙 미완료, 미제출",
+    "draft_path": "/Users/rumbaughnam/Desktop/Projects/AllBlue/docs/grants/g-valley-2026/AllBlue_Gvalley_business_plan_DRAFT.docx",
+    "next_required": "세무사에게 2025 재무제표 발급 여부 확인; 사업자 전체 연도별 매출액 확인; 사업자등록증명 인정 여부 확인",
+    "submission_limitation": "구글 로그인 및 최종 업로드·제출은 사용자 화면에서 진행 필요",
+    "revenue_status": "AllBlue 매출 없음. 럼바우 2025 사업자 매출 0원 사용자 확인(별도 프리랜서 수입 존재). 2026 월 공급가액 670만원, 부가세 포함737만원; 12개월 기준 연간 예상매출8040만원. 계산서 원본 미확인.",
+    "financial_statement_status": "2025년 표준재무제표증명 발급불가: 신고내역에 재무제표 없음. 세무사 이용 2026년부터이며 2025 귀속 신고 대행 여부 미확인. 대체 인정 확인 필요."
+  },
+  "submitted": [
+    {
+      "name": "G밸리 창업경진대회",
+      "result": "서류 미선정"
+    },
+    {
+      "name": "2026 경기스포츠산업 공모전",
+      "status": "제출 완료(v4 발표자료로 2026-10-20 교체)",
+      "first_result": "2026-11-13"
+    }
+  ],
+  "eligibility_notes_20261020": {
+    "age": "1986-02-25생, 2026-10 기준 만 40세 → 만39세 이하 청년전용 사업 제외. 중장년(만40세+) 전용 사업은 오히려 적격.",
+    "business_age": "개업 2025-04-07 → '3년 이내' 2028-04-06까지, '7년 이내' 2032-04-06까지.",
+    "tax": "청년창업 감면 불가: 창업일 2025-04-07 기준 만39세1개월, 상근예비역 1년11개월3주 차감해도 약 만37세>34세. 조특법 제6조 제6항(law.go.kr 원문 2026-10-20 확인): 2027-12-31 이전 창업, 해당 과세연도 수입금액 1억4백만원 이하이면 과밀억제권역(2025년 이전 창업) 50% 감면, 최초 소득 발생연도부터 5개 과세연도. 2026 수입 8,844만원 → 기준 이내. 수입이 1억4백만원 넘는 해는 0%. 개정 부칙의 적용 과세연도는 세무사 확인. 벤처확인(제2항)은 수입 상한 없이 50%라 서비스 확장으로 매출 늘면 유리.",
+    "address": "주거용 아파트 주소 사업자등록 → 입주형 선정 시 대부분 30일 내 본점·지점 이전 필요."
+  },
+  "research_20261020": {
+    "now_open": [
+      {
+        "name": "서울 중장년 소상공인 디지털 전환지원(하반기)",
+        "org": "서울시/서울신용보증재단",
+        "benefit": "교육·컨설팅·디지털전환 비용 지원(2025년 기준 최대 300만원, 공고문 재확인)",
+        "deadline": "예산 소진 시",
+        "eligible": "적격(만40세 이상, 서울, 2025-07-01 이전 개업)",
+        "url": "https://www.bizinfo.go.kr/web/lay1/bbs/S1T122C128/AS/74/view.do?pblancId=PBLN_000000000123844",
+        "verified": "기업마당 직접 확인 2026-10-20",
+        "application_status": "접수 마감(예산 소진) — 2026-10-20 포털 메인에 \"마감\" 표시 확인. 미신청. 2027 상반기 공고 대기",
+        "draft": "seoul-digital-2026/application-draft.md"
+      },
+      {
+        "name": "스타트업 법률지원사업",
+        "org": "중기부/창업진흥원",
+        "benefit": "법률자문 바우처 최대 300만원(현물)",
+        "deadline": "2026-12-31 또는 예산 소진",
+        "eligible": "적격",
+        "url": "k-startup.go.kr 공고 제2026-233호",
+        "application_status": "현물 바우처라 사용자 기준(직접 자금만)으로 보류",
+        "draft": "startup-legal-2026/application-draft.md"
+      },
+      {
+        "name": "자영업자 고용보험료 지원 + 서울시 추가 20%",
+        "org": "중기부·소진공 / 서울시",
+        "benefit": "보험료 50~80% + 서울 20% 환급, 최대 5년",
+        "deadline": "서울 추가지원 12월까지(예산 소진)",
+        "eligible": "적격",
+        "url": "https://news.seoul.go.kr/economy/archives/568900"
+      },
+      {
+        "name": "노란우산공제 + 서울 희망장려금",
+        "org": "중소기업중앙회/서울시",
+        "benefit": "소득공제 + 월 2만원 12회 추가적립",
+        "deadline": "수시",
+        "eligible": "적격",
+        "url": "https://news.seoul.go.kr/economy/archives/568855"
+      },
+      {
+        "name": "구로구 무이자 특별보증 융자",
+        "org": "구로구/서울신보",
+        "benefit": "대출 최대 5천만원, 1년차 이자 구 전액",
+        "deadline": "자금 소진 시(매월)",
+        "eligible": "적격(6개월 이상, 소상공인, 체납 없음)",
+        "contact": "02-860-3409",
+        "official": "구로구공고 제2026-449호 (2026-02-27)",
+        "limit": "소상공인 최대 5천만원",
+        "rate": "최초1년 무이자(100억 한도), 이후 CD-0.2%~CD",
+        "repay": "1년거치 4년 원금균등",
+        "apply": "서울신용보증재단 앱(개인 단독대표 비대면) + 구로구청 지역경제과 추천서 2부",
+        "application_status": "신청 안내 작성(guro-loan-2026/application-guide.md), 무이자 한도 잔여 확인 필요, 미신청"
+      },
+      {
+        "name": "서울시 중소기업육성자금(창업기업자금)",
+        "org": "서울시/서울신보",
+        "benefit": "대출·이차보전",
+        "deadline": "예산 소진",
+        "eligible": "조건부"
+      },
+      {
+        "name": "서울창업센터 동작 입주",
+        "org": "SBA",
+        "benefit": "사무공간·보육",
+        "deadline": "2026-10-28 14:00",
+        "eligible": "조건부(1인 불리, 이전 필요)",
+        "url": "https://www.startup-plus.kr/project (PRJ007548)"
+      },
+      {
+        "name": "SBA x 디유파트너스 투자 배치",
+        "org": "서울창업허브 공덕",
+        "benefit": "멘토링·IR·투자검토",
+        "deadline": "2026-10-28 18:00",
+        "eligible": "조건부(출시 전 불리)",
+        "application_status": "신청 초안 준비 완료 (2026-10-20), 미제출",
+        "draft": "dupartners-batch-2026/application-draft.md"
+      },
+      {
+        "name": "벤처확인 도전기업 1:1 밋업",
+        "org": "서울창업허브",
+        "benefit": "벤처확인 컨설팅",
+        "deadline": "2026-10-31",
+        "eligible": "적격"
+      },
+      {
+        "name": "SVC Seoul 멤버십",
+        "org": "창업진흥원/엔젤투자협회",
+        "benefit": "공유오피스·네트워킹(월 35만원 유료)",
+        "deadline": "2026-12-11",
+        "eligible": "적격(유료)",
+        "url": "https://www.k-startup.go.kr/web/contents/bizpbanc-ongoing.do?schM=view&pbancSn=178802"
+      },
+      {
+        "name": "창업-BuS(서울창조경제혁신센터)",
+        "benefit": "멘토링·IR",
+        "deadline": "상시~2026-12-31",
+        "eligible": "적격"
+      },
+      {
+        "name": "스포츠코리아랩 공유오피스",
+        "org": "KSPO",
+        "benefit": "올림픽공원 공유좌석",
+        "deadline": "2026-12-31",
+        "eligible": "적격(무료 여부 확인)"
+      },
+      {
+        "name": "KISA 개인정보 기술지원/컨설팅",
+        "benefit": "무료 컨설팅·점검",
+        "deadline": "수시(확인 필요)",
+        "eligible": "적격(의료진술서 등 민감정보)",
+        "url": "https://www.privacy.go.kr"
+      },
+      {
+        "name": "해양수산 통합데모데이",
+        "benefit": "투자 상담·네트워킹",
+        "deadline": "2026-11-12",
+        "eligible": "적격",
+        "url": "https://www.k-startup.go.kr/web/contents/bizpbanc-ongoing.do?schM=view&pbancSn=179533"
+      },
+      {
+        "name": "중기부 비즈니스지원단 현장클리닉",
+        "benefit": "법률·세무·노무 무료상담",
+        "deadline": "수시(1357)",
+        "eligible": "적격"
+      },
+      {
+        "name": "KICXUP 챌린지&로컬 2차",
+        "benefit": "PoC 최대 1,500만원",
+        "deadline": "2026-10-23 17:00",
+        "eligible": "조건부(산단 수요기업 과제 필요, 적합도 낮음)",
+        "url": "https://www.k-startup.go.kr/web/contents/bizpbanc-ongoing.do?schM=view&pbancSn=179496"
+      }
+    ],
+    "watch_2026_q4": [
+      "서울시50플러스재단 공유사무실 3차(구로 남부캠퍼스, 만40~64세)",
+      "G밸리 창업큐브 하반기 입주(PoC 바우처 최대 500만원)",
+      "서울창업허브 창동 하반기 입주",
+      "서울창업센터 관악 하반기 입주"
+    ],
+    "plan_2027": [
+      {
+        "name": "초기창업패키지",
+        "when": "1월 하순 공고~2월 중순",
+        "benefit": "보조금 최대 1억원",
+        "eligible": "적격 1순위"
+      },
+      {
+        "name": "디딤돌 R&D 첫걸음",
+        "when": "1월",
+        "benefit": "R&D 최대 1.2억원",
+        "eligible": "조건부(연구전담부서 등)"
+      },
+      {
+        "name": "스포츠산업 예비초기창업",
+        "when": "3월",
+        "benefit": "평균 4,500만원",
+        "eligible": "적격 1순위"
+      },
+      {
+        "name": "스포츠 액셀러레이팅",
+        "when": "3월",
+        "benefit": "평균 약 5,500만원",
+        "eligible": "적격"
+      },
+      {
+        "name": "관광벤처 초기부문",
+        "when": "2~3월(투어라즈·KoDATA 사전등록)",
+        "benefit": "4,000~8,000만원",
+        "eligible": "조건부(관광 융합 모델)"
+      },
+      {
+        "name": "블루스타트업",
+        "when": "2~3월(바다봄)",
+        "benefit": "최대 5,000만원",
+        "eligible": "조건부(해양레저 인정)"
+      },
+      {
+        "name": "창업중심대학",
+        "when": "3월",
+        "eligible": "적격"
+      },
+      {
+        "name": "SaaS 개발환경 지원/클라우드 바우처",
+        "when": "2~4월",
+        "benefit": "클라우드 바우처",
+        "eligible": "적격"
+      },
+      {
+        "name": "중장년 기술창업센터 입주",
+        "when": "3월",
+        "eligible": "적격(만40세+)"
+      },
+      {
+        "name": "서울창업허브 창동 1인 창조기업 / 공덕·성수 입주",
+        "when": "3~4월",
+        "eligible": "적격"
+      },
+      {
+        "name": "중진공 혁신창업사업화자금",
+        "when": "1월 신규예산",
+        "benefit": "융자",
+        "eligible": "적격"
+      },
+      {
+        "name": "올해의 K-스타트업(스포츠 리그=스포츠산업 창업 아이디어 공모전)",
+        "when": "4~5월",
+        "benefit": "상금",
+        "eligible": "적격"
+      },
+      {
+        "name": "서울 IP창출 종합패키지",
+        "when": "5~6월",
+        "benefit": "상표·브랜드 1,760만원",
+        "eligible": "적격"
+      },
+      {
+        "name": "해양수산 창업콘테스트",
+        "when": "6~7월",
+        "benefit": "상금",
+        "eligible": "적격"
+      },
+      {
+        "name": "벤처기업 확인",
+        "when": "2027-12-31 전",
+        "benefit": "제6조2항 소득세 50% 5년, 가점",
+        "eligible": "조건부(기보 평가)"
+      }
+    ],
+    "excluded_youth": [
+      "청년창업사관학교",
+      "중진공 청년전용창업자금",
+      "신보·기보 청년창업 특례",
+      "구로구 청년창업지원센터",
+      "Young Entrepreneur Award"
+    ]
+  },
+  "user_preference_20261020": "직접 자금(보조금·상금·투자·융자)만 신청. 현물 바우처·컨설팅·보험료 환급·공간은 제외."
+}

@@ -1,0 +1,11 @@
+{
+  "date": "2026-10-20T14:31+09:00",
+  "receipt_id": "ggsports_innovation_258_C_1000132",
+  "action": "소개서/제안서 파일을 v3에서 v4로 교체 후 저장",
+  "result_page": "https://ggsports.spectory.net/apply/confirm/done (접수 및 등록완료)",
+  "stored_file_url": "https://img.spectory.net/ggsports/innovation/2026/10/20/3b97f8c2-0cb7-4611-a73f-92b7455fd560",
+  "stored_size": 4815972,
+  "sha256": "dc3a51a57e5d51561b7d1a9dd5de16493956b6d7f601a6ada6881fe1c91e7e42",
+  "local_sha256_match": true,
+  "note": "같은 파일 uuid로 교체 업로드됨. 접수확인 목록의 최근수정 시각은 이 탭을 새로고침하기 전 값으로 보였음."
+}
