@@ -14,6 +14,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Colors from '@/constants/Colors';
 import { useAuth } from '@/contexts/AuthContext';
+import AdSlot from '@/components/AdSlot';
+import { AD_IMAGES, AD_LINKS } from '@/constants/Ads';
 
 type Props = {
   visible: boolean;
@@ -186,6 +188,8 @@ export default function SideSheet({ visible, onClose }: Props) {
           ))}
         </View>
 
+        <AdSlot source={AD_IMAGES.sideMenu} url={AD_LINKS.sideMenu} fit="width" style={styles.ad} />
+
         {/* Logout, Ad Inquiry & Withdraw */}
         <Pressable
           style={({ pressed }) => [styles.logoutButton, pressed && { opacity: 0.6 }]}
@@ -268,6 +272,10 @@ const styles = StyleSheet.create({
     fontFamily: 'SUIT-SemiBold',
     fontSize: 16,
     color: Colors.brand.white,
+  },
+  ad: {
+    alignSelf: 'stretch', // 메뉴 폭 전체, 높이는 이미지 비율(10:3, 메뉴 항목 약 1.5개)
+    marginBottom: 16,
   },
   logoutButton: {
     paddingVertical: 16,

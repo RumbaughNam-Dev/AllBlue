@@ -5,6 +5,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/Colors';
 import MonthPicker from '@/components/MonthPicker';
 import Spinner from '@/components/Spinner';
+import AdSlot from '@/components/AdSlot';
+import { AD_IMAGES, AD_LINKS } from '@/constants/Ads';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 const MAX_WEEKS = 6;
@@ -65,7 +67,7 @@ export default function Calendar({ events = [], onDatePress, onMonthChange, sche
   }
 
   const cellWidth = width / 7;
-  const rowHeight = gridHeight > 0 ? gridHeight / MAX_WEEKS : 80;
+  const rowHeight = gridHeight > 0 ? (gridHeight - (MAX_WEEKS - 1)) / MAX_WEEKS : 80;
 
   // 이벤트 영역에 몇 개 표시할 수 있는지 계산 (날짜 숫자 24px + 여백)
   const maxVisibleEvents = Math.max(1, Math.floor((rowHeight - 32) / 16));
@@ -222,7 +224,9 @@ export default function Calendar({ events = [], onDatePress, onMonthChange, sche
       <View style={styles.divider} />
 
       {/* Calendar Grid - fills remaining space */}
-      <Animated.View style={[styles.gridArea, { marginBottom: bottomSpace, transform: [{ translateX: slideAnim }] }]} onLayout={onGridLayout} {...panResponder.panHandlers}>
+      {/* Grid 6 : Ad 1 — ad height equals one week row */}
+      <View style={[styles.gridWithAd, { marginBottom: bottomSpace }]}>
+      <Animated.View style={[styles.gridArea, { transform: [{ translateX: slideAnim }] }]} onLayout={onGridLayout} {...panResponder.panHandlers}>
         {weeks.map((week, wi) => (
           <View key={wi}>
             <View style={[styles.weekRow, { height: rowHeight }]}>
@@ -270,6 +274,8 @@ export default function Calendar({ events = [], onDatePress, onMonthChange, sche
           </View>
         ))}
       </Animated.View>
+      <AdSlot source={AD_IMAGES.calendar} url={AD_LINKS.calendar} style={styles.ad} />
+      </View>
     </View>
   );
 }
@@ -362,8 +368,16 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: 'rgba(255,255,255,0.08)',
   },
-  gridArea: {
+  gridWithAd: {
     flex: 1,
+  },
+  gridArea: {
+    flex: MAX_WEEKS,
+  },
+  ad: {
+    flex: 1,
+    marginHorizontal: 16,
+    marginTop: 8,
   },
   weekRow: {
     flexDirection: 'row',
