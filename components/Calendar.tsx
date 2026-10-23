@@ -258,8 +258,10 @@ export default function Calendar({ events = [], calendarEvents = [], onDatePress
                 const dateStr = dateKey(day);
                 const isToday = dateStr === todayStr;
                 const adEvent = findAdEvent(dateStr);
+                // 여러 날에 걸친 이벤트는 첫날(지난달에 시작했으면 이번 달 1일)에만 이름을 보여준다
+                const showAdTitle = !!adEvent && (dateStr === adEvent.startDate || (day === 1 && adEvent.startDate < dateStr));
                 const dayEvents = getEventsForDay(day);
-                const visibleEvents = dayEvents.slice(0, adEvent ? Math.max(0, maxVisibleEvents - 1) : maxVisibleEvents);
+                const visibleEvents = dayEvents.slice(0, showAdTitle ? Math.max(0, maxVisibleEvents - 1) : maxVisibleEvents);
                 const remaining = dayEvents.length - visibleEvents.length;
 
                 return (
@@ -278,7 +280,7 @@ export default function Calendar({ events = [], calendarEvents = [], onDatePress
                       ]}>{day}</Text>
                     </View>
                     <View style={styles.eventArea}>
-                      {adEvent && (
+                      {showAdTitle && adEvent && (
                         <View style={[styles.eventRow, styles.adRow]}>
                           <Text style={styles.adFanfare}>🎉</Text>
                           <Text style={[styles.eventText, styles.adTitle, { color: adEvent.borderColor }]} numberOfLines={1}>{adEvent.title}</Text>
