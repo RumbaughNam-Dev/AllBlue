@@ -16,6 +16,7 @@ import { useLatestRequest } from '@/hooks/useLatestRequest';
 import { api, ScheduleDetail } from '@/services/api';
 import Spinner from '@/components/Spinner';
 import ProfileAvatar from '@/components/ProfileAvatar';
+import MarqueeText from '@/components/MarqueeText';
 import { useAuth } from '@/contexts/AuthContext';
 import { hasInstructorAccess } from '@/utils/userRole';
 import { groupProfileCertifications } from '@/utils/profileCertifications';
@@ -229,7 +230,7 @@ export default function ScheduleDetailScreen() {
                       </Text>
                     </ProfileLink>
                     {creatorCertifications.length
-                      ? creatorCertifications.map((label, i) => <Text key={i} numberOfLines={1} style={styles.participantMetaText}>{label}</Text>)
+                      ? <MarqueeText text={creatorCertifications.join(', ')} style={styles.participantMetaText} />
                       : <Text style={styles.participantMetaText}>보유 자격증 없음</Text>}
                   </View>
                 </View>
