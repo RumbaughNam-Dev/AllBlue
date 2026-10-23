@@ -24,6 +24,11 @@ function formatSectionTitle(dateStr: string): string {
   return `${m}월 ${day}일 (${dow})`;
 }
 
+function scheduleStartMs(s: { scheduleDate: string; startHour: number; startMinute: number }): number {
+  const [y, mo, d] = s.scheduleDate.split('-').map(Number);
+  return new Date(y, mo - 1, d, s.startHour, s.startMinute).getTime();
+}
+
 function formatTime(h: number, m: number): string {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
@@ -48,6 +53,8 @@ export default function TabB() {
   const monthOffsetRef = useRef({ min: 0, max: 0 });
 
   const loadedMonthsRef = useRef<Set<string>>(new Set());
+  // 처음엔 지금 시점 이후 일정만 보여준다. '이전 일정 불러오기'를 누르면 해제(null)되고 이전 달을 불러온다.
+  const [visibleFrom, setVisibleFrom] = useState<number | null>(() => Date.now());
 
   const fetchMonth = useCallback(async (year: number, month: number, force = false) => {
     const key = `${year}-${month}`;
@@ -113,16 +120,17 @@ export default function TabB() {
 
   const sections = useMemo((): DateSection[] => {
     const sortedDates = Array.from(scheduleMap.keys()).sort();
-    // 오늘 이후 날짜만 표시 (과거 일정은 위로 스크롤 시 로드)
     return sortedDates.map((date) => ({
       title: formatSectionTitle(date),
       date,
-      data: [...scheduleMap.get(date)!].sort((a, b) => {
-        if (a.startHour !== b.startHour) return a.startHour - b.startHour;
-        return a.startMinute - b.startMinute;
-      }),
-    })) as (DateSection & { date: string })[];
-  }, [scheduleMap]);
+      data: scheduleMap.get(date)!
+        .filter((sc) => visibleFrom === null || scheduleStartMs(sc) >= visibleFrom)
+        .sort((a, b) => {
+          if (a.startHour !== b.startHour) return a.startHour - b.startHour;
+          return a.startMinute - b.startMinute;
+        }),
+    })).filter((section) => section.data.length > 0) as (DateSection & { date: string })[];
+  }, [scheduleMap, visibleFrom]);
 
   const MAX_FUTURE_MONTHS = 3;
 
@@ -142,7 +150,15 @@ export default function TabB() {
     setLoadingMore(false);
   };
   const handleLoadMore = () => { if (!loadError) void loadDirection('next'); };
-  const handleLoadPrevious = () => { void loadDirection('previous'); };
+  const handleLoadPrevious = () => {
+    if (visibleFrom !== null) {
+      // 먼저 이미 불러온 이번 달의 지난 일정을 펼치고, 펼칠 게 없으면 바로 이전 달을 불러온다
+      const hasHiddenPast = [...scheduleMap.values()].some((list) => list.some((sc) => scheduleStartMs(sc) < visibleFrom));
+      setVisibleFrom(null);
+      if (hasHiddenPast) return;
+    }
+    void loadDirection('previous');
+  };
   const retry = async () => {
     await Promise.all([...failedMonths.current.values()].map(({ year, month }) => fetchMonth(year, month, true)));
   };
@@ -309,19 +325,25 @@ const styles = StyleSheet.create({
     left: 20,
     right: 20,
   },
+  // 다른 화면의 주요 버튼(흰 배경 + 남색 글씨)과 통일. 그림자로 목록 위에 떠 보이게 한다.
   addButton: {
     height: 54,
     borderRadius: 14,
-    backgroundColor: '#306093',
+    backgroundColor: Colors.brand.white,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
   },
   addButtonPressed: {
-    backgroundColor: '#29527D',
+    opacity: 0.85,
   },
   addButtonText: {
     fontFamily: 'SUIT-Bold',
     fontSize: 16,
-    color: Colors.brand.white,
+    color: Colors.brand.primary,
   },
 });
