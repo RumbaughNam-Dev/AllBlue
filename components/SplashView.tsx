@@ -21,8 +21,9 @@ export default function SplashView({ onFinish }: Props) {
   const videoSize = shortSide * 0.58;
   // Leave room for the logo on short/wide screens; AdSlot shrinks the image to fit.
   const adMaxHeight = Math.max(0, height - insets.top - insets.bottom - videoSize - AD_MARGIN * 3);
-  const adWidth = width - AD_MARGIN * 2;
-  const adHeight = Math.min(adWidth * 3 / 4, adMaxHeight);
+  // 폴더블처럼 넓은 화면에서 과도하게 커지지 않도록 화면 높이의 40%로 제한하고, 너비는 4:3에 맞춰 줄인다.
+  const adHeight = Math.min((width - AD_MARGIN * 2) * 3 / 4, adMaxHeight, height * 0.4);
+  const adWidth = adHeight * 4 / 3;
   const hasCalledFinish = useRef(false);
   const [showStatic, setShowStatic] = useState(false);
 

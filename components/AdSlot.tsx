@@ -35,14 +35,19 @@ export default function AdSlot({ source, style, fit = 'contain', url }: Props) {
   const asset = RNImage.resolveAssetSource(source as Parameters<typeof RNImage.resolveAssetSource>[0]);
   const ratio = asset?.width && asset?.height ? asset.width / asset.height : 0;
   if (fit === 'width') {
+    // Measure the full available width and size the image to it exactly, so there is never a gap.
     return (
-      <Pressable
-        disabled={!openLink}
-        onPress={openLink}
-        style={({ pressed }) => [styles.slot, { aspectRatio: ratio || undefined }, style, pressed && styles.pressed]}
-      >
-        <Image source={source} style={StyleSheet.absoluteFill} contentFit="contain" />
-      </Pressable>
+      <View style={[styles.fullWidth, style]} onLayout={onLayout}>
+        {box.width > 0 && ratio > 0 && (
+          <Pressable
+            disabled={!openLink}
+            onPress={openLink}
+            style={({ pressed }) => [styles.slot, { width: box.width, height: box.width / ratio }, pressed && styles.pressed]}
+          >
+            <Image source={source} style={StyleSheet.absoluteFill} contentFit="cover" />
+          </Pressable>
+        )}
+      </View>
     );
   }
 
@@ -69,6 +74,9 @@ export default function AdSlot({ source, style, fit = 'contain', url }: Props) {
 }
 
 const styles = StyleSheet.create({
+  fullWidth: {
+    alignSelf: 'stretch',
+  },
   fitBox: {
     alignItems: 'center',
     justifyContent: 'center',
