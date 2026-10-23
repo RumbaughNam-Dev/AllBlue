@@ -27,6 +27,8 @@ const SCHEDULE_ASSOCIATION_NAMES: readonly string[] | null = ['AIDA Internationa
 export const HOURS = Array.from({ length: 24 }, (_, i) => i);
 export const MINUTES = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
 export type Pool = { id: number; name: string };
+// 풀장 목록에 없는 장소. 선택하면 텍스트로 입력받고 poolId 없이 저장한다 (통계 제외)
+export const CUSTOM_LOCATION_POOL: Pool = { id: -1, name: '직접 입력' };
 export type UserResult = { id: number; userId?: string | null; nickname: string; profileImage?: string | null; name?: string; phone: string; birthDate?: string; level?: string | number | null; badgeLevel?: string | number | null; isGuest?: boolean; isTemporary?: boolean };
 export type ParticipantEntry = {
   user: UserResult;
@@ -55,6 +57,8 @@ export function useScheduleEditor() {
   const day = dateObj.getDate();
   const [title, setTitle] = useState('');
   const [selectedPool, setSelectedPool] = useState<Pool | null>(null);
+  const [customLocation, setCustomLocation] = useState('');
+  const isCustomLocation = selectedPool?.id === CUSTOM_LOCATION_POOL.id;
   const [pools, setPools] = useState<Pool[]>([]);
   const [hour, setHour] = useState(() => {
     if (id) return 9; // 수정 모드는 기존 값 로드
@@ -246,7 +250,10 @@ export function useScheduleEditor() {
             setMinute(s.startMinute);
             setCategoryCode(s.categoryCode);
             setVisibility((s.visibility as 'public' | 'private') || 'private');
-            if (s.poolName) {
+            if (s.customLocation) {
+              setSelectedPool(CUSTOM_LOCATION_POOL);
+              setCustomLocation(s.customLocation);
+            } else if (s.poolName) {
               const found = sortedPools.find((p) => p.name === s.poolName);
               if (found) setSelectedPool(found);
             }
@@ -534,6 +541,11 @@ export function useScheduleEditor() {
 
   const handleSave = () => {
     if (creatingTemporaryRef.current) return;
+    if (isCustomLocation && !customLocation.trim()) {
+      Alert.alert('장소를 입력해주세요', '어디에서 다이빙하는지 입력해주세요.');
+      return;
+    }
+    const locationLabel = isCustomLocation ? customLocation.trim() : selectedPool?.name;
     const allParticipants = [...participants];
     if (currentUser) {
       if (!validateCurrentParticipant()) return;
@@ -548,7 +560,7 @@ export function useScheduleEditor() {
 
     Alert.alert(
       isEditMode ? '다이빙을 수정하시겠어요?' : '다이빙을 등록하시겠어요?',
-      `${title.trim()}\n${dateStr}\n${catLabel}${selectedPool ? ` · ${selectedPool.name}` : ''}\n\n${participantLabel} ${allParticipants.length}명\n${participantSummary}`,
+      `${title.trim()}\n${dateStr}\n${catLabel}${locationLabel ? ` · ${locationLabel}` : ''}\n\n${participantLabel} ${allParticipants.length}명\n${participantSummary}`,
       [
         { text: '취소', style: 'cancel' },
         { text: isEditMode ? '수정할게요' : '등록할게요', onPress: () => doSave(allParticipants) },
@@ -562,7 +574,8 @@ export function useScheduleEditor() {
       scheduleDate,
       startHour: hour,
       startMinute: minute,
-      poolId: selectedPool?.id ?? null,
+      poolId: isCustomLocation ? null : (selectedPool?.id ?? null),
+      customLocation: isCustomLocation ? customLocation.trim() : null,
       categoryCode,
       visibility,
       participants: allParticipants.map((p) => ({
@@ -601,7 +614,7 @@ export function useScheduleEditor() {
   return {
     categories, insets, id, isEditMode, step,
     scheduleDate, setScheduleDate, dateObj, month,
-    day, title, setTitle, selectedPool,
+    day, title, setTitle, selectedPool, customLocation, setCustomLocation, isCustomLocation,
     setSelectedPool, pools, hour, setHour,
     minute, setMinute, categoryCode, setCategoryCode,
     visibility, setVisibility, participants, currentUser,

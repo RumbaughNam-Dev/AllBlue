@@ -128,6 +128,8 @@ export type Schedule = {
   startHour: number;
   startMinute: number;
   poolName: string;
+  // 직접 입력한 장소 (풀장 목록 외). 있으면 poolName과 같은 값
+  customLocation?: string | null;
   categoryCode: string;
   categoryName: string;
   instructorName: string;
@@ -173,6 +175,8 @@ export type ScheduleDetail = {
   startHour: number;
   startMinute: number;
   poolName: string;
+  // 직접 입력한 장소 (풀장 목록 외). 있으면 poolName과 같은 값
+  customLocation?: string | null;
   categoryCode: string;
   categoryName: string;
   instructorName: string;
@@ -457,6 +461,7 @@ export const api = {
     startHour: number;
     startMinute: number;
     poolId: number | null;
+    customLocation?: string | null;
     categoryCode: string;
     visibility: 'public' | 'private';
     participants: {
@@ -484,6 +489,7 @@ export const api = {
     startHour: number;
     startMinute: number;
     poolId: number | null;
+    customLocation?: string | null;
     categoryCode: string;
     visibility: 'public' | 'private';
     participants: {

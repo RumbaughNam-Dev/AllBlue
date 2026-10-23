@@ -12,14 +12,14 @@ import BottomSheet from '@/components/BottomSheet';
 import DatePickerSheet from '@/components/DatePickerSheet';
 import Spinner from '@/components/Spinner';
 
-import { useScheduleEditor, CATEGORIES, HOURS, MINUTES } from './useScheduleEditor';
+import { useScheduleEditor, CATEGORIES, HOURS, MINUTES, CUSTOM_LOCATION_POOL } from './useScheduleEditor';
 import { styles } from './styles';
 
 export default function ScheduleEditorScreen() {
   const {
     categories, insets, id, isEditMode, step,
     scheduleDate, setScheduleDate, dateObj, month,
-    day, title, setTitle, selectedPool,
+    day, title, setTitle, selectedPool, customLocation, setCustomLocation, isCustomLocation,
     setSelectedPool, pools, hour, setHour,
     minute, setMinute, categoryCode, setCategoryCode,
     visibility, setVisibility, participants, currentUser,
@@ -87,6 +87,16 @@ export default function ScheduleEditorScreen() {
               </Text>
               <Text style={styles.pickerArrow}>▼</Text>
             </Pressable>
+            {isCustomLocation && (
+              <TextInput
+                style={[styles.input, { marginTop: 8 }]}
+                value={customLocation}
+                onChangeText={setCustomLocation}
+                placeholder="어디에서 다이빙하나요? (예: 제주 서귀포 문섬)"
+                placeholderTextColor="rgba(255,255,255,0.25)"
+                maxLength={100}
+              />
+            )}
 
             {!isEditMode && (
               <>
@@ -452,6 +462,7 @@ export default function ScheduleEditorScreen() {
       <BottomSheet
         visible={showPoolPicker} onClose={() => setShowPoolPicker(false)} title="장소 선택"
         items={pools.map((p) => ({ label: p.name, value: p }))}
+        pinnedItems={[{ label: CUSTOM_LOCATION_POOL.name, value: CUSTOM_LOCATION_POOL }]}
         onSelect={(v) => setSelectedPool(v)} selectedValue={selectedPool} searchable
       />
       <BottomSheet

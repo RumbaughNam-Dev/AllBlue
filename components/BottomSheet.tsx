@@ -19,9 +19,11 @@ type Props = {
   closeOnSelect?: boolean;
   loading?: boolean;
   selectedValue?: any;
+  // Always shown at the bottom, even while searching (e.g. '직접 입력')
+  pinnedItems?: BottomSheetItem[];
 };
 
-export default function BottomSheet({ visible, onClose, title, items, onSelect, searchable, selectedValue, closeOnSelect = true, loading = false }: Props) {
+export default function BottomSheet({ visible, onClose, title, items, onSelect, searchable, selectedValue, closeOnSelect = true, loading = false, pinnedItems = [] }: Props) {
   const insets = useSafeAreaInsets();
   const { height: screenHeight } = useWindowDimensions();
   const backdropAnim = useRef(new Animated.Value(0)).current;
@@ -120,10 +122,10 @@ export default function BottomSheet({ visible, onClose, title, items, onSelect, 
         <ScrollView ref={scrollRef} style={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           {loading ? (
             <ActivityIndicator style={{ padding: 24 }} color={Colors.brand.white} accessibilityLabel="자격증 목록 불러오는 중" />
-          ) : filtered.length === 0 ? (
+          ) : filtered.length === 0 && pinnedItems.length === 0 ? (
             <Text style={styles.emptyText}>검색 결과가 없습니다</Text>
           ) : (
-            filtered.map((item) => {
+            [...filtered, ...pinnedItems].map((item) => {
               const isSelected = selectedValue !== undefined && (
                 typeof item.value === 'object' && typeof selectedValue === 'object'
                   ? JSON.stringify(item.value) === JSON.stringify(selectedValue)
