@@ -15,6 +15,10 @@ import Spinner from '@/components/Spinner';
 import { useScheduleEditor, CATEGORIES, HOURS, MINUTES, CUSTOM_LOCATION_POOL } from './useScheduleEditor';
 import { styles } from './styles';
 import GlassCircle from '@/components/GlassCircle';
+import GlassBackground, { glassClear } from '@/components/GlassBackground';
+
+// Main actions stay white (prominent glass) so the navy label keeps its contrast.
+const PROMINENT_TINT = 'rgba(255,255,255,0.85)';
 
 export default function ScheduleEditorScreen() {
   const {
@@ -395,9 +399,10 @@ export default function ScheduleEditorScreen() {
         <View style={styles.bottomArea}>
           {step === 'info' ? (
             <Pressable
-              style={({ pressed }) => [styles.primaryButton, pressed && { opacity: 0.85 }]}
+              style={({ pressed }) => [styles.primaryButton, glassClear, pressed && { opacity: 0.85 }]}
               onPress={handleNextStep}
             >
+              <GlassBackground radius={14} interactive tintColor={PROMINENT_TINT} />
               <Text style={styles.primaryButtonText}>다음</Text>
             </Pressable>
           ) : (
@@ -411,10 +416,11 @@ export default function ScheduleEditorScreen() {
                 </Pressable>
               )}
               <Pressable
-                style={({ pressed }) => [styles.primaryButton, { flex: 1 }, pressed && { opacity: 0.85 }]}
+                style={({ pressed }) => [styles.primaryButton, glassClear, { flex: 1 }, pressed && { opacity: 0.85 }]}
                 onPress={handleSave}
                 disabled={saving || creatingTemporary}
               >
+                <GlassBackground radius={14} interactive tintColor={PROMINENT_TINT} />
                 {saving ? (
                   <ActivityIndicator color={Colors.brand.primary} />
                 ) : (
@@ -445,7 +451,8 @@ export default function ScheduleEditorScreen() {
                 <Text style={styles.secondaryButtonText}>취소</Text>
               </Pressable>
               <Pressable onPress={handleCreateTemporary} disabled={creatingTemporary || !temporaryName.trim() || !temporaryCategory}
-                style={[styles.primaryButton, { flex: 1 }]} accessibilityRole="button">
+                style={[styles.primaryButton, glassClear, { flex: 1 }]} accessibilityRole="button">
+                <GlassBackground radius={14} interactive tintColor={PROMINENT_TINT} />
                 {creatingTemporary ? <ActivityIndicator color={Colors.brand.primary} /> : <Text style={styles.primaryButtonText}>확인</Text>}
               </Pressable>
             </View>

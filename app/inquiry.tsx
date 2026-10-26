@@ -9,6 +9,10 @@ import Colors from '@/constants/Colors';
 import Spinner from '@/components/Spinner';
 import { api } from '@/services/api';
 import GlassCircle from '@/components/GlassCircle';
+import GlassBackground, { glassClear } from '@/components/GlassBackground';
+
+// Main actions stay white (prominent glass) so the navy label keeps its contrast.
+const PROMINENT_TINT = 'rgba(255,255,255,0.85)';
 
 type Inquiry = {
   id: number;
@@ -90,9 +94,10 @@ export default function InquiryScreen() {
 
       <View style={styles.bottomArea}>
         <Pressable
-          style={({ pressed }) => [styles.addButton, pressed && { opacity: 0.85 }]}
+          style={({ pressed }) => [styles.addButton, glassClear, pressed && { opacity: 0.85 }]}
           onPress={() => router.push('/inquiry-write')}
         >
+          <GlassBackground radius={14} interactive tintColor={PROMINENT_TINT} />
           <Text style={styles.addButtonText}>문의하기</Text>
         </Pressable>
       </View>

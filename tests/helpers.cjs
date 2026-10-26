@@ -19,6 +19,7 @@ function loadModule(file, modules, globals = {}) {
       if (name === '@/utils/foldable' && !(name in modules)) return { isIPhoneDuo: false };
       // Tests run without Liquid Glass: the glass layer renders nothing and surfaces keep their colors.
       if (name === '@/components/GlassBackground' && !(name in modules)) return { __esModule: true, default: () => null, glassClear: null, PANEL_TINT: '' };
+      if (name === '@/components/GlassCircle' && !(name in modules)) return { __esModule: true, default: ({ children }) => children };
       assert.ok(name in modules, `Unexpected dependency: ${name}`);
       return modules[name];
     },

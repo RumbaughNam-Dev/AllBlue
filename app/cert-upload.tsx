@@ -9,6 +9,10 @@ import { StatusBar } from 'expo-status-bar';
 import * as ImagePicker from 'expo-image-picker';
 import Colors from '@/constants/Colors';
 import { api } from '@/services/api';
+import GlassBackground, { glassClear } from '@/components/GlassBackground';
+
+// Main actions stay white (prominent glass) so the navy label keeps its contrast.
+const PROMINENT_TINT = 'rgba(255,255,255,0.85)';
 
 export default function CertUploadScreen() {
   const insets = useSafeAreaInsets();
@@ -129,13 +133,14 @@ export default function CertUploadScreen() {
       <View style={styles.bottomArea}>
         <Pressable
           style={({ pressed }) => [
-            styles.submitButton,
+            styles.submitButton, glassClear,
             !imageUri && styles.submitButtonDisabled,
             pressed && styles.submitButtonPressed,
           ]}
           onPress={handleSubmit}
           disabled={uploading || !imageUri}
         >
+          <GlassBackground radius={14} interactive tintColor={PROMINENT_TINT} />
           {uploading ? (
             <ActivityIndicator color={Colors.brand.primary} />
           ) : (

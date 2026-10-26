@@ -178,9 +178,10 @@ export default function Calendar({ events = [], calendarEvents = [], onDatePress
       <View style={styles.container}>
         <MonthPicker currentYear={year} currentMonth={month} onSelect={handleMonthSelect} />
         <Pressable
-          style={({ pressed }) => [styles.floatingClose, pressed && { opacity: 0.6 }]}
+          style={({ pressed }) => [styles.floatingClose, glassClear, pressed && { opacity: 0.6 }]}
           onPress={() => setShowMonthPicker(false)}
         >
+          <GlassBackground radius={16} interactive />
           <Text style={styles.floatingCloseText}>✕</Text>
         </Pressable>
       </View>

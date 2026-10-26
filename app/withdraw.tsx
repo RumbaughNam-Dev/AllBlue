@@ -9,6 +9,10 @@ import Colors from '@/constants/Colors';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/services/api';
 import GlassCircle from '@/components/GlassCircle';
+import GlassBackground, { glassClear } from '@/components/GlassBackground';
+
+// Withdraw keeps its red on glass.
+const DANGER_TINT = 'rgba(229,48,48,0.8)';
 
 export default function WithdrawScreen() {
   const insets = useSafeAreaInsets();
@@ -68,10 +72,11 @@ export default function WithdrawScreen() {
 
       <View style={styles.bottomArea}>
         <Pressable
-          style={({ pressed }) => [styles.withdrawButton, pressed && { opacity: 0.85 }, processing && { opacity: 0.5 }]}
+          style={({ pressed }) => [styles.withdrawButton, glassClear, pressed && { opacity: 0.85 }, processing && { opacity: 0.5 }]}
           onPress={handleWithdraw}
           disabled={processing}
         >
+          <GlassBackground radius={14} interactive tintColor={DANGER_TINT} />
           {processing ? (
             <ActivityIndicator color={Colors.brand.white} />
           ) : (

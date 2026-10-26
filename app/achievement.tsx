@@ -14,6 +14,7 @@ import Spinner from '@/components/Spinner';
 import LevelBadge from '@/components/LevelBadge';
 import { useAuth } from '@/contexts/AuthContext';
 import GlassCircle from '@/components/GlassCircle';
+import GlassBackground, { glassClear } from '@/components/GlassBackground';
 
 type Section = {
   group: AchievementRequirement;
@@ -260,7 +261,8 @@ export default function AchievementScreen() {
           {participantLevel ? <LevelBadge level={participantLevel} size={20} /> : null}
         </View>
         {isModal ? (
-          <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.closeButton, pressed && { opacity: 0.6 }]}>
+          <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.closeButton, glassClear, pressed && { opacity: 0.6 }]}>
+            <GlassBackground radius={18} interactive />
             <Text style={styles.closeX}>✕</Text>
           </Pressable>
         ) : (

@@ -11,6 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { api, Profile, Organization, Certification, CertificationOption } from '@/services/api';
 import Spinner from '@/components/Spinner';
 import LevelBadge from '@/components/LevelBadge';
+import GlassBackground, { glassClear } from '@/components/GlassBackground';
 
 function formatRecord(val: number | null, unit?: string): string {
   if (val === null || val === undefined) return '--';
@@ -118,9 +119,10 @@ export default function ProfileScreen() {
                 )) : <Text style={styles.role}>보유 자격증 없음</Text>}
               </View>
               <Pressable
-                style={({ pressed }) => [styles.closeButton, pressed && { opacity: 0.6 }]}
+                style={({ pressed }) => [styles.closeButton, glassClear, pressed && { opacity: 0.6 }]}
                 onPress={() => router.back()}
               >
+                <GlassBackground radius={16} interactive />
                 <Text style={styles.closeX}>✕</Text>
               </Pressable>
             </View>
@@ -280,9 +282,10 @@ export default function ProfileScreen() {
               <Text style={styles.certButtonText}>자격증 등록 요청</Text>
             </Pressable>
             <Pressable
-              style={({ pressed }) => [styles.editButton, pressed && { opacity: 0.85 }]}
+              style={({ pressed }) => [styles.editButton, glassClear, pressed && { opacity: 0.85 }]}
               onPress={() => router.push('/profile-edit')}
             >
+              <GlassBackground radius={14} interactive />
               <Text style={styles.editButtonText}>프로필 편집</Text>
             </Pressable>
           </View>

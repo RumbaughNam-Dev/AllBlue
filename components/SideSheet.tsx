@@ -168,8 +168,9 @@ export default function SideSheet({ visible, onClose }: Props) {
         <View style={styles.header}>
           <Pressable
             onPress={onClose}
-            style={({ pressed }) => [styles.closeButton, pressed && { opacity: 0.6 }]}
+            style={({ pressed }) => [styles.closeButton, glassClear, pressed && { opacity: 0.6 }]}
           >
+            <GlassBackground radius={18} interactive />
             <View style={styles.closeCircle}>
               <Text style={styles.closeArrow}>{'>'}</Text>
             </View>

@@ -114,11 +114,13 @@ export default function DatePickerSheet({ visible, onClose, selectedDate, onSele
         <View style={styles.calendarWrap}>
           {/* 헤더 */}
           <View style={styles.header}>
-            <Pressable onPress={goToPrevMonth} style={styles.navButton}>
+            <Pressable onPress={goToPrevMonth} style={[styles.navButton, glassClear]}>
+              <GlassBackground radius={18} interactive />
               <Text style={styles.navText}>{'<'}</Text>
             </Pressable>
             <Text style={styles.monthTitle}>{viewYear}년 {viewMonth + 1}월</Text>
-            <Pressable onPress={goToNextMonth} style={styles.navButton}>
+            <Pressable onPress={goToNextMonth} style={[styles.navButton, glassClear]}>
+              <GlassBackground radius={18} interactive />
               <Text style={styles.navText}>{'>'}</Text>
             </Pressable>
           </View>

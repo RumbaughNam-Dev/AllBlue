@@ -8,6 +8,7 @@ import Colors from '@/constants/Colors';
 import { api, TemporaryLinkPreview } from '@/services/api';
 import { useSearch } from '@/hooks/useSearch';
 import { useLatestRequest } from '@/hooks/useLatestRequest';
+import GlassCircle from '@/components/GlassCircle';
 
 type Props = {
   visible: boolean;
@@ -82,7 +83,7 @@ export default function TemporaryUserLinkModal({ visible, scheduleId, source, on
           <View style={[styles.card, { maxHeight: cardMaxHeight }]} accessibilityViewIsModal>
             <View style={styles.header}>
               <Text style={styles.title}>가입 사용자로 연결</Text>
-              <Pressable onPress={close} disabled={busyRef.current} accessibilityRole="button" accessibilityLabel="닫기"><Text style={styles.close}>✕</Text></Pressable>
+              <Pressable onPress={close} disabled={busyRef.current} accessibilityRole="button" accessibilityLabel="닫기"><GlassCircle size={32}><Text style={styles.close}>✕</Text></GlassCircle></Pressable>
             </View>
             <ScrollView style={styles.scroll} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={styles.content}>
               {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}

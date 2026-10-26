@@ -17,6 +17,7 @@ import { api, Profile, Organization } from '@/services/api';
 import Spinner from '@/components/Spinner';
 import BottomSheet from '@/components/BottomSheet';
 import type { TextInputInstance } from 'react-native';
+import GlassCircle from '@/components/GlassCircle';
 
 export default function ProfileEditScreen() {
   const insets = useSafeAreaInsets();
@@ -394,7 +395,9 @@ export default function ProfileEditScreen() {
             <View style={styles.orgModalHeader}>
               <Text style={styles.orgModalTitle}>소속단체 선택</Text>
               <Pressable onPress={closeOrgPicker}>
-                <Text style={styles.orgModalClose}>✕</Text>
+                <GlassCircle size={32}>
+                  <Text style={styles.orgModalClose}>✕</Text>
+                </GlassCircle>
               </Pressable>
             </View>
             <TextInput

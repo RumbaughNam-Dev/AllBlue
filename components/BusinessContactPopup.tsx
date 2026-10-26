@@ -26,7 +26,8 @@ export default function BusinessContactPopup({ onClose }: { onClose: () => void 
       <ScrollView contentContainerStyle={styles.content} bounces={false}>
         <View style={styles.header}>
           <View style={styles.symbol}><Ionicons name="chatbubbles-outline" size={25} color={Colors.brand.accent} /></View>
-          <Pressable accessibilityRole="button" accessibilityLabel="닫기" onPress={onClose} style={styles.close}><Ionicons name="close" size={24} color="white" /></Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel="닫기" onPress={onClose} style={[styles.close, glassClear]}>
+            <GlassBackground radius={22} interactive /><Ionicons name="close" size={24} color="white" /></Pressable>
         </View>
         <Text style={styles.title}>광고 문의</Text>
         <Text style={styles.description}>광고 문의는 아래 메일이나 인스타그램 DM으로 해 주세요.</Text>

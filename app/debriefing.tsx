@@ -14,6 +14,10 @@ import { api, UserLicense, AchievementRequirement } from '@/services/api';
 import Spinner from '@/components/Spinner';
 import GlassCircle from '@/components/GlassCircle';
 import type { TextInputInstance } from 'react-native';
+import GlassBackground, { glassClear } from '@/components/GlassBackground';
+
+// Save keeps its warning color on glass.
+const WARNING_TINT = 'rgba(255,170,0,0.75)';
 
 function RequirementItem({ item, passed, disabled, onToggle, onUncheck }: {
   item: AchievementRequirement;
@@ -419,10 +423,11 @@ export default function DebriefingScreen() {
           {/* 하단 */}
           <View style={[styles.bottomArea, { paddingBottom: insets.bottom + 12 }]}>
             <Pressable
-              style={({ pressed }) => [styles.saveButton, pressed && { opacity: 0.85 }, saving && { opacity: 0.5 }]}
+              style={({ pressed }) => [styles.saveButton, glassClear, pressed && { opacity: 0.85 }, saving && { opacity: 0.5 }]}
               onPress={handleSave}
               disabled={saving}
             >
+              <GlassBackground radius={12} interactive tintColor={WARNING_TINT} />
               <Text style={styles.saveButtonText}>{saving ? '저장 중...' : '저장'}</Text>
             </Pressable>
           </View>
