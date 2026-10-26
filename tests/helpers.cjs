@@ -14,6 +14,8 @@ function loadModule(file, modules, globals = {}) {
   vm.runInNewContext(code, {
     exports, console, AbortController, setTimeout, clearTimeout, __DEV__: true,
     require(name) {
+      // Tests run without Liquid Glass: the glass layer renders nothing and surfaces keep their colors.
+      if (name === '@/components/GlassBackground' && !(name in modules)) return { __esModule: true, default: () => null, glassClear: null, PANEL_TINT: '' };
       assert.ok(name in modules, `Unexpected dependency: ${name}`);
       return modules[name];
     },

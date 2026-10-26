@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/Colors';
+import GlassBackground, { glassClear, PANEL_TINT } from '@/components/GlassBackground';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -108,7 +109,8 @@ export default function DatePickerSheet({ visible, onClose, selectedDate, onSele
         </Pressable>
       </Animated.View>
 
-      <Animated.View style={[styles.sheet, { transform: [{ translateY: slideAnim }], paddingBottom: insets.bottom + 16 }]}>
+      <Animated.View style={[styles.sheet, glassClear, { transform: [{ translateY: slideAnim }], paddingBottom: insets.bottom + 16 }]}>
+        <GlassBackground radius={20} tintColor={PANEL_TINT} />
         <View style={styles.calendarWrap}>
           {/* 헤더 */}
           <View style={styles.header}>

@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import PopupBackdrop from '@/components/PopupBackdrop';
 import { PopupSlide } from './types';
 import { styles } from './ui';
+import GlassBackground, { glassClear, PANEL_TINT } from '@/components/GlassBackground';
 
 type Props = { items: PopupSlide[]; onClose: () => void; onHideToday: () => void };
 export default function PopupCarousel({ items, onClose, onHideToday }: Props) {
@@ -57,7 +58,8 @@ export default function PopupCarousel({ items, onClose, onHideToday }: Props) {
   return <Modal transparent visible animationType="fade" statusBarTranslucent onRequestClose={onClose}>
     <PopupBackdrop />
     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: insets.top, paddingBottom: insets.bottom, backgroundColor: 'rgba(0,15,35,0.4)' }}>
-      <View accessibilityViewIsModal style={{ width: cardWidth, backgroundColor: '#144A84', borderRadius: 24, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.16)' }}>
+      <View accessibilityViewIsModal style={[{ width: cardWidth, backgroundColor: '#144A84', borderRadius: 24, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.16)' }, glassClear]}>
+        <GlassBackground radius={24} tintColor={PANEL_TINT} />
         <View {...pan.panHandlers} onTouchStart={() => setTouching(true)} onTouchEnd={() => setTouching(false)} onTouchCancel={() => setTouching(false)} style={{ height: cardHeight, overflow: 'hidden' }}>
           <Animated.View style={{ position: 'absolute', width: cardWidth, height: cardHeight, transform: [{ translateX: transition ? translation : 0 }] }}>{slide(items[index])}</Animated.View>
           {transition && <Animated.View style={{ position: 'absolute', width: cardWidth, height: cardHeight, left: -transition.direction * cardWidth, transform: [{ translateX: translation }] }}>{slide(items[transition.next])}</Animated.View>}

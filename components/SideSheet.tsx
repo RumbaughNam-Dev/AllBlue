@@ -16,6 +16,7 @@ import Colors from '@/constants/Colors';
 import { useAuth } from '@/contexts/AuthContext';
 import AdSlot from '@/components/AdSlot';
 import { AD_IMAGES, AD_LINKS } from '@/constants/Ads';
+import GlassBackground, { glassClear, PANEL_TINT } from '@/components/GlassBackground';
 
 type Props = {
   visible: boolean;
@@ -153,6 +154,7 @@ export default function SideSheet({ visible, onClose }: Props) {
       <Animated.View
         style={[
           styles.sheet,
+          glassClear,
           {
             width: sheetWidth,
             paddingTop: insets.top + 8,
@@ -161,6 +163,7 @@ export default function SideSheet({ visible, onClose }: Props) {
           },
         ]}
       >
+        <GlassBackground tintColor={PANEL_TINT} />
         {/* Header */}
         <View style={styles.header}>
           <Pressable

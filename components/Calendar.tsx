@@ -6,6 +6,7 @@ import Colors from '@/constants/Colors';
 import MonthPicker from '@/components/MonthPicker';
 import Spinner from '@/components/Spinner';
 import AdSlot from '@/components/AdSlot';
+import GlassBackground, { glassClear } from '@/components/GlassBackground';
 import GlassCircle from '@/components/GlassCircle';
 import { AD_IMAGES, AD_LINKS } from '@/constants/Ads';
 import type { CalendarEvent } from '@/services/api';
@@ -223,9 +224,10 @@ export default function Calendar({ events = [], calendarEvents = [], onDatePress
         {filters.map((opt) => (
           <Pressable
             key={opt.key}
-            style={[styles.filterItem, scheduleFilter === opt.key && styles.filterItemActive]}
+            style={[styles.filterItem, scheduleFilter === opt.key && styles.filterItemActive, glassClear]}
             onPress={() => onFilterChange?.(opt.key)}
           >
+            <GlassBackground radius={16} interactive tintColor={scheduleFilter === opt.key ? 'rgba(255,255,255,0.22)' : undefined} />
             <Text style={[styles.filterText, scheduleFilter === opt.key && styles.filterTextActive]}>
               {opt.label}
             </Text>

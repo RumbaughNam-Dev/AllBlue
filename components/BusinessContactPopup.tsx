@@ -3,6 +3,7 @@ import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'r
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/Colors';
+import GlassBackground, { glassClear, PANEL_TINT } from '@/components/GlassBackground';
 
 const EMAIL = 'rumbau.studio@gmail.com';
 const INSTAGRAM = 'rumbaugh.nam';
@@ -20,7 +21,8 @@ export default function BusinessContactPopup({ onClose }: { onClose: () => void 
   };
   return <View style={[styles.overlay, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }]}>
     <Pressable style={StyleSheet.absoluteFill} accessibilityLabel="광고 문의 닫기" onPress={onClose} />
-    <View accessibilityViewIsModal style={styles.card}>
+    <View accessibilityViewIsModal style={[styles.card, glassClear]}>
+      <GlassBackground radius={24} tintColor={PANEL_TINT} />
       <ScrollView contentContainerStyle={styles.content} bounces={false}>
         <View style={styles.header}>
           <View style={styles.symbol}><Ionicons name="chatbubbles-outline" size={25} color={Colors.brand.accent} /></View>
