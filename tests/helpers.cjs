@@ -17,6 +17,8 @@ function loadModule(file, modules, globals = {}) {
       if (name === '@/features/split/SplitPane' && !(name in modules)) return splitShim(modules['expo-router']);
       // Tests run as a regular phone, not an iPhone Duo.
       if (name === '@/utils/foldable' && !(name in modules)) return { isIPhoneDuo: false };
+      // Tests run without Liquid Glass: the glass layer renders nothing and surfaces keep their colors.
+      if (name === '@/components/GlassBackground' && !(name in modules)) return { __esModule: true, default: () => null, glassClear: null, PANEL_TINT: '' };
       assert.ok(name in modules, `Unexpected dependency: ${name}`);
       return modules[name];
     },

@@ -10,6 +10,7 @@ import { formatNotificationDate } from './date';
 import Colors from '@/constants/Colors';
 import { api, AppNotification } from '@/services/api';
 import type { ViewInstance } from 'react-native';
+import GlassBackground, { glassClear, PANEL_TINT } from '@/components/GlassBackground';
 
 const ROW_HEIGHT = 132;
 export default function NotificationBell() {
@@ -137,12 +138,13 @@ export default function NotificationBell() {
         <Animated.View style={[StyleSheet.absoluteFill, { opacity: progress }]}>
           <Pressable style={[StyleSheet.absoluteFill, styles.backdrop]} onPress={close} accessibilityRole="button" accessibilityLabel="알림 닫기" />
         </Animated.View>
-        <Animated.View style={[styles.panel, { width: panelWidth, height: panelHeight, left: (width - panelWidth) / 2, top: (height - panelHeight) / 2,
+        <Animated.View style={[styles.panel, glassClear, { width: panelWidth, height: panelHeight, left: (width - panelWidth) / 2, top: (height - panelHeight) / 2,
           opacity: progress, transform: [
             { translateX: progress.interpolate({ inputRange: [0, 1], outputRange: [origin.x + 22 - width / 2, 0] }) },
             { translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [origin.y + 22 - height / 2, 0] }) },
             { scale: progress.interpolate({ inputRange: [0, 1], outputRange: [0.05, 1] }) },
           ] }]}>
+          <GlassBackground radius={28} tintColor={PANEL_TINT} />
           <View style={styles.header}>
             <View style={styles.headingGroup}>
               <View style={styles.eyebrowLine}><Text style={styles.eyebrow}>all<Text style={{ color: '#00E5FF' }}>b</Text>lue</Text></View>

@@ -17,6 +17,7 @@ import GlassChip from '@/components/GlassChip';
 import GlassCircle from '@/components/GlassCircle';
 import FloatingActionButton from '@/components/FloatingActionButton';
 import { LiquidGlassView } from '@/utils/liquidGlass';
+import GlassBackground, { glassClear, PANEL_TINT } from '@/components/GlassBackground';
 
 export default function FriendsScreen() {
   usePaneDefault('c', { message: '여기에 친구 프로필이 표시돼요', hint: '왼쪽에서 친구를 눌러 프로필을 열어 보세요' });
@@ -205,7 +206,8 @@ export default function FriendsScreen() {
         <Pressable style={styles.menuBackdrop} onPress={closeMenu}>
           <PopupBackdrop />
           <View style={styles.menuContainer}>
-            <View style={styles.menuCard}>
+            <View style={[styles.menuCard, glassClear]}>
+              <GlassBackground radius={14} tintColor={PANEL_TINT} />
               {getMenuItems().map((item, index) => (
                 <Pressable
                   key={index}
@@ -307,7 +309,8 @@ export default function FriendsScreen() {
         <Pressable style={styles.menuBackdrop} onPress={() => setGroupSelectVisible(false)}>
           <PopupBackdrop />
           <View style={styles.menuContainer}>
-            <View style={styles.menuCard}>
+            <View style={[styles.menuCard, glassClear]}>
+              <GlassBackground radius={14} tintColor={PANEL_TINT} />
               <View style={styles.groupSelectHeader}>
                 <Text style={styles.groupSelectTitle}>그룹 선택</Text>
               </View>

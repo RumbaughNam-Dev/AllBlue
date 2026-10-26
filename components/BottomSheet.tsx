@@ -7,6 +7,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/Colors';
 import type { ScrollViewInstance } from 'react-native';
+import GlassBackground, { glassClear, PANEL_TINT } from '@/components/GlassBackground';
 
 type BottomSheetItem = { label: string; value: any };
 
@@ -107,8 +108,10 @@ export default function BottomSheet({ visible, onClose, title, items, onSelect, 
       </Animated.View>
       <Animated.View style={[
         styles.container,
+        glassClear,
         { paddingBottom: insets.bottom + 16, transform: [{ translateY: slideAnim }], bottom: searchable ? keyboardAnim : 0 },
       ]}>
+        <GlassBackground radius={20} tintColor={PANEL_TINT} />
         <Text style={styles.title}>{title}</Text>
         {searchable && (
           <TextInput

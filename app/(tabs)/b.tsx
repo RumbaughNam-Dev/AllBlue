@@ -11,6 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/Colors';
 import { api, Schedule } from '@/services/api';
 import FloatingActionButton from '@/components/FloatingActionButton';
+import GlassChip from '@/components/GlassChip';
 
 const DAY_NAMES = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
 
@@ -241,7 +242,9 @@ export default function TabB() {
       style={({ pressed }) => [styles.loadPrevButton, pressed && { opacity: 0.6 }]}
       onPress={handleLoadPrevious}
     >
-      <Text style={styles.loadPrevText}>이전 일정 불러오기</Text>
+      <GlassChip>
+        <Text style={styles.loadPrevText}>이전 일정 불러오기</Text>
+      </GlassChip>
     </Pressable>
   );
 
