@@ -8,7 +8,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import * as WebBrowser from 'expo-web-browser';
-import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
+import { useAppRouter, useScreenParams, useIsPaneRoot } from '@/features/split/SplitPane';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import Colors from '@/constants/Colors';
@@ -34,8 +35,9 @@ export default function ScheduleDetailScreen() {
   const { user } = useAuth();
   const isQualifiedInstructor = hasInstructorAccess(user?.level);
   const insets = useSafeAreaInsets();
-  const router = useRouter();
-  const { id, filter = 'mine', sourceLabel } = useLocalSearchParams<{ id: string; filter?: string; sourceLabel?: string }>();
+  const router = useAppRouter();
+  const isPaneRoot = useIsPaneRoot();
+  const { id, filter = 'mine', sourceLabel } = useScreenParams<{ id: string; filter?: string; sourceLabel?: string }>();
   const scheduleSource = filter === 'instructor' ? '강사 공개 일정'
     : filter === 'closeFriend' ? '친한친구 일정'
     : filter.startsWith('group_') ? (sourceLabel ?? '그룹 일정') : '내 일정';
@@ -191,11 +193,14 @@ export default function ScheduleDetailScreen() {
 
       {/* Header */}
       <View style={styles.header}>
-        <Pressable onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)')} style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.6 }]}>
-          <GlassCircle fallbackStyle={styles.backCircle}>
-            <Text style={styles.backArrow}>{'<'}</Text>
-          </GlassCircle>
-        </Pressable>
+        {/* First screen in the unfolded right pane: nothing to go back to */}
+        {isPaneRoot ? <View style={styles.backButton} /> : (
+          <Pressable onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)')} style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.6 }]}>
+            <GlassCircle fallbackStyle={styles.backCircle}>
+              <Text style={styles.backArrow}>{'<'}</Text>
+            </GlassCircle>
+          </Pressable>
+        )}
         <Text style={styles.headerTitle} numberOfLines={1}>
           {schedule?.title ?? ''}
         </Text>

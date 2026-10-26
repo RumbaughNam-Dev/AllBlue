@@ -1,4 +1,5 @@
 import { getTabBarContentClearance } from '@/utils/tabBarLayout';
+import { isIPhoneDuo } from '@/utils/foldable';
 import React, { useState, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView, useWindowDimensions, LayoutChangeEvent, PanResponder, Animated, Easing, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -40,9 +41,13 @@ const DEFAULT_FILTERS: FilterOption[] = [
 
 export default function Calendar({ events = [], calendarEvents = [], onDatePress, onMonthChange, scheduleFilter = 'mine', onFilterChange, filterOptions }: Props) {
   const filters = filterOptions ?? DEFAULT_FILTERS;
-  const { width } = useWindowDimensions();
+  // Measure the calendar itself: unfolded it only gets the left half of the window.
+  const { width: windowWidth } = useWindowDimensions();
+  const [measuredWidth, setMeasuredWidth] = useState(0);
+  const width = measuredWidth || windowWidth;
   const insets = useSafeAreaInsets();
-  const bottomSpace = getTabBarContentClearance(insets.bottom, Platform.OS);
+  // iPhone Duo uses the system tab bar, which the safe area already clears.
+  const bottomSpace = isIPhoneDuo ? insets.bottom : getTabBarContentClearance(insets.bottom, Platform.OS);
   const [year, setYear] = useState(new Date().getFullYear());
   const [month, setMonth] = useState(new Date().getMonth());
   const [showMonthPicker, setShowMonthPicker] = useState(false);
@@ -192,7 +197,7 @@ export default function Calendar({ events = [], calendarEvents = [], onDatePress
   }
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} onLayout={(e) => setMeasuredWidth(e.nativeEvent.layout.width)}>
       {/* Header */}
       <View style={styles.header}>
         <Pressable onPress={prevMonth} style={({ pressed }) => pressed && { opacity: 0.5 }}>

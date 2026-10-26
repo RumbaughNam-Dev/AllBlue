@@ -1,6 +1,6 @@
 import React from 'react';
 import { Pressable, Text, GestureResponderEvent, StyleProp, ViewStyle } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useAppRouter } from '@/features/split/SplitPane';
 import { useAuth } from '@/contexts/AuthContext';
 
 type Props = React.PropsWithChildren<{
@@ -12,7 +12,7 @@ type Props = React.PropsWithChildren<{
 }>;
 
 export default function ProfileLink({ userId, label, style, beforeOpen, children, inline }: Props) {
-  const router = useRouter();
+  const router = useAppRouter();
   const { user } = useAuth();
   const open = (event: GestureResponderEvent) => {
     event.stopPropagation();

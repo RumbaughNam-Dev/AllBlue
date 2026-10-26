@@ -1,11 +1,13 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { readPinnedOrder, sortPinnedFriends } from '@/utils/pinnedFriends';
 import { getTabBarContentClearance } from '@/utils/tabBarLayout';
+import { isIPhoneDuo } from '@/utils/foldable';
 import { maskPhone } from '@/utils/format';
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { AppState, Alert, TextInput, Platform, Animated, Easing, useWindowDimensions, Keyboard } from 'react-native';
 
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
+import { useAppRouter } from '@/features/split/SplitPane';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/contexts/AuthContext';
@@ -21,9 +23,10 @@ export type FriendGroup = { id: number; name: string; memberCount: number };
 export const FIXED_TABS = ['close', 'buddy', 'student'];
 
 export function useFriends() {
-  const router = useRouter();
+  const router = useAppRouter();
   const insets = useSafeAreaInsets();
-  const bottomSpace = getTabBarContentClearance(insets.bottom, Platform.OS);
+  // iPhone Duo uses the system tab bar, which the safe area already clears.
+  const bottomSpace = isIPhoneDuo ? insets.bottom : getTabBarContentClearance(insets.bottom, Platform.OS);
 
   const [activeTab, setActiveTab] = useState<TabType>('close');
   const activeTabRef = useRef(activeTab);

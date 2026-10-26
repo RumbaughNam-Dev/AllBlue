@@ -4,7 +4,9 @@ import React, { useState, useCallback, useRef, useMemo } from 'react';
 import {
   View, Text, StyleSheet, SectionList, Pressable, ActivityIndicator, Platform,
 } from 'react-native';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
+import { useAppRouter, usePaneDefault, SplitScene } from '@/features/split/SplitPane';
+import { isIPhoneDuo } from '@/utils/foldable';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/Colors';
 import { api, Schedule } from '@/services/api';
@@ -44,9 +46,11 @@ function getYearMonth(offset: number, base: Date = new Date()): { year: number; 
 
 
 export default function TabB() {
-  const router = useRouter();
+  const router = useAppRouter();
+  usePaneDefault('b', { message: '여기에 일정 상세 내용이 표시돼요', hint: '왼쪽에서 궁금한 다이빙 일정을 눌러 보세요' });
   const insets = useSafeAreaInsets();
-  const bottomSpace = getTabBarContentClearance(insets.bottom, Platform.OS);
+  // iPhone Duo uses the system tab bar, which the safe area already clears.
+  const bottomSpace = isIPhoneDuo ? insets.bottom : getTabBarContentClearance(insets.bottom, Platform.OS);
   const [scheduleMap, setScheduleMap] = useState<Map<string, Schedule[]>>(new Map());
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -242,6 +246,7 @@ export default function TabB() {
   );
 
   return (
+    <SplitScene tab="b">
     <View style={styles.container}>
       {loading ? (
         <View style={styles.loadingArea}>
@@ -274,18 +279,22 @@ export default function TabB() {
             contentContainerStyle={[styles.listContent, { paddingBottom: bottomSpace + 70 }]}
             showsVerticalScrollIndicator={false}
           />
-          <View style={[styles.bottomArea, { bottom: bottomSpace }]}>
-            <FloatingActionButton
-              label="다이빙 만들기"
-              onPress={() => router.push({ pathname: '/schedule-add', params: { date: '' } })}
-              fallbackStyle={styles.addButton}
-              fallbackPressedStyle={styles.addButtonPressed}
-              fallbackTextStyle={styles.addButtonText}
-            />
-          </View>
+          {/* iPhone Duo shows this in the tab bar's accessory instead */}
+          {!isIPhoneDuo && (
+            <View style={[styles.bottomArea, { bottom: bottomSpace }]}>
+              <FloatingActionButton
+                label="다이빙 만들기"
+                onPress={() => router.push({ pathname: '/schedule-add', params: { date: '' } })}
+                fallbackStyle={styles.addButton}
+                fallbackPressedStyle={styles.addButtonPressed}
+                fallbackTextStyle={styles.addButtonText}
+              />
+            </View>
+          )}
         </>
       )}
     </View>
+    </SplitScene>
   );
 }
 

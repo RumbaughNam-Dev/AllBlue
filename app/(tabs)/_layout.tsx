@@ -11,6 +11,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/services/api';
 import ProfileAvatar from '@/components/ProfileAvatar';
 import GlassCircle from '@/components/GlassCircle';
+import { SplitProvider, PaneHost, useIsSplit, useActivePane } from '@/features/split/SplitPane';
+import { NativeTabs } from 'expo-router/native-tabs';
+import { Ionicons } from '@expo/vector-icons';
+import { isIPhoneDuo } from '@/utils/foldable';
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
@@ -42,6 +46,7 @@ export default function TabLayout() {
   }, [user?.id]));
 
   return (
+    <SplitProvider paneInScenes={isIPhoneDuo}>
     <View style={[styles.root, { paddingTop: insets.top }]}>
       {/* Toolbar */}
       <View style={styles.toolbar}>
@@ -73,20 +78,83 @@ export default function TabLayout() {
         </View>
       </View>
 
-      {/* Tabs */}
-      <Tabs
-        tabBar={(props) => <CustomTabBar {...props} />}
-        screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: '#144A84' } }}
-      >
-        <Tabs.Screen name="index" />
-        <Tabs.Screen name="b" />
-        <Tabs.Screen name="c" />
-      </Tabs>
+      {isIPhoneDuo ? <DuoTabsBody /> : <TabsBody />}
 
       {user && <StartupPopups key={user.id} userId={user.id} />}
 
       {/* Side Sheet */}
       <SideSheet visible={sheetVisible} onClose={() => setSheetVisible(false)} />
+    </View>
+    </SplitProvider>
+  );
+}
+
+// iPhone Duo: the system tab bar and its bottom accessory, which iOS moves to the spare strip on the
+// right when unfolded. Each tab screen holds its own right pane (SplitScene).
+function DuoTabsBody() {
+  const { activeTab, route } = useActivePane();
+  // Where the in-screen '다이빙 만들기' buttons were: the dive list, and the day shown on the right.
+  const createDate = activeTab === 'b' ? '' : activeTab === 'index' && route?.pathname === '/schedule-daily' ? route.params.date : null;
+  return (
+    <NativeTabs tintColor={Colors.brand.white} iconColor="rgba(255,255,255,0.55)" backgroundColor={Colors.brand.primary}>
+      <NativeTabs.Trigger name="index">
+        <NativeTabs.Trigger.Icon sf="calendar" />
+        <NativeTabs.Trigger.Label>캘린더</NativeTabs.Trigger.Label>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="b">
+        <NativeTabs.Trigger.Icon src={require('@/assets/images/icon-snorkel.png')} />
+        <NativeTabs.Trigger.Label>다이빙</NativeTabs.Trigger.Label>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="c">
+        <NativeTabs.Trigger.Icon sf="person.2" />
+        <NativeTabs.Trigger.Label>친구</NativeTabs.Trigger.Label>
+      </NativeTabs.Trigger>
+      {createDate !== null && (
+        <NativeTabs.BottomAccessory>
+          <CreateDiveAccessory date={createDate} />
+        </NativeTabs.BottomAccessory>
+      )}
+    </NativeTabs>
+  );
+}
+
+function CreateDiveAccessory({ date }: { date: string }) {
+  const router = useRouter();
+  // 'inline' is the compact form iOS uses when the tab bar is minimized.
+  const placement = NativeTabs.BottomAccessory.usePlacement();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="다이빙 만들기"
+      onPress={() => router.push({ pathname: '/schedule-add', params: { date } })}
+      style={({ pressed }) => [styles.accessory, pressed && { opacity: 0.6 }]}
+    >
+      <Ionicons name="add" size={20} color={Colors.brand.white} />
+      {placement === 'regular' && <Text style={styles.accessoryText}>다이빙 만들기</Text>}
+    </Pressable>
+  );
+}
+
+// Unfolded, the tab screen takes the left half and screens opened from it the right half.
+function TabsBody() {
+  const isSplit = useIsSplit();
+  return (
+    <View style={styles.body}>
+      <View style={styles.half}>
+        <Tabs
+          tabBar={(props) => <CustomTabBar {...props} />}
+          screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: '#144A84' } }}
+        >
+          <Tabs.Screen name="index" />
+          <Tabs.Screen name="b" />
+          <Tabs.Screen name="c" />
+        </Tabs>
+      </View>
+      {isSplit && (
+        <View style={[styles.half, styles.paneHalf]}>
+          <PaneHost />
+        </View>
+      )}
     </View>
   );
 }
@@ -95,6 +163,31 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: Colors.brand.primary,
+  },
+  body: {
+    flex: 1,
+    flexDirection: 'row',
+  },
+  // Equal flex keeps the two halves exactly 1:1.
+  half: {
+    flex: 1,
+  },
+  accessory: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 16,
+  },
+  accessoryText: {
+    fontFamily: 'SUIT-Bold',
+    fontSize: 15,
+    color: Colors.brand.white,
+  },
+  paneHalf: {
+    borderLeftWidth: StyleSheet.hairlineWidth,
+    borderLeftColor: 'rgba(255,255,255,0.12)',
   },
   toolbar: {
     flexDirection: 'row',

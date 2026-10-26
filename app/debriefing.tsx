@@ -6,7 +6,7 @@ import {
   View, Text, StyleSheet, SectionList, TextInput, Pressable, Alert,
   KeyboardAvoidingView, Platform, Animated, Keyboard, TouchableWithoutFeedback, ScrollView,
 } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useAppRouter, useScreenParams } from '@/features/split/SplitPane';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import Colors from '@/constants/Colors';
@@ -114,8 +114,8 @@ function RequirementItem({ item, passed, disabled, onToggle, onUncheck }: {
 
 export default function DebriefingScreen() {
   const insets = useSafeAreaInsets();
-  const router = useRouter();
-  const { scheduleId, participantId, profileUserId, participantName, isGuest, participantCategory } = useLocalSearchParams<{
+  const router = useAppRouter();
+  const { scheduleId, participantId, profileUserId, participantName, isGuest, participantCategory } = useScreenParams<{
     scheduleId: string;
     participantId: string;
     profileUserId?: string;

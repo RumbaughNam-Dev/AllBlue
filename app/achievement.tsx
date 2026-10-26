@@ -5,7 +5,7 @@ import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import {
   View, Text, StyleSheet, Pressable, ScrollView, FlatList, Alert, ActivityIndicator, Platform,
 } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useAppRouter, useScreenParams } from '@/features/split/SplitPane';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import Colors from '@/constants/Colors';
@@ -63,9 +63,9 @@ function formatDebriefingDate(dateStr: string): string {
 
 export default function AchievementScreen() {
   const insets = useSafeAreaInsets();
-  const router = useRouter();
+  const router = useAppRouter();
   const { user } = useAuth();
-  const { participantId, profileUserId, participantName, participantLevel, modal } = useLocalSearchParams<{
+  const { participantId, profileUserId, participantName, participantLevel, modal } = useScreenParams<{
     participantId: string;
     profileUserId?: string;
     participantName: string;

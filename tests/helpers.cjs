@@ -14,12 +14,31 @@ function loadModule(file, modules, globals = {}) {
   vm.runInNewContext(code, {
     exports, console, AbortController, setTimeout, clearTimeout, __DEV__: true,
     require(name) {
+      if (name === '@/features/split/SplitPane' && !(name in modules)) return splitShim(modules['expo-router']);
+      // Tests run as a regular phone, not an iPhone Duo.
+      if (name === '@/utils/foldable' && !(name in modules)) return { isIPhoneDuo: false };
       assert.ok(name in modules, `Unexpected dependency: ${name}`);
       return modules[name];
     },
     ...globals,
   }, { filename });
   return exports;
+}
+
+// Not unfolded: the split-aware router and params behave exactly like expo-router's.
+function splitShim(router = {}) {
+  return {
+    useAppRouter: () => router.useRouter?.(),
+    useScreenParams: () => router.useLocalSearchParams?.() ?? {},
+    useIsPaneRoot: () => false,
+    useIsSplit: () => false,
+    usePaneDefault() {},
+    useIsInPane: () => false,
+    useActivePane: () => ({ activeTab: 'index', route: null }),
+    SplitScene: ({ children }) => children,
+    SplitProvider: ({ children }) => children,
+    PaneHost: () => null,
+  };
 }
 
 function storage(initial = {}) {

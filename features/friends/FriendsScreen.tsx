@@ -12,8 +12,10 @@ import { api, CloseFriend } from '@/services/api';
 import { useFriends, FIXED_TABS } from './useFriends';
 import { styles } from './styles';
 import type { ViewInstance } from 'react-native';
+import { usePaneDefault } from '@/features/split/SplitPane';
 
 export default function FriendsScreen() {
+  usePaneDefault('c', { message: '여기에 친구 프로필이 표시돼요', hint: '왼쪽에서 친구를 눌러 프로필을 열어 보세요' });
   const {
     insets, bottomSpace, activeTab, loading,
     loadError, groups, groupModalVisible, setGroupModalVisible,

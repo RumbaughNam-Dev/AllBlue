@@ -2,7 +2,9 @@ import React, { useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, Pressable, ScrollView, Linking,
 } from 'react-native';
-import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
+import { useAppRouter, useScreenParams, useIsPaneRoot, useIsInPane } from '@/features/split/SplitPane';
+import { isIPhoneDuo } from '@/utils/foldable';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import Colors from '@/constants/Colors';
@@ -15,8 +17,12 @@ import GlassCircle from '@/components/GlassCircle';
 
 export default function ScheduleDailyScreen() {
   const insets = useSafeAreaInsets();
-  const router = useRouter();
-  const { date, filter = 'mine', sourceLabel } = useLocalSearchParams<{ date: string; filter?: string; sourceLabel?: string }>();
+  const router = useAppRouter();
+  const isPaneRoot = useIsPaneRoot();
+  // On iPhone Duo's right pane the tab bar accessory offers this button instead.
+  const inPane = useIsInPane();
+  const showAddButton = !(isIPhoneDuo && inPane);
+  const { date, filter = 'mine', sourceLabel } = useScreenParams<{ date: string; filter?: string; sourceLabel?: string }>();
   const source = sourceLabel ?? (filter === 'instructor' ? '강사 일정' : filter === 'closeFriend' ? '친한친구 일정' : filter.startsWith('group_') ? '그룹 일정' : '내 일정');
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [adEvents, setAdEvents] = useState<CalendarEvent[]>([]);
@@ -78,11 +84,14 @@ export default function ScheduleDailyScreen() {
 
       {/* Header */}
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.6 }]}>
-          <GlassCircle fallbackStyle={styles.backCircle}>
-            <Text style={styles.backArrow}>{'<'}</Text>
-          </GlassCircle>
-        </Pressable>
+        {/* First screen in the unfolded right pane: nothing to go back to */}
+        {isPaneRoot ? <View style={styles.backButton} /> : (
+          <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.6 }]}>
+            <GlassCircle fallbackStyle={styles.backCircle}>
+              <Text style={styles.backArrow}>{'<'}</Text>
+            </GlassCircle>
+          </Pressable>
+        )}
         <Text style={styles.headerTitle}>{month}월 {day}일</Text>
         <View style={{ width: 36 }} />
       </View>
@@ -196,15 +205,17 @@ export default function ScheduleDailyScreen() {
       )}
 
       {/* Add Button */}
-      <View style={styles.bottomArea}>
-        <FloatingActionButton
-          label="다이빙 만들기"
-          onPress={() => router.push({ pathname: '/schedule-add', params: { date: date ?? '' } })}
-          fallbackStyle={styles.addButton}
-          fallbackPressedStyle={styles.addButtonPressed}
-          fallbackTextStyle={styles.addButtonText}
-        />
-      </View>
+      {showAddButton && (
+        <View style={styles.bottomArea}>
+          <FloatingActionButton
+            label="다이빙 만들기"
+            onPress={() => router.push({ pathname: '/schedule-add', params: { date: date ?? '' } })}
+            fallbackStyle={styles.addButton}
+            fallbackPressedStyle={styles.addButtonPressed}
+            fallbackTextStyle={styles.addButtonText}
+          />
+        </View>
+      )}
     </View>
   );
 }
