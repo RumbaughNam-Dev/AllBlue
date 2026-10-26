@@ -9,13 +9,14 @@ import { mergeNotificationWindow } from './window';
 import { formatNotificationDate } from './date';
 import Colors from '@/constants/Colors';
 import { api, AppNotification } from '@/services/api';
+import type { ViewInstance } from 'react-native';
 
 const ROW_HEIGHT = 132;
 export default function NotificationBell() {
   const router = useRouter();
   const { width, height } = useWindowDimensions();
   const compact = height < 650;
-  const anchor = useRef<View>(null);
+  const anchor = useRef<ViewInstance>(null);
   const list = useRef<FlatList<AppNotification>>(null);
   const [origin, setOrigin] = useState({ x: 20, y: 50 });
   const [visible, setVisible] = useState(false);
@@ -210,7 +211,7 @@ export default function NotificationBell() {
                 </Pressable>}
               </View>
             </View>}
-            ListFooterComponent={loading && items.length > 0 ? <ActivityIndicator color="#92DDEB" style={styles.loadingMore} /> : null}
+            ListFooterComponent={loading && items.length > 0 ? <ActivityIndicator color="#92DDEB" style={styles.loadingMore} /> : undefined}
           />
           <View style={styles.footer}>
             <Ionicons name="information-circle-outline" size={14} color="#90ACC7" />

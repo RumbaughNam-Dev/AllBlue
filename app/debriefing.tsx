@@ -13,6 +13,7 @@ import Colors from '@/constants/Colors';
 import { api, UserLicense, AchievementRequirement } from '@/services/api';
 import Spinner from '@/components/Spinner';
 import GlassCircle from '@/components/GlassCircle';
+import type { TextInputInstance } from 'react-native';
 
 function RequirementItem({ item, passed, disabled, onToggle, onUncheck }: {
   item: AchievementRequirement;
@@ -124,8 +125,8 @@ export default function DebriefingScreen() {
   }>();
   const guestUser = isGuest === '1';
   const keyboardInput = useVisibleKeyboardInput();
-  const memoRef = useRef<TextInput | null>(null);
-  const valueRefs = useRef(new Map<number, TextInput>());
+  const memoRef = useRef<TextInputInstance | null>(null);
+  const valueRefs = useRef(new Map<number, TextInputInstance>());
 
   const [licenses, setLicenses] = useState<UserLicense[]>([]);
   const [loading, setLoading] = useState(true);

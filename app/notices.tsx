@@ -34,9 +34,9 @@ export default function NoticesScreen() {
     <NoticeHeader title="공지사항" />
     <FlatList data={items} keyExtractor={item => String(item.id)} refreshing={loading} onRefresh={() => load()}
       contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: canManage ? 100 : 24, flexGrow: 1 }}
-      ListEmptyComponent={!loading ? <NoticeError message={error || '등록된 공지사항이 없습니다.'} retry={error ? () => load() : undefined} /> : null}
+      ListEmptyComponent={!loading ? <NoticeError message={error || '등록된 공지사항이 없습니다.'} retry={error ? () => load() : undefined} /> : undefined}
       ListFooterComponent={items.length ? <View style={{ padding: 16 }}>{error ? <NoticeError message={error} retry={() => load()} /> : hasMore ?
-        <Pressable disabled={loading} onPress={() => load(items.length)} style={styles.button}>{loading ? <ActivityIndicator color="white" /> : <Text style={styles.buttonText}>더 보기</Text>}</Pressable> : null}</View> : null}
+        <Pressable disabled={loading} onPress={() => load(items.length)} style={styles.button}>{loading ? <ActivityIndicator color="white" /> : <Text style={styles.buttonText}>더 보기</Text>}</Pressable> : null}</View> : undefined}
       renderItem={({ item }) => <Pressable onPress={() => router.push({ pathname: '/notice-detail', params: { id: item.id } })}
         style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 20, borderBottomWidth: 1, borderColor: 'rgba(255,255,255,0.12)', opacity: pressed ? 0.6 : 1 })}>
         <View style={{ flex: 1, gap: 5 }}>

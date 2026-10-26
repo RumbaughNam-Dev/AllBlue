@@ -312,7 +312,7 @@ export default function AchievementScreen() {
             ListEmptyComponent={
               !debriefingLoading ? (
                 <Text style={styles.debriefingEmptyList}>디브리핑 기록이 없습니다.</Text>
-              ) : null
+              ) : undefined
             }
             onEndReached={handleLoadMore}
             onEndReachedThreshold={0.3}

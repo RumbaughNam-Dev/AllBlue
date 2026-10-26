@@ -260,7 +260,7 @@ export default function TabB() {
             renderSectionFooter={renderSectionFooter}
             ListHeaderComponent={ListHeader}
             ListFooterComponent={ListFooter}
-            ListEmptyComponent={loadError ? null : (
+            ListEmptyComponent={loadError ? undefined : (
               <View style={styles.emptyArea}>
                 <Text style={styles.emptyText}>예정된 일정이 없습니다.</Text>
               </View>

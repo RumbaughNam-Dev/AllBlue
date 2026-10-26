@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { Keyboard, ScrollView, SectionList, TextInput, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
+import type { ScrollViewInstance, TextInputInstance } from 'react-native';
 
 // Measure the actual viewport after keyboard avoidance; do not assume a keyboard height.
 export function useVisibleKeyboardInput() {
   const listRef = useRef<SectionList<any> | null>(null);
-  const scrollRef = useRef<ScrollView | null>(null);
-  const focused = useRef<TextInput | null>(null);
+  const scrollRef = useRef<ScrollViewInstance | null>(null);
+  const focused = useRef<TextInputInstance | null>(null);
   const offset = useRef(0);
   const frame = useRef<number | null>(null);
 
@@ -42,11 +43,11 @@ export function useVisibleKeyboardInput() {
     };
   }, [reveal]);
 
-  const focus = useCallback((input: TextInput | null) => {
+  const focus = useCallback((input: TextInputInstance | null) => {
     focused.current = input;
     reveal();
   }, [reveal]);
-  const blur = useCallback((input: TextInput | null) => {
+  const blur = useCallback((input: TextInputInstance | null) => {
     if (focused.current === input) focused.current = null;
   }, []);
   const onScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {

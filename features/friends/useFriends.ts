@@ -14,6 +14,7 @@ import { useLatestRequest } from '@/hooks/useLatestRequest';
 import { useUserSearch } from '@/hooks/useSearch';
 
 import { api, CloseFriend } from '@/services/api';
+import type { TextInputInstance } from 'react-native';
 
 export type TabType = string;
 export type FriendGroup = { id: number; name: string; memberCount: number };
@@ -111,7 +112,7 @@ export function useFriends() {
   const [searchQuery, setSearchQuery] = useState('');
   const { results: searchResults, searching, error: searchError } = useUserSearch(searchQuery, searchModalVisible);
   const [addingId, setAddingId] = useState<number | null>(null);
-  const searchInputRef = useRef<TextInput>(null);
+  const searchInputRef = useRef<TextInputInstance>(null);
 
   const {
     user,

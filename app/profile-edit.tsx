@@ -16,6 +16,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { api, Profile, Organization } from '@/services/api';
 import Spinner from '@/components/Spinner';
 import BottomSheet from '@/components/BottomSheet';
+import type { TextInputInstance } from 'react-native';
 
 export default function ProfileEditScreen() {
   const insets = useSafeAreaInsets();
@@ -45,7 +46,7 @@ export default function ProfileEditScreen() {
   const [showOrgPicker, setShowOrgPicker] = useState(false);
   const [orgSearchQuery, setOrgSearchQuery] = useState('');
   const { results: orgSearchResults, searching: orgSearching, error: orgSearchError } = useOrganizationSearch(orgSearchQuery, showOrgPicker);
-  const orgInputRef = useRef<TextInput>(null);
+  const orgInputRef = useRef<TextInputInstance>(null);
 
   const openOrgPicker = () => {
     setShowOrgPicker(true);

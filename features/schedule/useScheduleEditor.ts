@@ -12,6 +12,7 @@ import { useLatestRequest } from '@/hooks/useLatestRequest';
 import { api, InProgressLicense, AvailableLicense, Association } from '@/services/api';
 
 import { CloseFriend } from '@/services/api';
+import type { ScrollViewInstance, TextInputInstance } from 'react-native';
 
 export const CATEGORIES = [
   { code: 'EXPERIENCE', label: '체험교육' },
@@ -88,7 +89,7 @@ export function useScheduleEditor() {
   const [inProgressLicenses, setInProgressLicenses] = useState<InProgressLicense[]>([]);
   const [licensesLoading, setLicensesLoading] = useState(false);
 
-  const participantScrollRef = useRef<ScrollView>(null);
+  const participantScrollRef = useRef<ScrollViewInstance>(null);
   const newParticipantLayout = useRef<{ y: number; height: number } | null>(null);
   const keepParticipantVisibleRef = useRef(false);
   const [participantRevealed, setParticipantRevealed] = useState(false);
@@ -141,7 +142,7 @@ export function useScheduleEditor() {
   const selectionRequest = useLatestRequest();
   const closeFriendsRequest = useLatestRequest();
   const temporaryRequest = useLatestRequest();
-  const searchInputRef = useRef<TextInput>(null);
+  const searchInputRef = useRef<TextInputInstance>(null);
   const [participantTab, setParticipantTab] = useState<'search' | 'friends'>('search');
   const [closeFriends, setCloseFriends] = useState<CloseFriend[]>([]);
   const [friendsLoading, setFriendsLoading] = useState(false);

@@ -1,12 +1,13 @@
 import React, { createContext, useContext, useRef } from 'react';
 import { Platform, StyleSheet, View, ViewStyle } from 'react-native';
 import { BlurTargetView, BlurView } from 'expo-blur';
+import type { ViewInstance } from 'react-native';
 
-const PopupBlurTarget = createContext<React.RefObject<View | null> | undefined>(undefined);
+const PopupBlurTarget = createContext<React.RefObject<ViewInstance | null> | undefined>(undefined);
 
 // Popups live in native Modal windows, outside this Android blur target.
 export function PopupBlurProvider({ children }: React.PropsWithChildren) {
-  const target = useRef<View | null>(null);
+  const target = useRef<ViewInstance | null>(null);
   return (
     <PopupBlurTarget.Provider value={target}>
       {Platform.OS === 'android' ? (

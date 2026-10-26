@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, Pressable, StyleSheet, StyleProp, ViewStyle, ImageSourcePropType, Image as RNImage, LayoutChangeEvent, Linking } from 'react-native';
+import { View, Text, Pressable, StyleSheet, StyleProp, ViewStyle, Image as RNImage, LayoutChangeEvent, Linking } from 'react-native';
 import { Image } from 'expo-image';
 
 type Props = {
-  source: ImageSourcePropType | null;
+  // Bundled image (require(...)); its size gives the ratio.
+  source: number | null;
   style?: StyleProp<ViewStyle>;
   // 'width': always span the full width; height follows the image ratio.
   fit?: 'contain' | 'width';
@@ -32,7 +33,7 @@ export default function AdSlot({ source, style, fit = 'contain', url }: Props) {
 
   const openLink = url ? () => { Linking.openURL(url).catch(() => {}); } : undefined;
 
-  const asset = RNImage.resolveAssetSource(source as Parameters<typeof RNImage.resolveAssetSource>[0]);
+  const asset = RNImage.resolveAssetSource(source);
   const ratio = asset?.width && asset?.height ? asset.width / asset.height : 0;
   if (fit === 'width') {
     // Measure the full available width and size the image to it exactly, so there is never a gap.

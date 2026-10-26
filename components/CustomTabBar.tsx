@@ -61,7 +61,7 @@ function TabIcon({ focused, tab }: { focused: boolean; tab: TabIconConfig }) {
   );
 }
 
-export default function CustomTabBar({ state, navigation }: BottomTabBarProps) {
+export default function CustomTabBar({ state, emitter, navigateToTab }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const tabCount = state.routes.length;
   const slideX = useRef(new Animated.Value(0)).current;
@@ -108,13 +108,13 @@ export default function CustomTabBar({ state, navigation }: BottomTabBarProps) {
         const tab = TAB_ICONS[index];
 
         const onPress = () => {
-          const event = navigation.emit({
+          const event = emitter.emit({
             type: 'tabPress',
             target: route.key,
             canPreventDefault: true,
           });
           if (!isFocused && !event.defaultPrevented) {
-            navigation.navigate(route.name);
+            navigateToTab(route.key);
           }
         };
 

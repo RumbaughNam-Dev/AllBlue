@@ -11,6 +11,7 @@ import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { api, CloseFriend } from '@/services/api';
 import { useFriends, FIXED_TABS } from './useFriends';
 import { styles } from './styles';
+import type { ViewInstance } from 'react-native';
 
 export default function FriendsScreen() {
   const {
@@ -29,7 +30,7 @@ export default function FriendsScreen() {
     sortedFriends, reorderPinnedFriends, orderSaving,
   } = useFriends();
   const listRef = useRef<FlatList<CloseFriend>>(null);
-  const listViewport = useRef<View>(null);
+  const listViewport = useRef<ViewInstance>(null);
   const scrollOffset = useRef(0);
   const viewport = useRef({ top: 0, height: 0, contentHeight: 0 });
   const [dragging, setDragging] = useState(false);
@@ -155,11 +156,11 @@ export default function FriendsScreen() {
           onDraggingChange={setDragging}
           getScrollOffset={() => scrollOffset.current}
           autoScroll={autoScroll}
-        /> : null}
+        /> : undefined}
         data={listFriends}
         keyExtractor={(item) => item.userId}
         renderItem={renderFriendCard}
-        ListEmptyComponent={pinnedFriends.length > 0 ? null : loading ? <ActivityIndicator color="white" /> : loadError ? null : (
+        ListEmptyComponent={pinnedFriends.length > 0 ? undefined : loading ? <ActivityIndicator color="white" /> : loadError ? undefined : (
           <View style={styles.emptyArea}>
             <Text style={styles.emptyText}>
               {activeTab === 'close' ? '등록된 친한 친구가 없습니다.\n아래 버튼으로 등록해보세요.' :

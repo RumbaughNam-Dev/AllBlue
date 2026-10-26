@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/Colors';
+import type { ScrollViewInstance } from 'react-native';
 
 type BottomSheetItem = { label: string; value: any };
 
@@ -31,7 +32,7 @@ export default function BottomSheet({ visible, onClose, title, items, onSelect, 
   const keyboardAnim = useRef(new Animated.Value(0)).current;
   const [mounted, setMounted] = useState(false);
   const [filterText, setFilterText] = useState('');
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ScrollViewInstance>(null);
   const ITEM_HEIGHT = 49; // paddingVertical 14 * 2 + fontSize 16 + border 1
 
   useEffect(() => {
