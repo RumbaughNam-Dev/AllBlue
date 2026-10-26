@@ -10,6 +10,10 @@ import { StatusBar } from 'expo-status-bar';
 import Colors from '@/constants/Colors';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/services/api';
+import GlassBackground, { glassClear } from '@/components/GlassBackground';
+
+// Main actions stay white (prominent glass) so the navy label keeps its contrast.
+const PROMINENT_TINT = 'rgba(255,255,255,0.85)';
 
 type Step = 'name' | 'phone' | 'verify';
 
@@ -276,7 +280,7 @@ export default function RegisterScreen() {
         <View style={styles.bottomArea}>
           <Pressable
             style={({ pressed }) => [
-              styles.nextButton,
+              styles.nextButton, glassClear,
               (step === 'name' && !nicknameTxt.trim()) && styles.nextButtonDisabled,
               (step === 'phone' && !isValidPhone) && styles.nextButtonDisabled,
               (step === 'verify' && verifyCode.trim().length < 4) && styles.nextButtonDisabled,
@@ -289,6 +293,7 @@ export default function RegisterScreen() {
             }}
             disabled={loading}
           >
+            <GlassBackground radius={14} interactive tintColor={PROMINENT_TINT} />
             {loading ? (
               <ActivityIndicator color={Colors.brand.primary} />
             ) : (

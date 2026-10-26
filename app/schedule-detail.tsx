@@ -207,11 +207,13 @@ export default function ScheduleDetailScreen() {
           onPress={() => setMenuVisible(!menuVisible)}
           style={({ pressed }) => [styles.menuButton, pressed && { opacity: 0.6 }]}
         >
-          <View style={styles.menuCircle}>
-            <View style={styles.hamburgerLine} />
-            <View style={styles.hamburgerLine} />
-            <View style={styles.hamburgerLine} />
-          </View>
+          <GlassCircle fallbackStyle={styles.menuCircle}>
+            <View style={styles.menuLines}>
+              <View style={styles.hamburgerLine} />
+              <View style={styles.hamburgerLine} />
+              <View style={styles.hamburgerLine} />
+            </View>
+          </GlassCircle>
         </Pressable>
       </View>
 
@@ -560,6 +562,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.4)',
     alignItems: 'center', justifyContent: 'center', gap: 4,
   },
+  menuLines: { alignItems: 'center', justifyContent: 'center', gap: 4 },
   hamburgerLine: {
     width: 18, height: 2, borderRadius: 1, backgroundColor: 'rgba(255,255,255,0.7)',
   },

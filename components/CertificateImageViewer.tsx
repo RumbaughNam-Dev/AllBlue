@@ -3,6 +3,7 @@ import { ActivityIndicator, Image, Modal, Pressable, StyleSheet, Text, View } fr
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import PopupBackdrop from './PopupBackdrop';
+import GlassBackground, { glassClear } from '@/components/GlassBackground';
 
 export default function CertificateImageViewer({ imageUrl, onClose }: { imageUrl: string; onClose: () => void }) {
   const insets = useSafeAreaInsets();
@@ -16,7 +17,8 @@ export default function CertificateImageViewer({ imageUrl, onClose }: { imageUrl
       {loading && <ActivityIndicator color="white" style={StyleSheet.absoluteFill} />}
       {failed && <Text style={styles.error}>이미지를 불러오지 못했습니다.</Text>}
       <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="자격증 이미지 닫기" hitSlop={8}
-        style={[styles.close, { top: insets.top + 8 }]}><Ionicons name="close" size={28} color="white" /></Pressable>
+        style={[styles.close, glassClear, { top: insets.top + 8 }]}>
+        <GlassBackground radius={22} interactive /><Ionicons name="close" size={28} color="white" /></Pressable>
     </View>
   </Modal>;
 }

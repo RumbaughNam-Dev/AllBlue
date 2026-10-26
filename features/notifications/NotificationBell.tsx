@@ -151,7 +151,8 @@ export default function NotificationBell() {
               <Text style={styles.subtitle}>함께하는 다이빙의 새로운 소식</Text>
             </View>
             <Pressable accessibilityRole="button" accessibilityLabel="알림 닫기" onPress={close}
-              style={({ pressed }) => [styles.closeButton, pressed && styles.pressed]}>
+              style={({ pressed }) => [styles.closeButton, glassClear, pressed && styles.pressed]}>
+              <GlassBackground radius={22} interactive />
               <Ionicons name="close" size={22} color="#D4E5F5" />
             </Pressable>
           </View>

@@ -10,6 +10,10 @@ import { StatusBar } from 'expo-status-bar';
 import Colors from '@/constants/Colors';
 import Spinner from '@/components/Spinner';
 import { api } from '@/services/api';
+import GlassBackground, { glassClear } from '@/components/GlassBackground';
+
+// Main actions stay white (prominent glass) so the navy label keeps its contrast.
+const PROMINENT_TINT = 'rgba(255,255,255,0.85)';
 
 type AttachmentInfo = {
   id: number;
@@ -105,7 +109,8 @@ export default function InquiryAnswerScreen() {
         <View style={styles.header}>
           <View style={{ width: 36 }} />
           <Text style={styles.headerTitle}>답변하기</Text>
-          <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.closeButton, pressed && { opacity: 0.6 }]}>
+          <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.closeButton, glassClear, pressed && { opacity: 0.6 }]}>
+            <GlassBackground radius={18} interactive />
             <View style={styles.closeCircle}>
               <Text style={styles.closeX}>✕</Text>
             </View>
@@ -125,7 +130,8 @@ export default function InquiryAnswerScreen() {
       <View style={styles.header}>
         <View style={{ width: 36 }} />
         <Text style={styles.headerTitle}>답변하기</Text>
-        <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.closeButton, pressed && { opacity: 0.6 }]}>
+        <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.closeButton, glassClear, pressed && { opacity: 0.6 }]}>
+          <GlassBackground radius={18} interactive />
           <View style={styles.closeCircle}>
             <Text style={styles.closeX}>✕</Text>
           </View>
@@ -200,10 +206,11 @@ export default function InquiryAnswerScreen() {
         {/* 하단 버튼 */}
         <View style={styles.bottomArea}>
           <Pressable
-            style={({ pressed }) => [styles.submitButton, pressed && { opacity: 0.85 }, saving && { opacity: 0.5 }]}
+            style={({ pressed }) => [styles.submitButton, glassClear, pressed && { opacity: 0.85 }, saving && { opacity: 0.5 }]}
             onPress={handleSave}
             disabled={saving}
           >
+            <GlassBackground radius={14} interactive tintColor={PROMINENT_TINT} />
             {saving ? (
               <ActivityIndicator color={Colors.brand.primary} />
             ) : (

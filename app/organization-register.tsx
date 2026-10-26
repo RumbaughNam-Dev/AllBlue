@@ -10,6 +10,10 @@ import * as ImagePicker from 'expo-image-picker';
 import Colors from '@/constants/Colors';
 import { api } from '@/services/api';
 import GlassCircle from '@/components/GlassCircle';
+import GlassBackground, { glassClear } from '@/components/GlassBackground';
+
+// Main actions stay white (prominent glass) so the navy label keeps its contrast.
+const PROMINENT_TINT = 'rgba(255,255,255,0.85)';
 
 export default function OrganizationRegisterScreen() {
   const insets = useSafeAreaInsets();
@@ -130,10 +134,11 @@ export default function OrganizationRegisterScreen() {
 
         <View style={styles.bottomArea}>
           <Pressable
-            style={({ pressed }) => [styles.submitButton, pressed && { opacity: 0.85 }]}
+            style={({ pressed }) => [styles.submitButton, glassClear, pressed && { opacity: 0.85 }]}
             onPress={handleSubmit}
             disabled={saving}
           >
+            <GlassBackground radius={14} interactive tintColor={PROMINENT_TINT} />
             {saving ? (
               <ActivityIndicator color={Colors.brand.primary} />
             ) : (

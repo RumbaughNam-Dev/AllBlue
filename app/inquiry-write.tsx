@@ -12,6 +12,10 @@ import * as DocumentPicker from 'expo-document-picker';
 import Colors from '@/constants/Colors';
 import { api } from '@/services/api';
 import GlassCircle from '@/components/GlassCircle';
+import GlassBackground, { glassClear } from '@/components/GlassBackground';
+
+// Main actions stay white (prominent glass) so the navy label keeps its contrast.
+const PROMINENT_TINT = 'rgba(255,255,255,0.85)';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
@@ -200,10 +204,11 @@ export default function InquiryWriteScreen() {
 
         <View style={styles.bottomArea}>
           <Pressable
-            style={({ pressed }) => [styles.submitButton, pressed && { opacity: 0.85 }, saving && { opacity: 0.5 }]}
+            style={({ pressed }) => [styles.submitButton, glassClear, pressed && { opacity: 0.85 }, saving && { opacity: 0.5 }]}
             onPress={handleSubmit}
             disabled={saving}
           >
+            <GlassBackground radius={14} interactive tintColor={PROMINENT_TINT} />
             {saving ? (
               <ActivityIndicator color={Colors.brand.primary} />
             ) : (

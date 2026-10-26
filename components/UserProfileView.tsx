@@ -10,6 +10,11 @@ import LevelBadge from '@/components/LevelBadge';
 import { useAuth } from '@/contexts/AuthContext';
 import { hasInstructorAccess } from '@/utils/userRole';
 import { groupProfileCertifications } from '@/utils/profileCertifications';
+import GlassBackground, { glassClear } from '@/components/GlassBackground';
+import GlassCircle from '@/components/GlassCircle';
+
+// Main actions stay white (prominent glass) so the navy label keeps its contrast.
+const PROMINENT_TINT = 'rgba(255,255,255,0.85)';
 
 function formatRecord(val: number | null, unit?: string): string {
   if (val === null || val === undefined) return '--';
@@ -63,7 +68,7 @@ export default function UserProfileView({ userId, onClose, onOpenLog }: Props) {
 
       {loading || error ? (
         <View style={styles.loadingArea}>
-          <Pressable style={styles.loadingClose} onPress={onClose} accessibilityRole="button" accessibilityLabel="프로필 닫기"><Text style={styles.closeX}>✕</Text></Pressable>
+          <Pressable style={styles.loadingClose} onPress={onClose} accessibilityRole="button" accessibilityLabel="프로필 닫기"><GlassCircle size={32}><Text style={styles.closeX}>✕</Text></GlassCircle></Pressable>
           {loading ? <Spinner /> : <>
             <Text style={styles.bioText}>프로필을 불러오지 못했습니다.</Text>
             <Pressable onPress={() => setRetry(value => value + 1)} accessibilityRole="button"><Text style={styles.bioText}>다시 시도</Text></Pressable>
@@ -97,9 +102,10 @@ export default function UserProfileView({ userId, onClose, onOpenLog }: Props) {
               )) : <Text style={styles.role}>보유 자격증 없음</Text>}
             </View>
             <Pressable
-              style={({ pressed }) => [styles.closeButton, pressed && { opacity: 0.6 }]}
+              style={({ pressed }) => [styles.closeButton, glassClear, pressed && { opacity: 0.6 }]}
               onPress={onClose} accessibilityRole="button" accessibilityLabel="프로필 닫기"
             >
+              <GlassBackground radius={16} interactive />
               <Text style={styles.closeX}>✕</Text>
             </Pressable>
           </View>
@@ -186,7 +192,7 @@ export default function UserProfileView({ userId, onClose, onOpenLog }: Props) {
         {onOpenLog && hasInstructorAccess(me?.level) && isMyStudent && userInfo && (
           <View style={styles.bottomArea}>
             <Pressable
-              style={({ pressed }) => [styles.logButton, pressed && { opacity: 0.85 }]}
+              style={({ pressed }) => [styles.logButton, glassClear, pressed && { opacity: 0.85 }]}
               onPress={() => onOpenLog({
                   participantId: String(userInfo.id),
                   profileUserId: userId,
@@ -195,6 +201,7 @@ export default function UserProfileView({ userId, onClose, onOpenLog }: Props) {
                   modal: '1',
               })}
             >
+              <GlassBackground radius={14} interactive tintColor={PROMINENT_TINT} />
               <Text style={styles.logButtonText}>다이빙 로그</Text>
             </Pressable>
           </View>
