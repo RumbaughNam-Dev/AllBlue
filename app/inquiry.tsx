@@ -8,6 +8,7 @@ import { StatusBar } from 'expo-status-bar';
 import Colors from '@/constants/Colors';
 import Spinner from '@/components/Spinner';
 import { api } from '@/services/api';
+import GlassCircle from '@/components/GlassCircle';
 
 type Inquiry = {
   id: number;
@@ -62,9 +63,9 @@ export default function InquiryScreen() {
 
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.6 }]}>
-          <View style={styles.backCircle}>
+          <GlassCircle fallbackStyle={styles.backCircle}>
             <Text style={styles.backArrow}>{'<'}</Text>
-          </View>
+          </GlassCircle>
         </Pressable>
         <Text style={styles.headerTitle}>문의하기</Text>
         <View style={{ width: 36 }} />

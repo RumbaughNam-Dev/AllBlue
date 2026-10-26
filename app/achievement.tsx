@@ -13,6 +13,7 @@ import { api, UserLicense, AchievementRequirement, DebriefingItem } from '@/serv
 import Spinner from '@/components/Spinner';
 import LevelBadge from '@/components/LevelBadge';
 import { useAuth } from '@/contexts/AuthContext';
+import GlassCircle from '@/components/GlassCircle';
 
 type Section = {
   group: AchievementRequirement;
@@ -249,9 +250,9 @@ export default function AchievementScreen() {
           <View style={{ width: 36 }} />
         ) : (
           <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.6 }]}>
-            <View style={styles.backCircle}>
+            <GlassCircle fallbackStyle={styles.backCircle}>
               <Text style={styles.backArrow}>{'<'}</Text>
-            </View>
+            </GlassCircle>
           </Pressable>
         )}
         <View style={styles.headerCenter}>

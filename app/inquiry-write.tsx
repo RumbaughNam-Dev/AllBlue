@@ -11,6 +11,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import Colors from '@/constants/Colors';
 import { api } from '@/services/api';
+import GlassCircle from '@/components/GlassCircle';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
@@ -124,9 +125,9 @@ export default function InquiryWriteScreen() {
 
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.6 }]}>
-          <View style={styles.backCircle}>
+          <GlassCircle fallbackStyle={styles.backCircle}>
             <Text style={styles.backArrow}>{'<'}</Text>
-          </View>
+          </GlassCircle>
         </Pressable>
         <Text style={styles.headerTitle}>문의 작성</Text>
         <View style={{ width: 36 }} />

@@ -10,6 +10,8 @@ import { useLatestRequest } from '@/hooks/useLatestRequest';
 import { api, CalendarEvent, Schedule } from '@/services/api';
 import Spinner from '@/components/Spinner';
 import LevelBadge from '@/components/LevelBadge';
+import FloatingActionButton from '@/components/FloatingActionButton';
+import GlassCircle from '@/components/GlassCircle';
 
 export default function ScheduleDailyScreen() {
   const insets = useSafeAreaInsets();
@@ -77,9 +79,9 @@ export default function ScheduleDailyScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.6 }]}>
-          <View style={styles.backCircle}>
+          <GlassCircle fallbackStyle={styles.backCircle}>
             <Text style={styles.backArrow}>{'<'}</Text>
-          </View>
+          </GlassCircle>
         </Pressable>
         <Text style={styles.headerTitle}>{month}월 {day}일</Text>
         <View style={{ width: 36 }} />
@@ -195,12 +197,13 @@ export default function ScheduleDailyScreen() {
 
       {/* Add Button */}
       <View style={styles.bottomArea}>
-        <Pressable
-          style={({ pressed }) => [styles.addButton, pressed && { opacity: 0.85 }]}
+        <FloatingActionButton
+          label="다이빙 만들기"
           onPress={() => router.push({ pathname: '/schedule-add', params: { date: date ?? '' } })}
-        >
-          <Text style={styles.addButtonText}>다이빙 만들기</Text>
-        </Pressable>
+          fallbackStyle={styles.addButton}
+          fallbackPressedStyle={styles.addButtonPressed}
+          fallbackTextStyle={styles.addButtonText}
+        />
       </View>
     </View>
   );
@@ -366,6 +369,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.12)',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  addButtonPressed: {
+    opacity: 0.85,
   },
   addButtonText: {
     fontFamily: 'SUIT-Bold',

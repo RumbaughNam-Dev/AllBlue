@@ -14,6 +14,7 @@ import Spinner from '@/components/Spinner';
 
 import { useScheduleEditor, CATEGORIES, HOURS, MINUTES, CUSTOM_LOCATION_POOL } from './useScheduleEditor';
 import { styles } from './styles';
+import GlassCircle from '@/components/GlassCircle';
 
 export default function ScheduleEditorScreen() {
   const {
@@ -56,9 +57,9 @@ export default function ScheduleEditorScreen() {
           onPress={handleBack}
           style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.6 }]}
         >
-          <View style={styles.backCircle}>
+          <GlassCircle fallbackStyle={styles.backCircle}>
             <Text style={styles.backArrow}>{'<'}</Text>
-          </View>
+          </GlassCircle>
         </Pressable>
         <Text style={styles.headerTitle}>
           {step === 'info' ? (isEditMode ? '일정 수정' : '다이빙 만들기') : participantLabel}

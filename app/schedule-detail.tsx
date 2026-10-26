@@ -20,6 +20,7 @@ import MarqueeText from '@/components/MarqueeText';
 import { useAuth } from '@/contexts/AuthContext';
 import { hasInstructorAccess } from '@/utils/userRole';
 import { groupProfileCertifications } from '@/utils/profileCertifications';
+import GlassCircle from '@/components/GlassCircle';
 
 const STUDENT_CATEGORIES = ['EXPERIENCE', 'CERTIFICATION', 'LECTURE'];
 const DOCUMENT_CATEGORIES = ['EXPERIENCE', 'CERTIFICATION', 'TRAINING'];
@@ -191,9 +192,9 @@ export default function ScheduleDetailScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Pressable onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)')} style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.6 }]}>
-          <View style={styles.backCircle}>
+          <GlassCircle fallbackStyle={styles.backCircle}>
             <Text style={styles.backArrow}>{'<'}</Text>
-          </View>
+          </GlassCircle>
         </Pressable>
         <Text style={styles.headerTitle} numberOfLines={1}>
           {schedule?.title ?? ''}

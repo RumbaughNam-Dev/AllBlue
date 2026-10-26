@@ -9,6 +9,7 @@ import Colors from '@/constants/Colors';
 import LevelBadge from '@/components/LevelBadge';
 import Spinner from '@/components/Spinner';
 import { api } from '@/services/api';
+import GlassCircle from '@/components/GlassCircle';
 
 type BlockedUser = {
   userId: string;
@@ -98,9 +99,9 @@ export default function BlockedUsersScreen() {
 
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.6 }]}>
-          <View style={styles.backCircle}>
+          <GlassCircle fallbackStyle={styles.backCircle}>
             <Text style={styles.backArrow}>{'<'}</Text>
-          </View>
+          </GlassCircle>
         </Pressable>
         <Text style={styles.headerTitle}>차단 관리</Text>
         <View style={{ width: 36 }} />

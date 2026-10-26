@@ -8,6 +8,7 @@ import { StatusBar } from 'expo-status-bar';
 import Colors from '@/constants/Colors';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/services/api';
+import GlassCircle from '@/components/GlassCircle';
 
 export default function WithdrawScreen() {
   const insets = useSafeAreaInsets();
@@ -47,9 +48,9 @@ export default function WithdrawScreen() {
 
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.6 }]}>
-          <View style={styles.backCircle}>
+          <GlassCircle fallbackStyle={styles.backCircle}>
             <Text style={styles.backArrow}>{'<'}</Text>
-          </View>
+          </GlassCircle>
         </Pressable>
         <Text style={styles.headerTitle}>회원탈퇴</Text>
         <View style={{ width: 36 }} />

@@ -3,6 +3,7 @@ import React, { useEffect, useRef } from 'react';
 import { View, Image, Pressable, StyleSheet, Platform, Animated, Easing, LayoutChangeEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
+import { LiquidGlassView } from '@/utils/liquidGlass';
 import type { BottomTabBarProps } from 'expo-router/tabs';
 import Colors from '@/constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
@@ -128,7 +129,11 @@ export default function CustomTabBar({ state, navigation }: BottomTabBarProps) {
 
   return (
     <View style={[styles.container, { paddingBottom: getTabBarBottomPadding(insets.bottom, Platform.OS) }]}>
-      {Platform.OS === 'ios' ? (
+      {LiquidGlassView ? (
+        <LiquidGlassView glassEffectStyle="regular" colorScheme="dark" style={styles.blurContainer}>
+          {content}
+        </LiquidGlassView>
+      ) : Platform.OS === 'ios' ? (
         <BlurView intensity={60} tint="dark" style={styles.blurContainer}>
           {content}
         </BlurView>

@@ -1,4 +1,6 @@
 import PopupBackdrop from '@/components/PopupBackdrop';
+import GlassCircle from '@/components/GlassCircle';
+import { LiquidGlassView } from '@/utils/liquidGlass';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, AppState, DeviceEventEmitter, FlatList, Modal, Pressable, StyleSheet, Text, useWindowDimensions, View, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -120,7 +122,9 @@ export default function NotificationBell() {
   };
   const icon = (onPress: () => void) => (
     <Pressable accessibilityRole="button" accessibilityLabel={`알림 ${count}건`} onPress={onPress} style={styles.bell}>
-      <Ionicons name="notifications-outline" size={25} color="white" />
+      <GlassCircle size={38}>
+        <Ionicons name="notifications-outline" size={LiquidGlassView ? 21 : 25} color="white" />
+      </GlassCircle>
       {count > 0 && <View style={styles.badge}><Text style={styles.badgeText}>{count > 99 ? '99+' : count}</Text></View>}
     </Pressable>
   );

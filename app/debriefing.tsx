@@ -12,6 +12,7 @@ import { StatusBar } from 'expo-status-bar';
 import Colors from '@/constants/Colors';
 import { api, UserLicense, AchievementRequirement } from '@/services/api';
 import Spinner from '@/components/Spinner';
+import GlassCircle from '@/components/GlassCircle';
 
 function RequirementItem({ item, passed, disabled, onToggle, onUncheck }: {
   item: AchievementRequirement;
@@ -313,9 +314,9 @@ export default function DebriefingScreen() {
 
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.6 }]}>
-          <View style={styles.backCircle}>
+          <GlassCircle fallbackStyle={styles.backCircle}>
             <Text style={styles.backArrow}>{'<'}</Text>
-          </View>
+          </GlassCircle>
         </Pressable>
         <Text style={styles.headerTitle}>디브리핑</Text>
         <View style={{ width: 36 }} />

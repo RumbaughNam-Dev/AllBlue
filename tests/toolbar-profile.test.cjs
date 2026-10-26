@@ -18,7 +18,7 @@ test('toolbar refreshes cached levels on focus and foreground, ignoring old resp
     '@/contexts/AuthContext': { useAuth: () => ({ user, updateUser: async data => { updates.push(data); user = { ...user, ...data }; } }) },
     '@/services/api': { api: { getProfile: () => new Promise((resolve, reject) => pending.push({ resolve, reject })) } },
   };
-  for (const name of ['features/notices/StartupPopups', 'features/notifications/NotificationBell', 'components/CustomTabBar', 'components/SideSheet', 'components/ProfileAvatar']) modules[`@/${name}`] = name;
+  for (const name of ['features/notices/StartupPopups', 'features/notifications/NotificationBell', 'components/CustomTabBar', 'components/SideSheet', 'components/ProfileAvatar', 'components/GlassCircle']) modules[`@/${name}`] = name;
   const Screen = loadModule('app/(tabs)/_layout.tsx', modules).default;
   const render = () => h.render(Screen);
   const flush = () => new Promise(setImmediate);

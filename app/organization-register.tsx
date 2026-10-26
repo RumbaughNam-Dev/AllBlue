@@ -9,6 +9,7 @@ import { StatusBar } from 'expo-status-bar';
 import * as ImagePicker from 'expo-image-picker';
 import Colors from '@/constants/Colors';
 import { api } from '@/services/api';
+import GlassCircle from '@/components/GlassCircle';
 
 export default function OrganizationRegisterScreen() {
   const insets = useSafeAreaInsets();
@@ -72,9 +73,9 @@ export default function OrganizationRegisterScreen() {
 
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.6 }]}>
-          <View style={styles.backCircle}>
+          <GlassCircle fallbackStyle={styles.backCircle}>
             <Text style={styles.backArrow}>{'<'}</Text>
-          </View>
+          </GlassCircle>
         </Pressable>
         <Text style={styles.headerTitle}>단체 등록요청</Text>
         <View style={{ width: 36 }} />

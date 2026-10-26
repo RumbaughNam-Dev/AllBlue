@@ -972,7 +972,7 @@ for (const action of ['value-only', 'check-only', 'clear-checked', 'invalid', 'w
       'react-native': {...native,StyleSheet:{create:v=>v},Platform:{OS:'ios'},Keyboard:{dismiss(){}},Alert:{alert:(...args)=>alerts.push(args)}},
       'expo-router': { useLocalSearchParams:()=>({participantId:'23',scheduleId:'42',participantCategory:'CERTIFICATION'}),useRouter:()=>({back(){}}) },
       'react-native-safe-area-context':{useSafeAreaInsets:()=>({top:0,bottom:0})},
-      'expo-status-bar':{}, '@/components/ProfileLink':{}, '@/components/Spinner':{},
+      'expo-status-bar':{}, '@/components/ProfileLink':{}, '@/components/Spinner':{}, '@/components/GlassCircle':{},
       '@/constants/Colors':{default:{brand:{}},__esModule:true},
       '@/hooks/useVisibleKeyboardInput': { useVisibleKeyboardInput: () => ({ listRef: {current:null}, scrollRef:{current:null}, focus(){}, blur(){}, onLayout(){}, onScroll(){} }) },
       '@/utils/achievementValue':loadModule('utils/achievementValue.ts',{}),

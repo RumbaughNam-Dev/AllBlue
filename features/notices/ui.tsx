@@ -3,12 +3,16 @@ import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import Colors from '@/constants/Colors';
+import GlassCircle from '@/components/GlassCircle';
+import { LiquidGlassView } from '@/utils/liquidGlass';
 
 export function NoticeHeader({ title }: { title?: string }) {
   const router = useRouter();
   return <View style={styles.header}>
     <Pressable accessibilityLabel="뒤로가기" onPress={() => router.back()} style={styles.back} hitSlop={8}>
-      <Ionicons name="chevron-back" size={26} color="white" />
+      <GlassCircle>
+        <Ionicons name="chevron-back" size={LiquidGlassView ? 20 : 26} color="white" />
+      </GlassCircle>
     </Pressable>
     <Text style={styles.headerTitle}>{title}</Text><View style={styles.back} />
   </View>;

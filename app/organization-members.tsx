@@ -9,6 +9,7 @@ import { StatusBar } from 'expo-status-bar';
 import Colors from '@/constants/Colors';
 import { api, PendingMember } from '@/services/api';
 import Spinner from '@/components/Spinner';
+import GlassCircle from '@/components/GlassCircle';
 
 export default function OrganizationMembersScreen() {
   const insets = useSafeAreaInsets();
@@ -69,9 +70,9 @@ export default function OrganizationMembersScreen() {
 
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.6 }]}>
-          <View style={styles.backCircle}>
+          <GlassCircle fallbackStyle={styles.backCircle}>
             <Text style={styles.backArrow}>{'<'}</Text>
-          </View>
+          </GlassCircle>
         </Pressable>
         <Text style={styles.headerTitle}>소속 등록요청 처리</Text>
         <View style={{ width: 36 }} />

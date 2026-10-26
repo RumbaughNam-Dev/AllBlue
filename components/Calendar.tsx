@@ -6,6 +6,7 @@ import Colors from '@/constants/Colors';
 import MonthPicker from '@/components/MonthPicker';
 import Spinner from '@/components/Spinner';
 import AdSlot from '@/components/AdSlot';
+import GlassCircle from '@/components/GlassCircle';
 import { AD_IMAGES, AD_LINKS } from '@/constants/Ads';
 import type { CalendarEvent } from '@/services/api';
 
@@ -194,8 +195,10 @@ export default function Calendar({ events = [], calendarEvents = [], onDatePress
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Pressable onPress={prevMonth} style={({ pressed }) => [styles.arrowButton, pressed && { opacity: 0.5 }]}>
-          <Text style={styles.arrowText}>{'<'}</Text>
+        <Pressable onPress={prevMonth} style={({ pressed }) => pressed && { opacity: 0.5 }}>
+          <GlassCircle fallbackStyle={styles.arrowButton}>
+            <Text style={styles.arrowText}>{'<'}</Text>
+          </GlassCircle>
         </Pressable>
 
         <Pressable onPress={() => setShowMonthPicker(true)} style={({ pressed }) => [styles.monthCenter, pressed && { opacity: 0.6 }]}>
@@ -203,8 +206,10 @@ export default function Calendar({ events = [], calendarEvents = [], onDatePress
           <Text style={styles.monthText}>{month + 1}월</Text>
         </Pressable>
 
-        <Pressable onPress={nextMonth} style={({ pressed }) => [styles.arrowButton, pressed && { opacity: 0.5 }]}>
-          <Text style={styles.arrowText}>{'>'}</Text>
+        <Pressable onPress={nextMonth} style={({ pressed }) => pressed && { opacity: 0.5 }}>
+          <GlassCircle fallbackStyle={styles.arrowButton}>
+            <Text style={styles.arrowText}>{'>'}</Text>
+          </GlassCircle>
         </Pressable>
       </View>
 

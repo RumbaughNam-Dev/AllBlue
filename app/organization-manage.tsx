@@ -8,6 +8,7 @@ import { StatusBar } from 'expo-status-bar';
 import Colors from '@/constants/Colors';
 import { api, Organization } from '@/services/api';
 import Spinner from '@/components/Spinner';
+import GlassCircle from '@/components/GlassCircle';
 
 export default function OrganizationManageScreen() {
   const insets = useSafeAreaInsets();
@@ -62,9 +63,9 @@ export default function OrganizationManageScreen() {
 
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.6 }]}>
-          <View style={styles.backCircle}>
+          <GlassCircle fallbackStyle={styles.backCircle}>
             <Text style={styles.backArrow}>{'<'}</Text>
-          </View>
+          </GlassCircle>
         </Pressable>
         <Text style={styles.headerTitle}>단체 등록처리</Text>
         <View style={{ width: 36 }} />

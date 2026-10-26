@@ -10,6 +10,7 @@ import Colors from '@/constants/Colors';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/services/api';
 import ProfileAvatar from '@/components/ProfileAvatar';
+import GlassCircle from '@/components/GlassCircle';
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
@@ -58,12 +59,16 @@ export default function TabLayout() {
         <View style={styles.toolbarActions}>
           <NotificationBell key={user?.id} />
           <Pressable
-            style={({ pressed }) => [styles.hamburger, pressed && { opacity: 0.6 }]}
+            style={({ pressed }) => pressed && { opacity: 0.6 }}
             onPress={() => setSheetVisible(true)}
           >
-            <View style={styles.hamburgerLine} />
-            <View style={[styles.hamburgerLine, { width: 16 }]} />
-            <View style={styles.hamburgerLine} />
+            <GlassCircle size={38} fallbackStyle={styles.hamburger}>
+              <View style={styles.hamburgerLines}>
+                <View style={styles.hamburgerLine} />
+                <View style={[styles.hamburgerLine, { width: 16 }]} />
+                <View style={styles.hamburgerLine} />
+              </View>
+            </GlassCircle>
           </Pressable>
         </View>
       </View>
@@ -123,6 +128,9 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     justifyContent: 'center',
+    alignItems: 'flex-end',
+  },
+  hamburgerLines: {
     alignItems: 'flex-end',
     gap: 5,
   },

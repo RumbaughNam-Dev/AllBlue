@@ -8,12 +8,16 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/Colors';
 import { api, Schedule } from '@/services/api';
+import FloatingActionButton from '@/components/FloatingActionButton';
 
 const DAY_NAMES = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
 
 type DateSection = {
+  key: string;
   title: string;
   data: Schedule[];
+  // 이전 일정 묶음의 마지막 섹션. 아래에 '이전 일정 / 다가오는 일정' 구분선을 그린다.
+  endsPast?: boolean;
 };
 
 function formatSectionTitle(dateStr: string): string {
@@ -55,6 +59,8 @@ export default function TabB() {
   const loadedMonthsRef = useRef<Set<string>>(new Set());
   // 처음엔 지금 시점 이후 일정만 보여준다. '이전 일정 불러오기'를 누르면 해제(null)되고 이전 달을 불러온다.
   const [visibleFrom, setVisibleFrom] = useState<number | null>(() => Date.now());
+  // 이전/다가오는 일정을 나누는 기준 시각 (화면을 처음 연 시점)
+  const boundaryRef = useRef(visibleFrom ?? Date.now());
 
   const fetchMonth = useCallback(async (year: number, month: number, force = false) => {
     const key = `${year}-${month}`;
@@ -119,17 +125,26 @@ export default function TabB() {
   );
 
   const sections = useMemo((): DateSection[] => {
+    const boundary = boundaryRef.current;
     const sortedDates = Array.from(scheduleMap.keys()).sort();
-    return sortedDates.map((date) => ({
-      title: formatSectionTitle(date),
-      date,
-      data: scheduleMap.get(date)!
+    const past: DateSection[] = [];
+    const upcoming: DateSection[] = [];
+    for (const date of sortedDates) {
+      const items = scheduleMap.get(date)!
         .filter((sc) => visibleFrom === null || scheduleStartMs(sc) >= visibleFrom)
         .sort((a, b) => {
           if (a.startHour !== b.startHour) return a.startHour - b.startHour;
           return a.startMinute - b.startMinute;
-        }),
-    })).filter((section) => section.data.length > 0) as (DateSection & { date: string })[];
+        });
+      // 같은 날이라도 기준 시각 전후로 나눠 구분선이 정확히 그 사이에 오게 한다
+      const before = items.filter((sc) => scheduleStartMs(sc) < boundary);
+      const after = items.filter((sc) => scheduleStartMs(sc) >= boundary);
+      const title = formatSectionTitle(date);
+      if (before.length > 0) past.push({ key: `${date}-past`, title, data: before });
+      if (after.length > 0) upcoming.push({ key: date, title, data: after });
+    }
+    if (past.length > 0 && upcoming.length > 0) past[past.length - 1] = { ...past[past.length - 1], endsPast: true };
+    return [...past, ...upcoming];
   }, [scheduleMap, visibleFrom]);
 
   const MAX_FUTURE_MONTHS = 3;
@@ -192,6 +207,20 @@ export default function TabB() {
     </View>
   );
 
+  const renderSectionFooter = ({ section }: { section: DateSection }) => (
+    section.endsPast ? (
+      <View style={styles.pastDivider}>
+        <View style={styles.pastDividerLine} />
+        <View style={styles.pastDividerPill}>
+          <Text style={styles.pastDividerText}>▲ 이전 일정</Text>
+          <View style={styles.pastDividerDot} />
+          <Text style={[styles.pastDividerText, styles.pastDividerTextNow]}>다가오는 일정 ▼</Text>
+        </View>
+        <View style={styles.pastDividerLine} />
+      </View>
+    ) : null
+  );
+
   const ListFooter = () => {
     if (loadingMore) {
       return (
@@ -228,6 +257,7 @@ export default function TabB() {
             keyExtractor={(item) => String(item.id)}
             renderItem={renderScheduleItem}
             renderSectionHeader={renderSectionHeader}
+            renderSectionFooter={renderSectionFooter}
             ListHeaderComponent={ListHeader}
             ListFooterComponent={ListFooter}
             ListEmptyComponent={loadError ? null : (
@@ -245,12 +275,13 @@ export default function TabB() {
             showsVerticalScrollIndicator={false}
           />
           <View style={[styles.bottomArea, { bottom: bottomSpace }]}>
-            <Pressable
-              style={({ pressed }) => [styles.addButton, pressed && styles.addButtonPressed]}
+            <FloatingActionButton
+              label="다이빙 만들기"
               onPress={() => router.push({ pathname: '/schedule-add', params: { date: '' } })}
-            >
-              <Text style={styles.addButtonText}>다이빙 만들기</Text>
-            </Pressable>
+              fallbackStyle={styles.addButton}
+              fallbackPressedStyle={styles.addButtonPressed}
+              fallbackTextStyle={styles.addButtonText}
+            />
           </View>
         </>
       )}
@@ -288,6 +319,41 @@ const styles = StyleSheet.create({
     fontFamily: 'SUIT-Bold',
     fontSize: 16,
     color: Colors.brand.white,
+  },
+  pastDivider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 18,
+    marginBottom: 6,
+  },
+  pastDividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+  },
+  pastDividerPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  pastDividerText: {
+    fontFamily: 'SUIT-SemiBold',
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.4)',
+  },
+  pastDividerTextNow: {
+    color: Colors.brand.white,
+  },
+  pastDividerDot: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: 'rgba(255,255,255,0.3)',
   },
   scheduleCard: {
     flexDirection: 'row',
