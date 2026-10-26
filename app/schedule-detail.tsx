@@ -22,14 +22,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { hasInstructorAccess } from '@/utils/userRole';
 import { groupProfileCertifications } from '@/utils/profileCertifications';
 import GlassCircle from '@/components/GlassCircle';
-import GlassBackground, { glassClear } from '@/components/GlassBackground';
 
 const STUDENT_CATEGORIES = ['EXPERIENCE', 'CERTIFICATION', 'LECTURE'];
 const DOCUMENT_CATEGORIES = ['EXPERIENCE', 'CERTIFICATION', 'TRAINING'];
 const FORM_BASE_URL = 'https://rumbaugh.co.kr/form';
-// On glass the buttons keep their meaning through a tint: orange for actions, green for done.
-const ACTION_TINT = 'rgba(235,160,60,0.3)';
-const DONE_TINT = 'rgba(52,199,89,0.3)';
 const CATEGORIES_MAP: Record<string, string> = {
   EXPERIENCE: '체험교육', CERTIFICATION: '자격증 과정', LECTURE: '특강',
   TRAINING: '트레이닝', FUN_DIVE: '펀다이빙', ETC: '기타',
@@ -337,9 +333,8 @@ export default function ScheduleDetailScreen() {
                     {isMe && !isOwner && <View style={styles.invitationActions}>
                       {(['accept', 'reject'] as const).map(action => (
                         <Pressable key={action} accessibilityRole="button" disabled={invitationBusy}
-                          style={({ pressed }) => [styles.actionButton, styles.invitationButton, action === 'accept' && styles.actionButtonDone, glassClear, (pressed || invitationBusy) && { opacity: 0.5 }]}
+                          style={({ pressed }) => [styles.actionButton, styles.invitationButton, action === 'accept' && styles.actionButtonDone, (pressed || invitationBusy) && { opacity: 0.5 }]}
                           onPress={() => handleInvitation(p.id, action, p.invitationToken)}>
-                          <GlassBackground radius={8} interactive tintColor={action === 'accept' ? DONE_TINT : ACTION_TINT} />
                           <Text style={[styles.actionButtonText, action === 'accept' && styles.actionButtonTextDone]}>{action === 'accept' ? '수락' : '거절'}</Text>
                         </Pressable>
                       ))}
@@ -351,8 +346,7 @@ export default function ScheduleDetailScreen() {
                     <Text style={[styles.invitationStatus, { color: '#FF9292' }]}>일정등록 요청을 거부했어요. 😢</Text>
                     <View style={styles.invitationActions}>
                     {(['remove', 'resend'] as const).map(action => (
-                      <Pressable key={action} disabled={invitationBusy} style={[styles.actionButton, glassClear]} onPress={() => handleInvitation(p.id, action)}>
-                        <GlassBackground radius={8} interactive tintColor={ACTION_TINT} />
+                      <Pressable key={action} disabled={invitationBusy} style={styles.actionButton} onPress={() => handleInvitation(p.id, action)}>
                         <Text style={styles.actionButtonText}>{action === 'remove' ? '요청 지우기' : '다시 요청하기'}</Text>
                       </Pressable>
                     ))}
@@ -442,9 +436,8 @@ export default function ScheduleDetailScreen() {
                               },
                             });
                           }}
-                          style={({ pressed }) => [styles.actionButton, glassClear, pressed && { opacity: 0.6 }]}
+                          style={({ pressed }) => [styles.actionButton, pressed && { opacity: 0.6 }]}
                         >
-                          <GlassBackground radius={8} interactive tintColor={ACTION_TINT} />
                           <Text style={styles.actionButtonText}>다이빙 로그</Text>
                         </Pressable>
                       )}
@@ -463,9 +456,8 @@ export default function ScheduleDetailScreen() {
                               },
                             });
                           }}
-                          style={({ pressed }) => [styles.actionButton, glassClear, pressed && { opacity: 0.6 }]}
+                          style={({ pressed }) => [styles.actionButton, pressed && { opacity: 0.6 }]}
                         >
-                          <GlassBackground radius={8} interactive tintColor={ACTION_TINT} />
                           <Text style={styles.actionButtonText}>디브리핑</Text>
                         </Pressable>
                       )}
