@@ -13,6 +13,10 @@ import { useFriends, FIXED_TABS } from './useFriends';
 import { styles } from './styles';
 import type { ViewInstance } from 'react-native';
 import { usePaneDefault } from '@/features/split/SplitPane';
+import GlassChip from '@/components/GlassChip';
+import GlassCircle from '@/components/GlassCircle';
+import FloatingActionButton from '@/components/FloatingActionButton';
+import { LiquidGlassView } from '@/utils/liquidGlass';
 
 export default function FriendsScreen() {
   usePaneDefault('c', { message: '여기에 친구 프로필이 표시돼요', hint: '왼쪽에서 친구를 눌러 프로필을 열어 보세요' });
@@ -83,11 +87,11 @@ export default function FriendsScreen() {
             return (
               <Pressable
                 key={tab.key}
-                style={[styles.segmentItem, isActive && styles.segmentItemActive]}
                 onPress={() => switchTab(tab.key)}
               >
+                <GlassChip active={isActive} fallbackStyle={[styles.segmentItem, isActive && styles.segmentItemActive]}>
                 <View style={styles.segmentInner}>
-                  <Text style={[styles.segmentText, isActive && styles.segmentTextActive]}>
+                  <Text style={[styles.segmentText, !!LiquidGlassView && styles.segmentTextOnGlass, isActive && styles.segmentTextActive]}>
                     {tab.label}
                   </Text>
                   {isActive && isCustomGroup && (
@@ -121,14 +125,17 @@ export default function FriendsScreen() {
                     </Pressable>
                   )}
                 </View>
+                </GlassChip>
               </Pressable>
             );
           })}
           <Pressable
-            style={({ pressed }) => [styles.segmentAddButton, pressed && { opacity: 0.6 }]}
+            style={({ pressed }) => pressed && { opacity: 0.6 }}
             onPress={() => setGroupModalVisible(true)}
           >
-            <Text style={styles.segmentAddText}>+</Text>
+            <GlassCircle size={34} fallbackStyle={styles.segmentAddButton}>
+              <Text style={styles.segmentAddText}>+</Text>
+            </GlassCircle>
           </Pressable>
         </ScrollView>
       </View>
@@ -183,12 +190,13 @@ export default function FriendsScreen() {
       {/* 친한친구 등록 버튼 */}
       {activeTab === 'close' && (
         <View style={[styles.bottomButtonArea, { bottom: bottomSpace }]}>
-          <Pressable
-            style={({ pressed }) => [styles.addButton, pressed && { opacity: 0.85 }]}
+          <FloatingActionButton
+            label="친한친구 등록"
             onPress={openSearchModal}
-          >
-            <Text style={styles.addButtonText}>친한친구 등록</Text>
-          </Pressable>
+            fallbackStyle={styles.addButton}
+            fallbackPressedStyle={styles.addButtonPressed}
+            fallbackTextStyle={styles.addButtonText}
+          />
         </View>
       )}
 

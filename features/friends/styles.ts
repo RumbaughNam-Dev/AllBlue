@@ -44,6 +44,10 @@ export const styles = StyleSheet.create({
   segmentTextActive: {
     color: Colors.brand.white,
   },
+  // Clear glass shows the background through, so unselected labels need a bit more contrast.
+  segmentTextOnGlass: {
+    color: 'rgba(255,255,255,0.6)',
+  },
   segmentAddButton: {
     width: 32,
     height: 32,
@@ -147,6 +151,9 @@ export const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.12)',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  addButtonPressed: {
+    opacity: 0.85,
   },
   addButtonText: {
     fontFamily: 'SUIT-Bold',
