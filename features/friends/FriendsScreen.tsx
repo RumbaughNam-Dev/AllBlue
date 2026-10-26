@@ -363,7 +363,7 @@ export default function FriendsScreen() {
                 <Text style={styles.searchModalTitle}>친한친구 등록</Text>
                 <Pressable onPress={closeSearchModal} style={({ pressed }) => [pressed && { opacity: 0.6 }]}>
                   <GlassCircle size={34}>
-                    <Ionicons name="close" size={22} color="rgba(255,255,255,0.75)" />
+                    <Ionicons name="close" size={LiquidGlassView ? 22 : 24} color={LiquidGlassView ? 'rgba(255,255,255,0.75)' : 'rgba(255,255,255,0.6)'} />
                   </GlassCircle>
                 </Pressable>
               </View>
