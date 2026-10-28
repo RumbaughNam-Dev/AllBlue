@@ -47,6 +47,7 @@ export default function ScheduleDetailScreen() {
   const [menuVisible, setMenuVisible] = useState(false);
   const [linkVisible, setLinkVisible] = useState(false);
   const [linkSource, setLinkSource] = useState<{ id: number; nickname: string } | null>(null);
+  const [unlinkBusy, setUnlinkBusy] = useState(false);
 
   const fetchDetail = useCallback((showLoading = true) => {
     if (!id || !user) return;
@@ -64,6 +65,39 @@ export default function ScheduleDetailScreen() {
   const initialLoad = useRef(true);
 
   useEffect(() => { fetchDetail(); return () => request.invalidate(); }, [fetchDetail, request]);
+
+  // Undo a link made on this schedule: show what goes back first, and explain when it can't.
+  const handleUnlink = async (auditId: number) => {
+    if (unlinkBusy) return;
+    setUnlinkBusy(true);
+    try {
+      const preview = await api.previewTemporaryUnlink(Number(id), auditId);
+      if (!preview.canUnlink) {
+        Alert.alert('연결 해제할 수 없어요', `연결한 뒤 ${preview.blockers.join(', ')}이(가) 바뀌어서 되돌릴 수 없어요.`);
+        return;
+      }
+      const c = preview.counts;
+      const parts = [`일정 ${c.schedules}개`, c.forms && `서류 ${c.forms}건`, c.debriefings && `디브리핑 ${c.debriefings}건`,
+        c.courses && `과정 ${c.courses}개`, c.achievements && `성취도 ${c.achievements}건`].filter(Boolean).join(', ');
+      Alert.alert('연결 해제',
+        `${preview.target.nickname}님에게 옮겼던 기록(${parts})을 미사용자 '${preview.source.nickname}'에게 되돌릴게요. 계속할까요?`,
+        [
+          { text: '취소', style: 'cancel' },
+          { text: '해제', style: 'destructive', onPress: async () => {
+            try {
+              await api.unlinkTemporaryUser(Number(id), auditId);
+              fetchDetail(false);
+            } catch (e: any) {
+              Alert.alert('연결 해제', e?.message || '연결을 해제하지 못했어요. 잠시 후 다시 시도해주세요.');
+            }
+          } },
+        ]);
+    } catch (e: any) {
+      Alert.alert('연결 해제', e?.message || '연결 정보를 불러오지 못했어요. 잠시 후 다시 시도해주세요.');
+    } finally {
+      setUnlinkBusy(false);
+    }
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -321,6 +355,10 @@ export default function ScheduleDetailScreen() {
                 {p.canLinkTemporary && <Pressable accessibilityRole="button" onPress={() => { setLinkSource({ id: p.id, nickname: p.nickname }); setLinkVisible(true); }}
                   style={{ padding: 12, marginTop: 8, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.1)' }}>
                   <Text style={{ color: 'white', textAlign: 'center' }}>가입 사용자로 연결</Text>
+                </Pressable>}
+                {p.temporaryLink && <Pressable accessibilityRole="button" disabled={unlinkBusy} onPress={() => handleUnlink(p.temporaryLink!.auditId)}
+                  style={({ pressed }) => [{ padding: 12, marginTop: 8, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.1)' }, (pressed || unlinkBusy) && { opacity: 0.6 }]}>
+                  <Text style={{ color: 'white', textAlign: 'center' }}>연결 해제 (미사용자 '{p.temporaryLink.sourceName}'로 되돌리기)</Text>
                 </Pressable>}
                 {p.invitationStatus === 'pending' && (isOwner || isMe) && (
                   <View style={[styles.cardSection, styles.invitationSection]}>
