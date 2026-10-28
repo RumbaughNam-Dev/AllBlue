@@ -14,6 +14,16 @@ import type { CalendarEvent } from '@/services/api';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 const MAX_WEEKS = 6;
+const AD_BAR_HEIGHT = 15;
+
+// 막대 색이 밝으면 진한 글씨, 어두우면 흰 글씨
+function readableOn(hex: string): string {
+  const m = /^#?([0-9a-f]{6})/i.exec(hex);
+  if (!m) return '#FFFFFF';
+  const n = parseInt(m[1], 16);
+  const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.6 ? '#2B1800' : '#FFFFFF';
+}
 
 type Event = {
   date: string; // YYYY-MM-DD
@@ -271,10 +281,9 @@ export default function Calendar({ events = [], calendarEvents = [], onDatePress
                 const dateStr = dateKey(day);
                 const isToday = dateStr === todayStr;
                 const adEvent = findAdEvent(dateStr);
-                // 여러 날에 걸친 이벤트는 첫날(지난달에 시작했으면 이번 달 1일)에만 이름을 보여준다
-                const showAdTitle = !!adEvent && (dateStr === adEvent.startDate || (day === 1 && adEvent.startDate < dateStr));
                 const dayEvents = getEventsForDay(day);
-                const visibleEvents = dayEvents.slice(0, showAdTitle ? Math.max(0, maxVisibleEvents - 1) : maxVisibleEvents);
+                // 이벤트 띠가 차지하는 한 줄만큼 일정 줄을 비워 둔다
+                const visibleEvents = dayEvents.slice(0, adEvent ? Math.max(0, maxVisibleEvents - 1) : maxVisibleEvents);
                 const remaining = dayEvents.length - visibleEvents.length;
 
                 return (
@@ -287,18 +296,12 @@ export default function Calendar({ events = [], calendarEvents = [], onDatePress
                       <Text style={[
                         styles.dayNumber,
                         isToday && styles.todayNumber,
-                        adEvent && styles.adDayNumber,
                         di === 0 && styles.sundayText,
                         di === 6 && styles.saturdayText,
                       ]}>{day}</Text>
                     </View>
                     <View style={styles.eventArea}>
-                      {showAdTitle && adEvent && (
-                        <View style={[styles.eventRow, styles.adRow]}>
-                          <Text style={styles.adFanfare}>🎉</Text>
-                          <Text style={[styles.eventText, styles.adTitle, { color: adEvent.borderColor }]} numberOfLines={1}>{adEvent.title}</Text>
-                        </View>
-                      )}
+                      {adEvent && <View style={styles.adBarSpace} />}
                       {visibleEvents.map((ev, ei) => (
                         <View key={ei} style={styles.eventRow}>
                           <View style={[styles.eventDot, { backgroundColor: ev.color }]} />
@@ -312,23 +315,32 @@ export default function Calendar({ events = [], calendarEvents = [], onDatePress
                   </Pressable>
                 );
               })}
-              {getAdSegments(week).map(({ ev, startCol, span, openLeft, openRight }) => (
-                <View
-                  key={ev.id}
-                  pointerEvents="none"
-                  style={[
-                    styles.adBox,
-                    {
-                      borderColor: ev.borderColor,
-                      height: rowHeight - 4,
-                      left: startCol * cellWidth + (openLeft ? 0 : 2),
-                      width: span * cellWidth - (openLeft ? 0 : 2) - (openRight ? 0 : 2),
-                    },
-                    openLeft && styles.adBoxOpenLeft,
-                    openRight && styles.adBoxOpenRight,
-                  ]}
-                />
-              ))}
+              {getAdSegments(week).map(({ ev, startCol, span, openLeft, openRight }) => {
+                // 이름은 시작하는 막대에만(지난달에 시작했으면 이번 달 첫 막대에) 넣는다
+                const showTitle = !openLeft || week[startCol] === 1;
+                return (
+                  <View
+                    key={ev.id}
+                    pointerEvents="none"
+                    style={[
+                      styles.adBar,
+                      {
+                        backgroundColor: ev.borderColor,
+                        left: startCol * cellWidth + (openLeft ? 0 : 3),
+                        width: span * cellWidth - (openLeft ? 0 : 3) - (openRight ? 0 : 3),
+                      },
+                      openLeft && styles.adBarOpenLeft,
+                      openRight && styles.adBarOpenRight,
+                    ]}
+                  >
+                    {showTitle && (
+                      <Text style={[styles.adBarText, { color: readableOn(ev.borderColor) }]} numberOfLines={1}>
+                        {!openLeft ? '🎉 ' : ''}{ev.title}
+                      </Text>
+                    )}
+                  </View>
+                );
+              })}
             </View>
             {wi < weeks.length - 1 && <View style={styles.weekDivider} />}
           </View>
@@ -442,35 +454,30 @@ const styles = StyleSheet.create({
   weekRow: {
     flexDirection: 'row',
   },
-  adBox: {
+  // 날짜 광고 이벤트 띠: 기간 전체에 이어지는 색 막대. 날짜 숫자 바로 아래, 일정 줄 맨 위에 놓인다.
+  adBar: {
     position: 'absolute',
-    top: 2,
-    borderWidth: 2.5,
-    borderRadius: 8,
+    top: 4 + 26 + 2,
+    height: AD_BAR_HEIGHT,
+    borderRadius: AD_BAR_HEIGHT / 2,
+    justifyContent: 'center',
+    paddingHorizontal: 5,
   },
-  adBoxOpenLeft: {
-    borderLeftWidth: 0,
+  // 주가 바뀌어 이어지는 쪽은 둥글리지 않아 한 줄로 이어져 보이게 한다
+  adBarOpenLeft: {
     borderTopLeftRadius: 0,
     borderBottomLeftRadius: 0,
   },
-  adBoxOpenRight: {
-    borderRightWidth: 0,
+  adBarOpenRight: {
     borderTopRightRadius: 0,
     borderBottomRightRadius: 0,
   },
-  // 테두리(2.5)에 붙지 않도록 안쪽으로 띄운다
-  adRow: {
-    paddingLeft: 4,
-    paddingRight: 3,
-  },
-  adFanfare: {
-    fontSize: 6,
-  },
-  adTitle: {
+  adBarText: {
     fontFamily: 'SUIT-Bold',
+    fontSize: 9,
   },
-  adDayNumber: {
-    fontFamily: 'SUIT-Bold',
+  adBarSpace: {
+    height: AD_BAR_HEIGHT,
   },
   weekDivider: {
     height: 1,

@@ -152,6 +152,8 @@ export type Schedule = {
 
 export type ScheduleParticipant = {
   canLinkTemporary?: boolean;
+  // Set only on the schedule where an unregistered user was linked to this account, for the person who linked it.
+  temporaryLink?: { auditId: number; sourceName: string } | null;
   canViewDivingLog?: boolean;
   canWriteDebriefing?: boolean;
   userId?: string | null;
@@ -354,6 +356,11 @@ export type ProfileResponse = {
 };
 
 export type TemporaryLinkTarget = { id: number; userId: string; nickname: string; name?: string | null; profileImage?: string | null; level?: string; badgeLevel?: string | number | null; phoneHint?: string | null };
+export type TemporaryUnlinkPreview = {
+  source: { id: number; nickname: string }; target: { id: number; nickname: string; name?: string | null };
+  linkedAt: string; canUnlink: boolean; blockers: string[];
+  counts: { schedules: number; forms: number; debriefings: number; courses: number; achievements: number };
+};
 export type TemporaryLinkPreview = {
   source: { id: number; nickname: string }; target: TemporaryLinkTarget;
   schedules: { id: number; title: string; date: string }[];
@@ -440,6 +447,12 @@ export const api = {
   },
   linkTemporaryUser(scheduleId: number, sourceId: number, targetId: number, confirmationToken: string) {
     return request<{ success: boolean; auditId: number; alreadyLinked: boolean }>(`/schedule/${scheduleId}/temporary-users/${sourceId}/link`, { method: 'POST', body: JSON.stringify({ targetId, confirmationToken }) });
+  },
+  previewTemporaryUnlink(scheduleId: number, auditId: number) {
+    return request<TemporaryUnlinkPreview>(`/schedule/${scheduleId}/temporary-links/${auditId}/unlink-preview`, { method: 'POST' });
+  },
+  unlinkTemporaryUser(scheduleId: number, auditId: number) {
+    return request<{ success: boolean; sourceId: number }>(`/schedule/${scheduleId}/temporary-links/${auditId}/unlink`, { method: 'POST' });
   },
   createTemporaryUser(name: string) {
     return request<{ user: { id: number; userId: string; nickname: string; isTemporary: boolean; phone: string; level: string } }>('/users/temporary', {
