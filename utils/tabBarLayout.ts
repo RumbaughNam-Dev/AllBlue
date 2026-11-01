@@ -18,6 +18,10 @@ export function getSideStripBottomGap(bottomInset: number): number {
   return bottomInset + 12;
 }
 
+// iOS's status icons in that strip (camera, clock, battery) sit this far left of the strip's center;
+// what the app puts in the strip is centered on them instead.
+export const SIDE_STRIP_CENTER_SHIFT = 6;
+
 export function hasSideTabStrip(rightInset: number, platform: string): boolean {
   return platform === 'ios' && rightInset >= SIDE_TAB_STRIP_MIN;
 }

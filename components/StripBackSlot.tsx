@@ -3,7 +3,7 @@ import { View, Platform, useWindowDimensions } from 'react-native';
 import type { ViewInstance } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from 'expo-router';
-import { hasSideTabStrip } from '@/utils/tabBarLayout';
+import { hasSideTabStrip, SIDE_STRIP_CENTER_SHIFT } from '@/utils/tabBarLayout';
 
 // 아이폰 듀오의 오른쪽 여백 위쪽에 세로로 늘어선 카메라·위치·시계·배터리 표시 바로 아래 (창 기준 pt).
 // 접은 화면에서 이 표시가 약 200pt까지 내려옴
@@ -38,7 +38,7 @@ export default function StripBackSlot({ size, children }: { size: number; childr
       {origin && (
         <View style={{
           position: 'absolute',
-          left: width - insets.right + (insets.right - size) / 2 - origin.x,
+          left: width - insets.right + (insets.right - size) / 2 - SIDE_STRIP_CENTER_SHIFT - origin.x,
           top: STRIP_BACK_TOP - origin.y,
         }}>
           {children}

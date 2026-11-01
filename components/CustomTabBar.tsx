@@ -1,4 +1,4 @@
-import { getTabBarBottomPadding, getSideStripBottomGap, TAB_BAR_HEIGHT } from '@/utils/tabBarLayout';
+import { getTabBarBottomPadding, getSideStripBottomGap, SIDE_STRIP_CENTER_SHIFT, TAB_BAR_HEIGHT } from '@/utils/tabBarLayout';
 import React, { useEffect, useRef } from 'react';
 import { View, Image, Pressable, StyleSheet, Platform, Animated, Easing, LayoutChangeEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -149,7 +149,7 @@ export default function CustomTabBar({ state, emitter, navigateToTab, stripWidth
 
   return (
     <View style={vertical
-      ? [styles.stripContainer, { width: stripWidth, right: 0, paddingBottom: getSideStripBottomGap(insets.bottom) }]
+      ? [styles.stripContainer, { width: stripWidth, right: 0, paddingRight: SIDE_STRIP_CENTER_SHIFT * 2, paddingBottom: getSideStripBottomGap(insets.bottom) }]
       : [styles.container, { paddingBottom: getTabBarBottomPadding(insets.bottom, Platform.OS) }]}>
       {LiquidGlassView ? (
         <LiquidGlassView glassEffectStyle="regular" colorScheme="dark" style={[styles.blurContainer, vertical && { width: barSize, borderRadius: STRIP_RADIUS }]}>
