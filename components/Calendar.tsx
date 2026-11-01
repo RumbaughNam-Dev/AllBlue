@@ -1,4 +1,4 @@
-import { getTabBarContentClearance, hasSideTabStrip } from '@/utils/tabBarLayout';
+import { getTabBarContentClearance, getSideStripBottomGap, hasSideTabStrip } from '@/utils/tabBarLayout';
 import { DUO_SYSTEM_TABS } from '@/utils/foldable';
 import React, { useState, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView, useWindowDimensions, LayoutChangeEvent, PanResponder, Animated, Easing, Platform } from 'react-native';
@@ -58,7 +58,7 @@ export default function Calendar({ events = [], calendarEvents = [], onDatePress
   const insets = useSafeAreaInsets();
   const width = measuredWidth || windowWidth - insets.left - insets.right;
   // iPhone Duo uses the system tab bar, which the safe area already clears.
-  const bottomSpace = DUO_SYSTEM_TABS || hasSideTabStrip(insets.right, Platform.OS) ? insets.bottom : getTabBarContentClearance(insets.bottom, Platform.OS);
+  const bottomSpace = DUO_SYSTEM_TABS ? insets.bottom : hasSideTabStrip(insets.right, Platform.OS) ? getSideStripBottomGap(insets.bottom) : getTabBarContentClearance(insets.bottom, Platform.OS);
   const [year, setYear] = useState(new Date().getFullYear());
   const [month, setMonth] = useState(new Date().getMonth());
   const [showMonthPicker, setShowMonthPicker] = useState(false);
