@@ -29,3 +29,13 @@ test('slide 22: a banner needs an image, a tour and a valid period before it can
   assert.equal(b.shortDay('2026-11-01'), '11.01');
   assert.equal(Object.keys(b.BANNER_STATE).sort().join(), 'ENDED,HIDDEN,LIVE,OFF,SCHEDULED');
 });
+
+test('slide 24: shared text is title · country · period plus the link (no price or recruitment)', () => {
+  const ui = loadModule('features/tour/ui.ts', { 'react-native': { Alert: {} } });
+  const tour = { title: '보홀 프리다이빙 캠프', countryName: '필리핀', startDate: '2026-11-20', endDate: '2026-11-24' };
+  const url = 'https://api.rumbaugh.co.kr/allblue/t/4';
+  const ios = ui.shareContent(tour, url, 'ios');
+  assert.equal(ios.message, '보홀 프리다이빙 캠프\n필리핀 · 11.20 - 11.24');
+  assert.equal(ios.url, url);
+  assert.equal(ui.shareContent(tour, url, 'android').message, `보홀 프리다이빙 캠프\n필리핀 · 11.20 - 11.24\n${url}`);
+});

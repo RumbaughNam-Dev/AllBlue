@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, Image, ActivityIndicator, Linking, Alert, Platform, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, Image, ActivityIndicator, Linking, Alert, Platform, Share, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/Colors';
 import { api, TourDetail } from '@/services/api';
@@ -13,7 +13,7 @@ import StripBackSlot from '@/components/StripBackSlot';
 import { useAppRouter, useIsPaneRoot, useScreenParams } from '@/features/split/SplitPane';
 import { useLatestRequest } from '@/hooks/useLatestRequest';
 import { StatusBadge, TourEmpty } from './TourCards';
-import { formatFee, formatStay, formatTourPeriod } from './ui';
+import { formatFee, formatStay, formatTourPeriod, shareContent } from './ui';
 import { confirmTourRequest, RequestDecision } from './requests';
 import TourReportPopup, { ReportReason } from './TourReportPopup';
 import { Ionicons } from '@expo/vector-icons';
@@ -59,12 +59,14 @@ export default function TourDetailScreen() {
     else setLinkSheet(true);
   };
 
-  // 19장 '⋯': 남의 공개 투어에서 신고하기 · 강사 차단 (공유하기는 24장)
+  // '⋯': 공유하기(24장) · 신고하기 · 강사 차단(19장). 내 투어에서는 공유하기만
   const [menu, setMenu] = useState(false);
   const [reporting, setReporting] = useState(false);
+  const canShare = !!detail?.tour.shareUrl;
   const canReport = !!detail && detail.tour.isPublic && !detail.tour.isMine;
-  const onMenu = (action: 'report' | 'block') => {
+  const onMenu = (action: 'share' | 'report' | 'block') => {
     if (!detail) return;
+    if (action === 'share') { setTimeout(() => void shareTour(), AFTER_SHEET_MS); return; }
     // 메뉴 시트가 다 닫힌 뒤에 열어야 iOS에서 다음 창이 뜸 (시트 닫힘 애니메이션 250ms + 모달 내림)
     if (action === 'report') { setTimeout(() => setReporting(true), AFTER_SHEET_MS); return; }
     const name = detail.instructor.nickname;
@@ -79,6 +81,13 @@ export default function TourDetailScreen() {
         },
       },
     ]), AFTER_SHEET_MS);
+  };
+  // 휴대폰 공유 창: 투어명 · 나라 · 기간 + 링크 (가격 · 모집현황은 링크를 연 화면에서 최신으로)
+  const shareTour = async () => {
+    if (!detail?.tour.shareUrl) return;
+    try {
+      await Share.share(shareContent(detail.tour, detail.tour.shareUrl, Platform.OS));
+    } catch { /* 사용자가 닫음 */ }
   };
   const submitReport = async (reason: ReportReason, memo: string) => {
     if (!detail) return;
@@ -115,7 +124,7 @@ export default function TourDetailScreen() {
         </StripBackSlot>
       )}
       <Text style={styles.headerTitle}>투어 상세</Text>
-      {canReport ? (
+      {canShare || canReport ? (
         <Pressable accessibilityRole="button" accessibilityLabel="더보기" hitSlop={8} onPress={() => setMenu(true)} style={({ pressed }) => [styles.backButton, styles.more, pressed && { opacity: 0.6 }]}>
           <Ionicons name="ellipsis-horizontal" size={22} color={Colors.brand.white} />
         </Pressable>
@@ -132,6 +141,10 @@ export default function TourDetailScreen() {
         ) : state === 'gone' ? (
           <View style={styles.center}>
             <TourEmpty message="볼 수 없는 투어예요" />
+            {/* 24장: 공유 링크로 들어왔는데 승인 전 · 불허 · 출발 · 삭제 · 차단한 강사의 투어 */}
+            <Pressable accessibilityRole="button" onPress={() => router.replace('/(tabs)/tour')} style={({ pressed }) => [styles.homeButton, pressed && { opacity: 0.7 }]}>
+              <Text style={styles.homeButtonText}>투어 홈으로</Text>
+            </Pressable>
           </View>
         ) : (
           <Pressable onPress={load} style={styles.center}>
@@ -223,7 +236,10 @@ export default function TourDetailScreen() {
         visible={menu}
         onClose={() => setMenu(false)}
         title={tour.title}
-        items={[{ label: '신고하기', value: 'report' }, { label: `강사 차단 (${instructor.nickname})`, value: 'block' }]}
+        items={[
+          ...(canShare ? [{ label: '공유하기', value: 'share' }] : []),
+          ...(canReport ? [{ label: '신고하기', value: 'report' }, { label: `이 강사 차단하기 (${instructor.nickname})`, value: 'block' }] : []),
+        ]}
         fitContent
         onSelect={onMenu}
       />
@@ -316,6 +332,8 @@ const styles = StyleSheet.create({
   image: { width: '100%', borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.06)' },
   bottomArea: { paddingHorizontal: SIDE, paddingTop: 10, gap: 6 },
   more: { alignItems: 'center', justifyContent: 'center' },
+  homeButton: { marginTop: 20, paddingHorizontal: 22, paddingVertical: 12, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.15)' },
+  homeButtonText: { fontFamily: 'SUIT-Bold', fontSize: 15, color: Colors.brand.white },
   reviewArea: { flexDirection: 'row', gap: 10 },
   reject: { flex: 1, height: 54, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.9)' },
   rejectText: { fontFamily: 'SUIT-Bold', fontSize: 16, color: '#C53030' },

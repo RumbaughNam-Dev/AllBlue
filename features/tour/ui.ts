@@ -31,6 +31,12 @@ export function formatRecruitment(recruited: number, capacity: number) {
   return `${recruited}/${capacity}명`;
 }
 
+// 24장 공유 내용: 투어명 · 나라 · 기간 + 링크. iOS는 url을 따로 넘겨야 링크 미리보기가 붙음
+export function shareContent(tour: { title: string; countryName: string; startDate: string; endDate: string }, url: string, os: string) {
+  const text = `${tour.title}\n${tour.countryName} · ${formatTourPeriod(tour.startDate, tour.endDate)}`;
+  return os === 'ios' ? { message: text, url } : { message: `${text}\n${url}` };
+}
+
 // Screens the tour home links to that come in later steps (create, manage, search, detail, see all).
 export function showTourComingSoon() {
   Alert.alert('준비 중이에요', '이 화면은 다음 단계에서 만들어요.');

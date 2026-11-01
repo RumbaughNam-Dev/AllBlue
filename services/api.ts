@@ -421,6 +421,7 @@ export type TourDetail = {
   tour: {
     id: number; title: string; status: TourStatus; isMine: boolean; isPublic: boolean;
     pendingRequest: { id: number; type: 'CREATE' | 'UPDATE' } | null; // admin이 심사 중일 때만
+    shareUrl: string | null; // 24장 공유 링크, 공개 중일 때만
     continentCode: string; continentName: string; countryCode: string; countryName: string;
     startDate: string; endDate: string; capacity: number; recruitedCount: number; fee: number | null;
     images: string[]; included: string[]; excluded: string[];
