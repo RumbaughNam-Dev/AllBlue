@@ -20,12 +20,29 @@ export default function StripBackSlot({ size, children }: { size: number; childr
   const ref = useRef<ViewInstance>(null);
   const [origin, setOrigin] = useState<{ x: number; y: number } | null>(null);
 
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // 화면이 밀려 들어오거나 메뉴가 미끄러져 나오는 동안에는 자리가 계속 바뀌므로,
+  // 같은 자리가 두 번 연속 잡힐 때까지 (최대 2초) 다시 잼
   const measure = useCallback(() => {
-    ref.current?.measureInWindow((x, y) => {
-      // 화면이 밀려 들어오는 중에는 창 밖 좌표가 나오므로, 다 들어온 뒤 다시 잼
-      if (x >= 0 && x < width) setOrigin({ x, y });
-    });
+    if (timer.current) clearTimeout(timer.current);
+    let last: { x: number; y: number } | null = null;
+    let tries = 0;
+    const step = () => {
+      ref.current?.measureInWindow((x, y) => {
+        const settled = last !== null && last.x === x && last.y === y;
+        if (settled && x >= 0 && x < width) {
+          setOrigin({ x, y });
+          return;
+        }
+        last = { x, y };
+        if (++tries < 40) timer.current = setTimeout(step, 50);
+      });
+    };
+    step();
   }, [width]);
+
+  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
 
   useEffect(() => {
     if (!lift) return;

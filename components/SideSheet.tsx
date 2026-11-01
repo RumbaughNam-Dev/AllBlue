@@ -17,6 +17,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import AdSlot from '@/components/AdSlot';
 import { AD_IMAGES, AD_LINKS } from '@/constants/Ads';
 import GlassBackground, { glassClear, PANEL_TINT } from '@/components/GlassBackground';
+import StripBackSlot from '@/components/StripBackSlot';
 
 type Props = {
   visible: boolean;
@@ -167,15 +168,17 @@ export default function SideSheet({ visible, onClose }: Props) {
         <GlassBackground tintColor={PANEL_TINT} />
         {/* Header */}
         <View style={styles.header}>
-          <Pressable
-            onPress={onClose}
-            style={({ pressed }) => [styles.closeButton, glassClear, pressed && { opacity: 0.6 }]}
-          >
-            <GlassBackground radius={18} interactive />
-            <View style={styles.closeCircle}>
-              <Text style={styles.closeArrow}>{'>'}</Text>
-            </View>
-          </Pressable>
+          <StripBackSlot size={36}>
+            <Pressable
+              onPress={onClose}
+              style={({ pressed }) => [styles.closeButton, glassClear, pressed && { opacity: 0.6 }]}
+            >
+              <GlassBackground radius={18} interactive />
+              <View style={styles.closeCircle}>
+                <Text style={styles.closeArrow}>{'>'}</Text>
+              </View>
+            </Pressable>
+          </StripBackSlot>
           <Text style={styles.headerTitle}>메뉴</Text>
           <View style={{ width: 36 }} />
         </View>
