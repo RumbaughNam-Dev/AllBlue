@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Colors from '@/constants/Colors';
 import GlassChip from '@/components/GlassChip';
-import { usePaneDefault } from '@/features/split/SplitPane';
+import { useAppRouter, usePaneDefault } from '@/features/split/SplitPane';
 import { DUO_SYSTEM_TABS } from '@/utils/foldable';
 import { getTabBarContentClearance, getSideStripBottomGap, hasSideTabStrip } from '@/utils/tabBarLayout';
 import type { TourCard } from '@/services/api';
@@ -20,6 +20,7 @@ const CARD_WIDTH = 148;
 // 투어 홈: 위에 버튼 줄(고정), 아래로 광고 배너 · 최근 등록된 투어 · 최근 관심이 많은 투어.
 export default function TourHomeScreen() {
   const { home, loading, refreshing, error, retry, refresh } = useTourHome();
+  const router = useAppRouter();
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
   const [width, setWidth] = useState(0);
@@ -37,7 +38,7 @@ export default function TourHomeScreen() {
         <View style={styles.actionGroup}>
           {home?.canCreate && (
             <>
-              <ActionChip icon="add" label="투어 만들기" />
+              <ActionChip icon="add" label="투어 만들기" onPress={() => router.push('/tour-create')} />
               <ActionChip label="투어 관리" />
             </>
           )}
@@ -98,9 +99,9 @@ export default function TourHomeScreen() {
   );
 }
 
-function ActionChip({ icon, label }: { icon?: 'add' | 'search'; label: string }) {
+function ActionChip({ icon, label, onPress = showTourComingSoon }: { icon?: 'add' | 'search'; label: string; onPress?: () => void }) {
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={showTourComingSoon} style={({ pressed }) => pressed && { opacity: 0.6 }}>
+    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={({ pressed }) => pressed && { opacity: 0.6 }}>
       <GlassChip fallbackStyle={styles.chipFallback}>
         <View style={styles.chipContent}>
           {icon && <Ionicons name={icon} size={15} color={Colors.brand.white} />}

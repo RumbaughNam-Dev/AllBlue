@@ -381,8 +381,29 @@ export type TourCard = {
 export type TourBanner = { id: number; imageUrl: string; tourId: number };
 export type TourHome = { canCreate: boolean; banners: TourBanner[]; recent: TourCard[]; popular: TourCard[] };
 
+export type CommonCode = { code: string; name: string; nameKo: string | null; extraValue: string | null; sortOrder: number };
+// 4장 투어 만들기 → 등록 요청 (승인 대기로 저장)
+export type TourRequestInput = {
+  images: string[]; title: string; continentCode: string; countryCode: string;
+  startDate: string; endDate: string; capacity: number; fee: number | null; included: string[]; excluded: string[];
+};
+
 export const api = {
+  getCodes(group: string) { return request<{ success: boolean; data?: CommonCode[]; message?: string }>(`/codes?group=${encodeURIComponent(group)}`); },
   getTourHome() { return request<TourHome>('/tours/home'); },
+  async uploadTourImage(uri: string, mimeType = 'image/jpeg') {
+    const token = await AsyncStorage.getItem('authToken');
+    const result = await new File(uri).upload(`${BASE_URL}/tours/images`, {
+      uploadType: UploadType.MULTIPART,
+      fieldName: 'file',
+      mimeType,
+      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    });
+    return parseResponse<{ url: string }>(result.status, result.body, token);
+  },
+  createTourRequest(input: TourRequestInput) {
+    return request<{ tourId: number; status: TourStatus }>('/tours', { method: 'POST', body: JSON.stringify(input) });
+  },
   getNotices(offset = 0) { return request<{ notices: Notice[]; hasMore: boolean; canManage: boolean }>(`/notices?offset=${offset}`); },
   getNotice(id: number) { return request<{ notice: Notice; canManage: boolean }>(`/notices/${id}`); },
   getNoticePopups() { return request<{ items: PopupSlide[] }>('/notices/popups'); },
