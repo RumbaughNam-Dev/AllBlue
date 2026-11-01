@@ -368,7 +368,21 @@ export type TemporaryLinkPreview = {
   duplicates: { schedules: number; courses: number; achievements: number; contacts: number };
   confirmationToken: string;
 };
+// common_code TOUR_STATUS
+export type TourStatus = 'PENDING' | 'REJECTED' | 'PREPARING' | 'RECRUITING' | 'CLOSED' | 'CANCELED' | 'COMPLETED' | 'UNPROCESSED';
+export type TourCard = {
+  id: number; title: string; status: TourStatus;
+  continentCode: string; countryCode: string; countryName: string;
+  startDate: string; endDate: string; // YYYY-MM-DD
+  capacity: number; recruitedCount: number;
+  imageUrl: string | null;
+  instructor: { userId: string; nickname: string };
+};
+export type TourBanner = { id: number; imageUrl: string; tourId: number };
+export type TourHome = { canCreate: boolean; banners: TourBanner[]; recent: TourCard[]; popular: TourCard[] };
+
 export const api = {
+  getTourHome() { return request<TourHome>('/tours/home'); },
   getNotices(offset = 0) { return request<{ notices: Notice[]; hasMore: boolean; canManage: boolean }>(`/notices?offset=${offset}`); },
   getNotice(id: number) { return request<{ notice: Notice; canManage: boolean }>(`/notices/${id}`); },
   getNoticePopups() { return request<{ items: PopupSlide[] }>('/notices/popups'); },
