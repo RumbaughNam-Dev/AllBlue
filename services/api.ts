@@ -393,7 +393,20 @@ export type TourSort = 'DEADLINE' | 'START_ASC' | 'START_DESC' | 'CAPACITY_ASC' 
 export type TourSearchConditions = { title: string; instructor: string; continent: string; country: string; from: string; to: string };
 export type TourSearchResult = { total: number; sort: TourSort; tours: TourCard[]; hasMore: boolean };
 
+// 11장 투어 상세
+export type TourDetail = {
+  tour: {
+    id: number; title: string; status: TourStatus; isMine: boolean; isPublic: boolean;
+    continentCode: string; continentName: string; countryCode: string; countryName: string;
+    startDate: string; endDate: string; capacity: number; recruitedCount: number; fee: number | null;
+    images: string[]; included: string[]; excluded: string[];
+  };
+  instructor: { userId: string; nickname: string; name: string | null; profileImage: string | null; badgeLevel: string; licenses: string[]; completedCount: number };
+  links: { name: string; url: string }[];
+};
+
 export const api = {
+  getTour(id: number) { return request<TourDetail>(`/tours/${id}`); },
   searchTours(conditions: TourSearchConditions, sort: TourSort, offset = 0) {
     const params = new URLSearchParams({ sort, offset: String(offset) });
     for (const [key, value] of Object.entries(conditions)) if (value) params.set(key, value);

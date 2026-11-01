@@ -13,7 +13,6 @@ import { useAppRouter, useIsPaneRoot, useScreenParams } from '@/features/split/S
 import { useLatestRequest } from '@/hooks/useLatestRequest';
 import TourSearchPopup, { EMPTY_SEARCH } from './TourSearchPopup';
 import { TourCardItem, TourEmpty, TourRow } from './TourCards';
-import { showTourComingSoon } from './ui';
 import { regionName, useTourRegions } from './useTourRegions';
 
 const SIDE = 20;
@@ -111,7 +110,7 @@ export default function TourSearchScreen() {
   const secondLine = `${period} · ${conditions.instructor ? `인솔 강사 '${conditions.instructor}'` : '인솔 강사 전체'}`;
 
   const cardWidth = Math.floor((width - SIDE * 2 - GAP) / 2);
-  const openTour = () => showTourComingSoon();
+  const openTour = (tour: TourCard) => router.push({ pathname: '/tour-detail', params: { id: String(tour.id) } });
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]} onLayout={e => setWidth(e.nativeEvent.layout.width)}>

@@ -9,7 +9,7 @@ import GlassChip from '@/components/GlassChip';
 import { useAppRouter, usePaneDefault } from '@/features/split/SplitPane';
 import { DUO_SYSTEM_TABS } from '@/utils/foldable';
 import { getTabBarContentClearance, getSideStripBottomGap, hasSideTabStrip } from '@/utils/tabBarLayout';
-import type { TourSearchConditions, TourSort } from '@/services/api';
+import type { TourCard, TourSearchConditions, TourSort } from '@/services/api';
 import TourBanner from './TourBanner';
 import { showTourComingSoon } from './ui';
 import { TourCardItem, TourEmpty, TourRow } from './TourCards';
@@ -23,6 +23,9 @@ export default function TourHomeScreen() {
   const { home, loading, refreshing, error, retry, refresh } = useTourHome();
   const router = useAppRouter();
   const [searching, setSearching] = useState(false);
+  // 카드 · 배너를 누르면 투어 상세 (펼친 화면이면 오른쪽 칸)
+  const openTour = (tourId: number) => router.push({ pathname: '/tour-detail', params: { id: String(tourId) } });
+  const openCard = (tour: TourCard) => openTour(tour.id);
   // 검색 · 전체보기는 같은 결과 화면 (펼친 화면이면 오른쪽 칸)
   const openResults = (conditions: TourSearchConditions, sort: TourSort) => router.push({
     pathname: '/tour-search',
@@ -71,7 +74,7 @@ export default function TourHomeScreen() {
             <>
               {!!home?.banners.length && bannerWidth > 0 && (
                 <View style={styles.bannerArea}>
-                  <TourBanner banners={home.banners} width={bannerWidth} height={bannerHeight} onPress={showTourComingSoon} />
+                  <TourBanner banners={home.banners} width={bannerWidth} height={bannerHeight} onPress={banner => openTour(banner.tourId)} />
                 </View>
               )}
               {!!home?.recent.length && (
@@ -83,7 +86,7 @@ export default function TourHomeScreen() {
                     horizontal
                     showsHorizontalScrollIndicator={false}
                     contentContainerStyle={styles.cardList}
-                    renderItem={({ item }) => <TourCardItem tour={item} onPress={showTourComingSoon} />}
+                    renderItem={({ item }) => <TourCardItem tour={item} onPress={openCard} />}
                   />
                 </>
               )}
@@ -91,7 +94,7 @@ export default function TourHomeScreen() {
                 <>
                   <SectionHeader title="최근 관심이 많은 투어" onSeeAll={() => openResults(EMPTY_SEARCH, 'POPULAR')} />
                   <View style={styles.rows}>
-                    {home.popular.map(tour => <TourRow key={tour.id} tour={tour} onPress={showTourComingSoon} />)}
+                    {home.popular.map(tour => <TourRow key={tour.id} tour={tour} onPress={openCard} />)}
                   </View>
                 </>
               )}

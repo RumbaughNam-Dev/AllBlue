@@ -19,6 +19,14 @@ export function formatTourPeriod(startDate: string, endDate: string) {
   return startDate === endDate ? short(startDate) : `${short(startDate)} - ${short(endDate)}`;
 }
 
+// '4박 5일', 하루면 '당일'
+export function formatStay(startDate: string, endDate: string) {
+  const nights = Math.round((Date.parse(`${endDate}T00:00:00Z`) - Date.parse(`${startDate}T00:00:00Z`)) / 86_400_000);
+  return nights <= 0 ? '당일' : `${nights}박 ${nights + 1}일`;
+}
+
+export const formatFee = (fee: number) => `${String(fee).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}원`;
+
 export function formatRecruitment(recruited: number, capacity: number) {
   return `${recruited}/${capacity}명`;
 }
