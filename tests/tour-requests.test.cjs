@@ -46,3 +46,14 @@ test('request time shows as MM.DD HH:mm', () => {
   const local = new Date(2026, 9, 28, 14, 20).toISOString();
   assert.equal(mod.formatRequestedAt(local), '10.28 14:20');
 });
+
+test('slide 19: 문제 없음 / 불허로 내리기 go through a confirm', async () => {
+  const calls = [];
+  const mod = loadModule('features/tour/requests.ts', {
+    'react-native': { Alert: { alert: (title, message, buttons) => buttons?.find(b => b.text === '내리기' || b.text === '문제 없음')?.onPress?.() } },
+    '@/services/api': { api: { takeDownTour: async id => calls.push(['down', id]), dismissTourReports: async id => calls.push(['ok', id]) } },
+  });
+  assert.equal(await mod.confirmTourReports(9, '다합', 'takeDown'), true);
+  assert.equal(await mod.confirmTourReports(4, '오키나와', 'dismiss'), true);
+  assert.deepEqual(calls, [['down', 9], ['ok', 4]]);
+});

@@ -1,13 +1,12 @@
 import { useCallback, useRef, useState } from 'react';
 import { api } from '@/services/api';
 
-export type AdminPendingCounts = { inquiry: number; cert: number; org: number; tourRequests: number };
-const NONE: AdminPendingCounts = { inquiry: 0, cert: 0, org: 0, tourRequests: 0 };
+export type AdminPendingCounts = { inquiry: number; cert: number; org: number; tourRequests: number; tourReports: number };
+const NONE: AdminPendingCounts = { inquiry: 0, cert: 0, org: 0, tourRequests: 0, tourReports: 0 };
 
 // 16장: 관리자 기능의 처리할 건수. 프로필의 '관리자 기능' 버튼 · 팝업과 홈 프로필 사진의 빨간 숫자가 같은 합계를 씀.
-// (투어 신고 처리는 19장에서 더함)
 export function adminPendingTotal(counts: AdminPendingCounts) {
-  return counts.inquiry + counts.cert + counts.org + counts.tourRequests;
+  return counts.inquiry + counts.cert + counts.org + counts.tourRequests + counts.tourReports;
 }
 
 // 홈 프로필 사진 빨간 숫자: 0이면 숨김, 100 이상은 99+
@@ -22,15 +21,17 @@ export function useAdminPendingCounts(isAdmin: boolean) {
     const id = ++requestId.current;
     if (!isAdmin) { setCounts(NONE); return; }
     // 하나가 실패하면 그 건수만 이전 값 유지
-    const [inquiry, cert, org, tour] = await Promise.all([
+    const [inquiry, cert, org, tour, reports] = await Promise.all([
       api.getInquiryPendingCount().then(r => r.count).catch(() => null),
       api.getCertPendingCount().then(r => r.count).catch(() => null),
       api.getPendingOrganizations().then(r => (r.organizations ?? []).length).catch(() => null),
       api.getTourRequests().then(r => r.requests.length).catch(() => null),
+      api.getTourReports().then(r => r.tours.length).catch(() => null),
     ]);
     if (id !== requestId.current) return;
     setCounts(prev => ({
       inquiry: inquiry ?? prev.inquiry, cert: cert ?? prev.cert, org: org ?? prev.org, tourRequests: tour ?? prev.tourRequests,
+      tourReports: reports ?? prev.tourReports,
     }));
   }, [isAdmin]);
   return { counts, total: adminPendingTotal(counts), reload };

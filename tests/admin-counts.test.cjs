@@ -9,7 +9,8 @@ function load(api) {
   return { mod, use: isAdmin => h.render(() => mod.useAdminPendingCounts(isAdmin)) };
 }
 const counts = { getInquiryPendingCount: async () => ({ count: 1 }), getCertPendingCount: async () => ({ count: 2 }),
-  getPendingOrganizations: async () => ({ organizations: [{}] }), getTourRequests: async () => ({ requests: [{}, {}] }) };
+  getPendingOrganizations: async () => ({ organizations: [{}] }), getTourRequests: async () => ({ requests: [{}, {}] }),
+  getTourReports: async () => ({ tours: [{}] }) };
 
 test('slide 16: the home photo shows the admin total, hidden at 0 and 99+ from 100', () => {
   const { mod } = load(counts);
@@ -23,7 +24,7 @@ test('admins load every count into one total; one failing count keeps its last v
   let failTours = false;
   const f = load({ ...counts, getTourRequests: async () => { if (failTours) throw new Error('x'); return { requests: [{}, {}] }; } });
   await f.use(true).reload();
-  assert.equal(f.use(true).total, 6);
+  assert.equal(f.use(true).total, 7); // 문의 1 + 자격증 2 + 단체 1 + 등록요청 2 + 신고 1
   failTours = true;
   await f.use(true).reload();
   assert.equal(f.use(true).counts.tourRequests, 2);

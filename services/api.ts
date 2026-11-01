@@ -392,6 +392,18 @@ export type TourRequestInput = {
   links: TourLink[];
 };
 export type TourLink = { name: string; url: string };
+// 19장 투어 신고 처리 (admin): 투어별로 묶음
+export type TourReportGroup = {
+  tourId: number; title: string; status: TourStatus; imageUrl: string | null; count: number;
+  reasons: { code: string; name: string; count: number }[]; memo: string | null; moreMemos: number; latestAt: string;
+  instructor: { userId: string; nickname: string; name: string | null };
+};
+// 22장 광고 배너 (admin). HIDDEN: 기간 안이지만 연결 투어가 비공개 · 출발해서 안 보임
+export type TourBannerItem = {
+  id: number; imageUrl: string; tourId: number; tourTitle: string; startDate: string; endDate: string; isEnabled: boolean;
+  state: 'LIVE' | 'SCHEDULED' | 'ENDED' | 'OFF' | 'HIDDEN';
+};
+export type TourBannerInput = { imageUrl: string; tourId: number; startDate: string; endDate: string; isEnabled: boolean };
 // 15장 투어 등록요청 (admin)
 export type TourRequestItem = {
   id: number; type: 'CREATE' | 'UPDATE'; requestedAt: string;
@@ -439,6 +451,16 @@ export const api = {
   getTour(id: number) { return request<TourDetail>(`/tours/${id}`); },
   // 새 투어의 문의 링크를 미리 채울 내 프로필 링크
   getProfileLinks() { return request<{ links: TourLink[] }>('/tours/profile-links'); },
+  reportTour(id: number, reason: string, memo: string) { return request<{ success: boolean }>(`/tours/${id}/report`, { method: 'POST', body: JSON.stringify({ reason, memo }) }); },
+  getTourReports() { return request<{ tours: TourReportGroup[] }>('/tours/reports'); },
+  dismissTourReports(tourId: number) { return request<{ tourId: number; status: TourStatus }>(`/tours/reports/${tourId}/dismiss`, { method: 'POST' }); },
+  takeDownTour(tourId: number) { return request<{ tourId: number; status: TourStatus }>(`/tours/reports/${tourId}/take-down`, { method: 'POST' }); },
+  getTourBanners() { return request<{ liveCount: number; max: number; banners: TourBannerItem[]; ended: TourBannerItem[] }>('/tours/banners'); },
+  getBannerTourOptions() { return request<{ tours: { id: number; title: string; startDate: string; endDate: string }[] }>('/tours/banners/tours'); },
+  saveTourBanner(id: number | null, input: TourBannerInput) {
+    return request<{ id: number }>(id ? `/tours/banners/${id}` : '/tours/banners', { method: id ? 'PUT' : 'POST', body: JSON.stringify(input) });
+  },
+  deleteTourBanner(id: number) { return request<{ success: boolean }>(`/tours/banners/${id}`, { method: 'DELETE' }); },
   getTourRequests() { return request<{ requests: TourRequestItem[] }>('/tours/requests'); },
   approveTourRequest(id: number) { return request<{ requestId: number; tourId: number; status: TourStatus }>(`/tours/requests/${id}/approve`, { method: 'POST' }); },
   rejectTourRequest(id: number) { return request<{ requestId: number; tourId: number; status: TourStatus }>(`/tours/requests/${id}/reject`, { method: 'POST' }); },

@@ -79,6 +79,8 @@ export default function ProfileScreen() {
     { label: '자격증 등록 처리', value: '/cert-manage', badge: pendingBadge(adminCounts.cert) },
     { label: '단체 등록처리', value: '/organization-manage', badge: pendingBadge(adminCounts.org) },
     { label: '투어 등록요청', value: '/tour-requests', badge: pendingBadge(adminCounts.tourRequests) },
+    { label: '투어 신고 처리', value: '/tour-reports', badge: pendingBadge(adminCounts.tourReports) },
+    { label: '광고 배너 관리', value: '/tour-banners' }, // 건수 없음 (16장)
   ];
 
   const certificateRow = (label: string, imageUrl?: string) => (

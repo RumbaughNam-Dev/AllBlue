@@ -15,8 +15,11 @@ import { useLatestRequest } from '@/hooks/useLatestRequest';
 import { StatusBadge, TourEmpty } from './TourCards';
 import { formatFee, formatStay, formatTourPeriod } from './ui';
 import { confirmTourRequest, RequestDecision } from './requests';
+import TourReportPopup, { ReportReason } from './TourReportPopup';
+import { Ionicons } from '@expo/vector-icons';
 
 const SIDE = 20;
+const AFTER_SHEET_MS = 600;
 // Main actions stay white (prominent glass) so the navy label keeps its contrast.
 const PROMINENT_TINT = 'rgba(255,255,255,0.85)';
 
@@ -56,6 +59,39 @@ export default function TourDetailScreen() {
     else setLinkSheet(true);
   };
 
+  // 19장 '⋯': 남의 공개 투어에서 신고하기 · 강사 차단 (공유하기는 24장)
+  const [menu, setMenu] = useState(false);
+  const [reporting, setReporting] = useState(false);
+  const canReport = !!detail && detail.tour.isPublic && !detail.tour.isMine;
+  const onMenu = (action: 'report' | 'block') => {
+    if (!detail) return;
+    // 메뉴 시트가 다 닫힌 뒤에 열어야 iOS에서 다음 창이 뜸 (시트 닫힘 애니메이션 250ms + 모달 내림)
+    if (action === 'report') { setTimeout(() => setReporting(true), AFTER_SHEET_MS); return; }
+    const name = detail.instructor.nickname;
+    setTimeout(() => Alert.alert(`${name}님을 차단할까요?`, '차단하면 이 강사의 투어가 내 화면에서 모두 안 보여요.\n차단 목록에서 언제든 풀 수 있어요.', [
+      { text: '취소', style: 'cancel' },
+      {
+        text: '차단', style: 'destructive', onPress: async () => {
+          try {
+            await api.blockUser(detail.instructor.userId);
+            Alert.alert('차단했어요', undefined, [{ text: '확인', onPress: () => router.back() }]);
+          } catch (e: any) { if (!e?._handled) Alert.alert('알림', e?.message ?? '차단하지 못했어요. 잠시 후 다시 시도해 주세요.'); }
+        },
+      },
+    ]), AFTER_SHEET_MS);
+  };
+  const submitReport = async (reason: ReportReason, memo: string) => {
+    if (!detail) return;
+    try {
+      await api.reportTour(detail.tour.id, reason, memo);
+      setReporting(false);
+      Alert.alert('신고가 접수됐어요', '확인 후 조치할게요.');
+    } catch (e: any) {
+      if (e?.code === 'ALREADY') { setReporting(false); Alert.alert('알림', '이미 신고한 투어예요.'); return; }
+      if (!e?._handled) Alert.alert('알림', e?.message ?? '신고하지 못했어요. 잠시 후 다시 시도해 주세요.');
+    }
+  };
+
   // 15장: admin이 심사 중인 투어를 열면 하단에서 승인 · 불허, 처리 후 목록으로 돌아감
   const [processing, setProcessing] = useState(false);
   const process = async (decision: RequestDecision) => {
@@ -79,7 +115,11 @@ export default function TourDetailScreen() {
         </StripBackSlot>
       )}
       <Text style={styles.headerTitle}>투어 상세</Text>
-      <View style={styles.backButton} />
+      {canReport ? (
+        <Pressable accessibilityRole="button" accessibilityLabel="더보기" hitSlop={8} onPress={() => setMenu(true)} style={({ pressed }) => [styles.backButton, styles.more, pressed && { opacity: 0.6 }]}>
+          <Ionicons name="ellipsis-horizontal" size={22} color={Colors.brand.white} />
+        </Pressable>
+      ) : <View style={styles.backButton} />}
     </View>
   );
 
@@ -179,6 +219,15 @@ export default function TourDetailScreen() {
       </View>
       )}
 
+      <BottomSheet
+        visible={menu}
+        onClose={() => setMenu(false)}
+        title={tour.title}
+        items={[{ label: '신고하기', value: 'report' }, { label: `강사 차단 (${instructor.nickname})`, value: 'block' }]}
+        fitContent
+        onSelect={onMenu}
+      />
+      <TourReportPopup visible={reporting} onClose={() => setReporting(false)} onSubmit={submitReport} />
       {viewing && <CertificateImageViewer imageUrl={viewing} onClose={() => setViewing(null)} />}
       <BottomSheet
         visible={linkSheet}
@@ -266,6 +315,7 @@ const styles = StyleSheet.create({
   images: { gap: 10 },
   image: { width: '100%', borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.06)' },
   bottomArea: { paddingHorizontal: SIDE, paddingTop: 10, gap: 6 },
+  more: { alignItems: 'center', justifyContent: 'center' },
   reviewArea: { flexDirection: 'row', gap: 10 },
   reject: { flex: 1, height: 54, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.9)' },
   rejectText: { fontFamily: 'SUIT-Bold', fontSize: 16, color: '#C53030' },
