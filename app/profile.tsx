@@ -14,6 +14,7 @@ import LevelBadge from '@/components/LevelBadge';
 import GlassBackground, { glassClear } from '@/components/GlassBackground';
 import BottomSheet from '@/components/BottomSheet';
 import LinkChips from '@/components/LinkChips';
+import { useAdminPendingCounts } from '@/hooks/useAdminPendingCounts';
 import ProfileTours from '@/features/tour/ProfileTours';
 
 function formatRecord(val: number | null, unit?: string): string {
@@ -33,13 +34,10 @@ export default function ProfileScreen() {
   const [links, setLinks] = useState<{ name: string; url: string }[]>([]);
   const [tours, setTours] = useState<ProfileTour[]>([]);
   const [loading, setLoading] = useState(true);
-  const [pendingCount, setPendingCount] = useState(0);
-  const [inquiryPendingCount, setInquiryPendingCount] = useState(0);
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [memberPendingCount, setMemberPendingCount] = useState(0);
-  const [orgPendingCount, setOrgPendingCount] = useState(0);
-  const [tourRequestCount, setTourRequestCount] = useState(0);
   const [adminMenuVisible, setAdminMenuVisible] = useState(false);
+  const { counts: adminCounts, total: adminPendingTotal, reload: reloadAdminCounts } = useAdminPendingCounts(user?.level === 'A');
 
   useFocusEffect(
     useCallback(() => {
@@ -51,15 +49,6 @@ export default function ProfileScreen() {
           setCertifications(res.certifications ?? []);
           setLinks(res.links ?? []);
           setTours(res.completedTours ?? []);
-          // 단체 등록 대기 건수는 admin만 조회 가능
-          if (res.profile?.level === 'A') {
-            api.getPendingOrganizations()
-              .then((r) => setOrgPendingCount((r.organizations ?? []).length))
-              .catch(() => {});
-            api.getTourRequests()
-              .then((r) => setTourRequestCount(r.requests.length))
-              .catch(() => {});
-          }
           if (res.user) {
             updateUser({
               nickname: res.user.nickname,
@@ -76,26 +65,20 @@ export default function ProfileScreen() {
         })
         .catch((e) => console.log('[프로필] 조회 실패:', e))
         .finally(() => setLoading(false));
-      api.getCertPendingCount()
-        .then((res) => setPendingCount(res.count))
-        .catch(() => {});
-      api.getInquiryPendingCount()
-        .then((res) => setInquiryPendingCount(res.count))
-        .catch(() => {});
+      // 관리자 기능 건수 (돌아오면 다시 불러옴)
+      void reloadAdminCounts();
       api.getPendingMembers()
         .then((res) => setMemberPendingCount((res.members ?? []).length))
         .catch(() => {});
-    }, [])
+    }, [reloadAdminCounts])
   );
 
-
-  const adminPendingTotal = inquiryPendingCount + pendingCount + orgPendingCount + tourRequestCount;
   const pendingBadge = (count: number) => (count > 0 ? `${count}건` : undefined);
   const adminMenuItems = [
-    { label: '문의 요청 처리', value: '/inquiry-manage', badge: pendingBadge(inquiryPendingCount) },
-    { label: '자격증 등록 처리', value: '/cert-manage', badge: pendingBadge(pendingCount) },
-    { label: '단체 등록처리', value: '/organization-manage', badge: pendingBadge(orgPendingCount) },
-    { label: '투어 등록요청', value: '/tour-requests', badge: pendingBadge(tourRequestCount) },
+    { label: '문의 요청 처리', value: '/inquiry-manage', badge: pendingBadge(adminCounts.inquiry) },
+    { label: '자격증 등록 처리', value: '/cert-manage', badge: pendingBadge(adminCounts.cert) },
+    { label: '단체 등록처리', value: '/organization-manage', badge: pendingBadge(adminCounts.org) },
+    { label: '투어 등록요청', value: '/tour-requests', badge: pendingBadge(adminCounts.tourRequests) },
   ];
 
   const certificateRow = (label: string, imageUrl?: string) => (

@@ -1,6 +1,8 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { loadModule } = require('./helpers.cjs');
+// Stable reference: the toolbar's focus effect depends on reload.
+const ADMIN_COUNTS = { total: 0, reload: async () => {} };
 const { hookDriver } = require('./notice-test-helpers.cjs');
 const nodes = value => !value ? [] : Array.isArray(value) ? value.flatMap(nodes) : typeof value === 'object' ? [value, ...nodes(value.children)] : [];
 const element = (type, props, ...children) => ({ type, props: props || {}, children });
@@ -91,6 +93,7 @@ function tabScreens(user) {
     '@expo/vector-icons': { Ionicons: 'Ionicons' },
     '@/utils/tabBarLayout': { hasSideTabStrip: () => false },
     '@/components/StripTabBarHost': { StripTabBarRelay: () => null, useStripTabBarSetter: () => null },
+    '@/hooks/useAdminPendingCounts': { useAdminPendingCounts: () => ADMIN_COUNTS, adminBadgeText: () => null },
   };
   for (const name of ['features/notices/StartupPopups', 'features/notifications/NotificationBell', 'components/CustomTabBar', 'components/SideSheet', 'components/ProfileAvatar', 'components/GlassCircle']) modules[`@/${name}`] = name;
   const TabLayout = loadModule('app/(tabs)/_layout.tsx', modules).default;

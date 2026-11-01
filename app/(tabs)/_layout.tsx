@@ -12,6 +12,7 @@ import Colors from '@/constants/Colors';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/services/api';
 import ProfileAvatar from '@/components/ProfileAvatar';
+import { adminBadgeText, useAdminPendingCounts } from '@/hooks/useAdminPendingCounts';
 import GlassCircle from '@/components/GlassCircle';
 import { SplitProvider, PaneHost, useIsSplit, useActivePane } from '@/features/split/SplitPane';
 import { NativeTabs } from 'expo-router/native-tabs';
@@ -27,6 +28,8 @@ export default function TabLayout() {
   const router = useRouter();
   const updateUserRef = useRef(updateUser);
   updateUserRef.current = updateUser;
+  // 16장: admin이면 프로필 사진에 관리자 기능의 처리할 건수 합계 (프로필 '관리자 기능' 버튼과 같은 숫자)
+  const { total: adminTotal, reload: reloadAdminCounts } = useAdminPendingCounts(user?.level === 'A');
 
   useFocusEffect(useCallback(() => {
     if (!user?.id) return;
@@ -43,11 +46,12 @@ export default function TabLayout() {
       }
     };
     void refresh();
+    void reloadAdminCounts();
     const subscription = AppState.addEventListener('change', state => {
-      if (state === 'active') void refresh();
+      if (state === 'active') { void refresh(); void reloadAdminCounts(); }
     });
     return () => { active = false; subscription.remove(); };
-  }, [user?.id]));
+  }, [user?.id, reloadAdminCounts]));
 
   return (
     <SplitProvider paneInScenes={DUO_SYSTEM_TABS}>
@@ -58,7 +62,7 @@ export default function TabLayout() {
           style={({ pressed }) => [styles.profileButton, pressed && { opacity: 0.6 }]}
           onPress={() => router.push('/profile')}
         >
-          <ProfileAvatar profileImage={user?.profileImage} nickname={user?.nickname} level={user?.badgeLevel ?? user?.level} />
+          <ProfileAvatar profileImage={user?.profileImage} nickname={user?.nickname} level={user?.badgeLevel ?? user?.level} count={adminBadgeText(adminTotal)} />
         </Pressable>
 
         <View pointerEvents="none" style={styles.toolbarLogo}>
