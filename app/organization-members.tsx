@@ -10,6 +10,7 @@ import Colors from '@/constants/Colors';
 import { api, PendingMember } from '@/services/api';
 import Spinner from '@/components/Spinner';
 import GlassCircle from '@/components/GlassCircle';
+import StripBackSlot from '@/components/StripBackSlot';
 
 export default function OrganizationMembersScreen() {
   const insets = useSafeAreaInsets();
@@ -69,11 +70,13 @@ export default function OrganizationMembersScreen() {
       <StatusBar style="light" />
 
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.6 }]}>
-          <GlassCircle fallbackStyle={styles.backCircle}>
-            <Text style={styles.backArrow}>{'<'}</Text>
-          </GlassCircle>
-        </Pressable>
+        <StripBackSlot size={36}>
+          <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.6 }]}>
+            <GlassCircle fallbackStyle={styles.backCircle}>
+              <Text style={styles.backArrow}>{'<'}</Text>
+            </GlassCircle>
+          </Pressable>
+        </StripBackSlot>
         <Text style={styles.headerTitle}>소속 등록요청 처리</Text>
         <View style={{ width: 36 }} />
       </View>

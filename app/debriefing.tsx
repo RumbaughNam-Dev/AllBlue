@@ -15,6 +15,7 @@ import Spinner from '@/components/Spinner';
 import GlassCircle from '@/components/GlassCircle';
 import type { TextInputInstance } from 'react-native';
 import GlassBackground, { glassClear } from '@/components/GlassBackground';
+import StripBackSlot from '@/components/StripBackSlot';
 
 // Save keeps its warning color on glass.
 const WARNING_TINT = 'rgba(255,170,0,0.75)';
@@ -318,11 +319,13 @@ export default function DebriefingScreen() {
       <StatusBar style="light" />
 
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.6 }]}>
-          <GlassCircle fallbackStyle={styles.backCircle}>
-            <Text style={styles.backArrow}>{'<'}</Text>
-          </GlassCircle>
-        </Pressable>
+        <StripBackSlot size={36}>
+          <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.6 }]}>
+            <GlassCircle fallbackStyle={styles.backCircle}>
+              <Text style={styles.backArrow}>{'<'}</Text>
+            </GlassCircle>
+          </Pressable>
+        </StripBackSlot>
         <Text style={styles.headerTitle}>디브리핑</Text>
         <View style={{ width: 36 }} />
       </View>

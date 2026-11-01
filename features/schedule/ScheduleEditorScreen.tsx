@@ -16,6 +16,7 @@ import { useScheduleEditor, CATEGORIES, HOURS, MINUTES, CUSTOM_LOCATION_POOL } f
 import { styles } from './styles';
 import GlassCircle from '@/components/GlassCircle';
 import GlassBackground, { glassClear } from '@/components/GlassBackground';
+import StripBackSlot from '@/components/StripBackSlot';
 
 // Main actions stay white (prominent glass) so the navy label keeps its contrast.
 const PROMINENT_TINT = 'rgba(255,255,255,0.85)';
@@ -57,14 +58,16 @@ export default function ScheduleEditorScreen() {
       <>
       {/* Header */}
       <View style={styles.header}>
-        <Pressable
-          onPress={handleBack}
-          style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.6 }]}
-        >
-          <GlassCircle fallbackStyle={styles.backCircle}>
-            <Text style={styles.backArrow}>{'<'}</Text>
-          </GlassCircle>
-        </Pressable>
+        <StripBackSlot size={36}>
+          <Pressable
+            onPress={handleBack}
+            style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.6 }]}
+          >
+            <GlassCircle fallbackStyle={styles.backCircle}>
+              <Text style={styles.backArrow}>{'<'}</Text>
+            </GlassCircle>
+          </Pressable>
+        </StripBackSlot>
         <Text style={styles.headerTitle}>
           {step === 'info' ? (isEditMode ? '일정 수정' : '다이빙 만들기') : participantLabel}
         </Text>

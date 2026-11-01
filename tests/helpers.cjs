@@ -20,6 +20,8 @@ function loadModule(file, modules, globals = {}) {
       // Tests run without Liquid Glass: the glass layer renders nothing and surfaces keep their colors.
       if (name === '@/components/GlassBackground' && !(name in modules)) return { __esModule: true, default: () => null, glassClear: null, PANEL_TINT: '' };
       if (name === '@/components/GlassCircle' && !(name in modules)) return { __esModule: true, default: ({ children }) => children };
+      // Tests run as a regular phone: the back button stays where the screen put it.
+      if (name === '@/components/StripBackSlot' && !(name in modules)) return { __esModule: true, default: ({ children }) => children };
       assert.ok(name in modules, `Unexpected dependency: ${name}`);
       return modules[name];
     },

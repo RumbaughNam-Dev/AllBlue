@@ -22,6 +22,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { hasInstructorAccess } from '@/utils/userRole';
 import { groupProfileCertifications } from '@/utils/profileCertifications';
 import GlassCircle from '@/components/GlassCircle';
+import StripBackSlot from '@/components/StripBackSlot';
 
 const STUDENT_CATEGORIES = ['EXPERIENCE', 'CERTIFICATION', 'LECTURE'];
 const DOCUMENT_CATEGORIES = ['EXPERIENCE', 'CERTIFICATION', 'TRAINING'];
@@ -229,11 +230,13 @@ export default function ScheduleDetailScreen() {
       <View style={styles.header}>
         {/* First screen in the unfolded right pane: nothing to go back to */}
         {isPaneRoot ? <View style={styles.backButton} /> : (
-          <Pressable onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)')} style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.6 }]}>
-            <GlassCircle fallbackStyle={styles.backCircle}>
-              <Text style={styles.backArrow}>{'<'}</Text>
-            </GlassCircle>
-          </Pressable>
+          <StripBackSlot size={36}>
+            <Pressable onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)')} style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.6 }]}>
+              <GlassCircle fallbackStyle={styles.backCircle}>
+                <Text style={styles.backArrow}>{'<'}</Text>
+              </GlassCircle>
+            </Pressable>
+          </StripBackSlot>
         )}
         <Text style={styles.headerTitle} numberOfLines={1}>
           {schedule?.title ?? ''}

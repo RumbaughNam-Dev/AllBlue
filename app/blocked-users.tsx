@@ -10,6 +10,7 @@ import LevelBadge from '@/components/LevelBadge';
 import Spinner from '@/components/Spinner';
 import { api } from '@/services/api';
 import GlassCircle from '@/components/GlassCircle';
+import StripBackSlot from '@/components/StripBackSlot';
 
 type BlockedUser = {
   userId: string;
@@ -98,11 +99,13 @@ export default function BlockedUsersScreen() {
       <StatusBar style="light" />
 
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.6 }]}>
-          <GlassCircle fallbackStyle={styles.backCircle}>
-            <Text style={styles.backArrow}>{'<'}</Text>
-          </GlassCircle>
-        </Pressable>
+        <StripBackSlot size={36}>
+          <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.6 }]}>
+            <GlassCircle fallbackStyle={styles.backCircle}>
+              <Text style={styles.backArrow}>{'<'}</Text>
+            </GlassCircle>
+          </Pressable>
+        </StripBackSlot>
         <Text style={styles.headerTitle}>차단 관리</Text>
         <View style={{ width: 36 }} />
       </View>

@@ -14,6 +14,7 @@ import Spinner from '@/components/Spinner';
 import LevelBadge from '@/components/LevelBadge';
 import FloatingActionButton from '@/components/FloatingActionButton';
 import GlassCircle from '@/components/GlassCircle';
+import StripBackSlot from '@/components/StripBackSlot';
 
 export default function ScheduleDailyScreen() {
   const insets = useSafeAreaInsets();
@@ -86,11 +87,13 @@ export default function ScheduleDailyScreen() {
       <View style={styles.header}>
         {/* First screen in the unfolded right pane: nothing to go back to */}
         {isPaneRoot ? <View style={styles.backButton} /> : (
-          <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.6 }]}>
-            <GlassCircle fallbackStyle={styles.backCircle}>
-              <Text style={styles.backArrow}>{'<'}</Text>
-            </GlassCircle>
-          </Pressable>
+          <StripBackSlot size={36}>
+            <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.6 }]}>
+              <GlassCircle fallbackStyle={styles.backCircle}>
+                <Text style={styles.backArrow}>{'<'}</Text>
+              </GlassCircle>
+            </Pressable>
+          </StripBackSlot>
         )}
         <Text style={styles.headerTitle}>{month}월 {day}일</Text>
         <View style={{ width: 36 }} />

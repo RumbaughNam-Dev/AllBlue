@@ -5,15 +5,18 @@ import { useRouter } from 'expo-router';
 import Colors from '@/constants/Colors';
 import GlassCircle from '@/components/GlassCircle';
 import { LiquidGlassView } from '@/utils/liquidGlass';
+import StripBackSlot from '@/components/StripBackSlot';
 
 export function NoticeHeader({ title }: { title?: string }) {
   const router = useRouter();
   return <View style={styles.header}>
-    <Pressable accessibilityLabel="뒤로가기" onPress={() => router.back()} style={styles.back} hitSlop={8}>
-      <GlassCircle>
-        <Ionicons name="chevron-back" size={LiquidGlassView ? 20 : 26} color="white" />
-      </GlassCircle>
-    </Pressable>
+    <StripBackSlot size={44}>
+      <Pressable accessibilityLabel="뒤로가기" onPress={() => router.back()} style={styles.back} hitSlop={8}>
+        <GlassCircle>
+          <Ionicons name="chevron-back" size={LiquidGlassView ? 20 : 26} color="white" />
+        </GlassCircle>
+      </Pressable>
+    </StripBackSlot>
     <Text style={styles.headerTitle}>{title}</Text><View style={styles.back} />
   </View>;
 }

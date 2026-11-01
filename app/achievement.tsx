@@ -15,6 +15,7 @@ import LevelBadge from '@/components/LevelBadge';
 import { useAuth } from '@/contexts/AuthContext';
 import GlassCircle from '@/components/GlassCircle';
 import GlassBackground, { glassClear } from '@/components/GlassBackground';
+import StripBackSlot from '@/components/StripBackSlot';
 
 type Section = {
   group: AchievementRequirement;
@@ -250,11 +251,13 @@ export default function AchievementScreen() {
         {isModal ? (
           <View style={{ width: 36 }} />
         ) : (
-          <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.6 }]}>
-            <GlassCircle fallbackStyle={styles.backCircle}>
-              <Text style={styles.backArrow}>{'<'}</Text>
-            </GlassCircle>
-          </Pressable>
+          <StripBackSlot size={36}>
+            <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.6 }]}>
+              <GlassCircle fallbackStyle={styles.backCircle}>
+                <Text style={styles.backArrow}>{'<'}</Text>
+              </GlassCircle>
+            </Pressable>
+          </StripBackSlot>
         )}
         <View style={styles.headerCenter}>
           <ProfileLink userId={profileUserId} label={participantName}><Text style={styles.headerTitle}>{participantName}</Text></ProfileLink>

@@ -10,6 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/services/api';
 import GlassCircle from '@/components/GlassCircle';
 import GlassBackground, { glassClear } from '@/components/GlassBackground';
+import StripBackSlot from '@/components/StripBackSlot';
 
 // Withdraw keeps its red on glass.
 const DANGER_TINT = 'rgba(229,48,48,0.8)';
@@ -51,11 +52,13 @@ export default function WithdrawScreen() {
       <StatusBar style="light" />
 
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.6 }]}>
-          <GlassCircle fallbackStyle={styles.backCircle}>
-            <Text style={styles.backArrow}>{'<'}</Text>
-          </GlassCircle>
-        </Pressable>
+        <StripBackSlot size={36}>
+          <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.6 }]}>
+            <GlassCircle fallbackStyle={styles.backCircle}>
+              <Text style={styles.backArrow}>{'<'}</Text>
+            </GlassCircle>
+          </Pressable>
+        </StripBackSlot>
         <Text style={styles.headerTitle}>회원탈퇴</Text>
         <View style={{ width: 36 }} />
       </View>
