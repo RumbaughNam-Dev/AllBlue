@@ -407,7 +407,7 @@ export type TourBannerItem = {
 export type TourBannerInput = { imageUrl: string; tourId: number; startDate: string; endDate: string; isEnabled: boolean };
 // 15장 투어 등록요청 (admin)
 export type TourRequestItem = {
-  id: number; type: 'CREATE' | 'UPDATE'; requestedAt: string;
+  id: number; type: 'CREATE' | 'UPDATE'; requestedAt: string; changedFields: string[];
   tour: { id: number; title: string; countryName: string; startDate: string; endDate: string; fee: number | null; imageUrl: string | null };
   instructor: { userId: string; nickname: string; name: string | null };
 };
@@ -424,6 +424,7 @@ export type TourDetail = {
     pendingRequest: { id: number; type: 'CREATE' | 'UPDATE' } | null; // admin이 심사 중일 때만
     shareUrl: string | null; // 24장 공유 링크, 공개 중일 때만
     reviewNote: string | null; // 보완 요청 내용 (만든 강사 · admin)
+    editRequest: import('@/features/tour/edit').EditRequest | null; // 18장 공개 중인 투어의 수정본 (만든 강사 · admin)
     continentCode: string; continentName: string; countryCode: string; countryName: string;
     startDate: string; endDate: string; capacity: number; recruitedCount: number; fee: number | null;
     images: string[]; included: string[]; excluded: string[];
@@ -433,7 +434,8 @@ export type TourDetail = {
 };
 
 // 8~10장 투어 관리 (내가 만든 투어)
-export type MyTour = TourCard & { fee: number | null; reviewNote: string | null }; // reviewNote: 보완 요청 내용
+// reviewNote: 보완 요청 내용, editRequest: 공개 중인 투어의 수정본 상태 (18장)
+export type MyTour = TourCard & { fee: number | null; reviewNote: string | null; editRequest: { status: 'PENDING' | 'REJECTED'; reviewNote: string | null } | null };
 export type Recruitment = { recruitedCount: number; capacity: number; status: TourStatus };
 
 export const api = {
@@ -447,6 +449,8 @@ export const api = {
   setTourStatus(id: number, status: TourStatus) {
     return request<{ status: TourStatus }>(`/tours/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
   },
+  // 18장 수정 취소: 대기 중이거나 보완 요청을 받은 수정본을 버림
+  cancelTourEdit(id: number) { return request<{ tourId: number }>(`/tours/${id}/edit-request`, { method: 'DELETE' }); },
   deleteTour(id: number) { return request<{ success: boolean }>(`/tours/${id}`, { method: 'DELETE' }); },
   updateTour(id: number, input: TourRequestInput) {
     return request<{ tourId: number; status: TourStatus }>(`/tours/${id}`, { method: 'PUT', body: JSON.stringify(input) });

@@ -13,6 +13,7 @@ import { useSheetTop } from './useSheetTop';
 import { TourEmpty } from './TourCards';
 import { confirmApprove, formatRequestedAt, sendRevision } from './requests';
 import ReviewNotePopup from './ReviewNotePopup';
+import { changedLabels } from './edit';
 import { formatFee, formatTourPeriod } from './ui';
 
 const SIDE = 20;
@@ -64,7 +65,7 @@ export default function TourRequestsScreen() {
   const approve = async (item: TourRequestItem) => {
     if (busy !== null) return;
     setBusy(item.id);
-    if (await confirmApprove(item.id, item.tour.title)) done(item);
+    if (await confirmApprove(item.id, item.tour.title, item.type)) done(item);
     setBusy(null);
   };
   const revise = async (note: string) => {
@@ -74,8 +75,8 @@ export default function TourRequestsScreen() {
 
   const renderItem = ({ item }: { item: TourRequestItem }) => {
     const type = REQUEST_TYPE[item.type] ?? REQUEST_TYPE.CREATE;
-    const meta = [item.tour.countryName, formatTourPeriod(item.tour.startDate, item.tour.endDate), item.tour.fee !== null ? `참가비 ${formatFee(item.tour.fee)}` : null]
-      .filter(Boolean).join(' · ');
+    // 18장 수정 요청은 바뀐 항목을, 새 등록은 나라 · 기간 · 참가비를
+    const meta = item.type === 'UPDATE' ? `바뀐 항목: ${changedLabels(item.changedFields)}` : [item.tour.countryName, formatTourPeriod(item.tour.startDate, item.tour.endDate), item.tour.fee !== null ? `참가비 ${formatFee(item.tour.fee)}` : null].filter(Boolean).join(' · ');
     const requester = item.instructor.name ? `${item.instructor.nickname} (${item.instructor.name})` : item.instructor.nickname;
     return (
       <View style={styles.card}>

@@ -14,6 +14,8 @@ import { useAppRouter, useIsPaneRoot, useScreenParams } from '@/features/split/S
 import { useLatestRequest } from '@/hooks/useLatestRequest';
 import { StatusBadge, TourEmpty } from './TourCards';
 import { formatFee, formatStay, formatTourPeriod, shareContent } from './ui';
+import { changedLabels, withEdit } from './edit';
+import { regionName, useTourRegions } from './useTourRegions';
 import { confirmApprove, sendRevision } from './requests';
 import ReviewNotePopup from './ReviewNotePopup';
 import TourReportPopup, { ReportReason } from './TourReportPopup';
@@ -35,6 +37,7 @@ export default function TourDetailScreen() {
   const [state, setState] = useState<'loading' | 'ready' | 'gone' | 'error'>('loading');
   const [viewing, setViewing] = useState<string | null>(null);
   const [linkSheet, setLinkSheet] = useState(false);
+  const { continents, countries } = useTourRegions();
   const request = useLatestRequest();
 
   const load = useCallback(async () => {
@@ -102,14 +105,14 @@ export default function TourDetailScreen() {
     }
   };
 
-  // 15장: admin이 심사 중인 투어를 열면 하단에서 승인 · 불허, 처리 후 목록으로 돌아감
+  // 15장: admin이 심사 중인 투어를 열면 하단에서 승인 · 보완 요청, 처리 후 목록으로 돌아감
   const [processing, setProcessing] = useState(false);
   const [revising, setRevising] = useState(false);
   const approve = async () => {
     const pending = detail?.tour.pendingRequest;
     if (!pending || processing) return;
     setProcessing(true);
-    const done = await confirmApprove(pending.id, detail.tour.title);
+    const done = await confirmApprove(pending.id, detail.tour.title, pending.type);
     setProcessing(false);
     if (done) router.back();
   };
@@ -162,13 +165,21 @@ export default function TourDetailScreen() {
     );
   }
 
-  const { tour, instructor, links } = detail;
+  // 18장: admin이 수정 요청을 심사하면 공개 중인 내용 위에 수정본을 얹어 보여줌
+  const reviewingEdit = detail.tour.pendingRequest?.type === 'UPDATE' && detail.tour.editRequest ? detail.tour.editRequest : null;
+  const shown = reviewingEdit ? withEdit(detail, reviewingEdit.payload, code => regionName([...continents, ...countries], code)) : detail;
+  const { tour, instructor, links } = shown;
   const remaining = tour.capacity - tour.recruitedCount;
 
   return (
     <View style={[styles.container, { paddingTop: inSheet && Platform.OS === 'ios' ? 10 : insets.top }]}>
       {header}
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        {reviewingEdit && (
+          <View style={[styles.preview, styles.editPreview]}>
+            <Text style={styles.previewText}>강사가 보낸 수정본이에요. 승인 전까지는 이전 내용이 공개돼요.{'\n'}바뀐 항목: {changedLabels(reviewingEdit.changedFields)}</Text>
+          </View>
+        )}
         {!tour.isPublic && (
           <View style={styles.preview}>
             <Text style={styles.previewText}>{tour.isMine ? '공개 전 미리보기예요. 다른 사람에게는 아직 보이지 않아요.' : '공개 전 투어예요 (관리자 확인용).'}</Text>
@@ -320,6 +331,7 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 20 },
   errorText: { fontFamily: 'SUIT-Regular', fontSize: 15, color: 'rgba(255,255,255,0.35)', textAlign: 'center' },
   scroll: { paddingHorizontal: SIDE, paddingTop: 4, paddingBottom: 24 },
+  editPreview: { marginBottom: 12 },
   preview: { padding: 12, borderRadius: 10, backgroundColor: 'rgba(183,148,244,0.18)', marginBottom: 12 },
   previewText: { fontFamily: 'SUIT-SemiBold', fontSize: 13, color: '#D6C2FF' },
   instructor: {

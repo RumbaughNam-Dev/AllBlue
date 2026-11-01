@@ -14,9 +14,12 @@ async function settle(run: () => Promise<unknown>, processedMessage: string) {
 }
 
 // 15장 승인: 확인 창을 거쳐 처리. 처리하면 true (취소 · 실패는 false)
-export function confirmApprove(requestId: number, title: string): Promise<boolean> {
+export function confirmApprove(requestId: number, title: string, type: 'CREATE' | 'UPDATE' = 'CREATE'): Promise<boolean> {
+  const [heading, body] = type === 'UPDATE'
+    ? ['수정 내용을 승인할까요?', `'${title}'에 수정한 내용이 바로 반영되고 강사에게 알려요.`]
+    : ['투어를 승인할까요?', `'${title}'이(가) '준비중'으로 공개되고 강사에게 알려요.`];
   return new Promise(resolve => {
-    Alert.alert('투어를 승인할까요?', `'${title}'이(가) '준비중'으로 공개되고 강사에게 알려요.`, [
+    Alert.alert(heading, body, [
       { text: '취소', style: 'cancel', onPress: () => resolve(false) },
       { text: '승인', onPress: async () => resolve(await settle(() => api.approveTourRequest(requestId), '이미 처리된 요청이에요.')) },
     ], { cancelable: true, onDismiss: () => resolve(false) });

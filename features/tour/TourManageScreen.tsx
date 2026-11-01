@@ -16,6 +16,7 @@ import { OverCapacityPopup, TourProcessPopup } from './TourManagePopups';
 import { SORT_LABELS } from './TourSearchScreen';
 import { localToday } from './tourForm';
 import { manageActions, manageNotice } from './manage';
+import { editNotice } from './edit';
 import { formatFee, formatTourPeriod } from './ui';
 
 const SIDE = 20;
@@ -121,12 +122,19 @@ export default function TourManageScreen() {
     } catch (e) { showError(e); }
   };
 
-  const edit = (tour: MyTour) => {
-    if (tour.status === 'PENDING' || tour.status === 'REJECTED') {
-      router.push({ pathname: '/tour-create', params: { editId: String(tour.id) } });
-    } else {
-      Alert.alert('준비 중이에요', '공개 중인 투어의 수정(수정본 승인)은 다음 단계에서 만들어요.');
-    }
+  // 같은 수정 화면: 공개 전이면 그 요청을 고치고, 공개 중이면 수정본만 승인 대기 (18장)
+  const edit = (tour: MyTour) => router.push({ pathname: '/tour-create', params: { editId: String(tour.id) } });
+
+  // 18장 수정 취소: 대기 중이거나 보완 요청을 받은 수정본을 버림 (공개 내용은 그대로)
+  const cancelEdit = (tour: MyTour) => {
+    Alert.alert('수정을 취소할까요?', `'${tour.title}'의 수정본을 버리고 지금 공개 중인 내용을 그대로 둬요.`, [
+      { text: '닫기', style: 'cancel' },
+      {
+        text: '수정 취소', style: 'destructive', onPress: async () => {
+          try { await api.cancelTourEdit(tour.id); patch(tour.id, { editRequest: null }); } catch (e) { showError(e); void load('quiet'); }
+        },
+      },
+    ]);
   };
 
   // 10장 삭제 확인: 투어 이름과 함께, 모집된 인원이 있으면 따로 알리라고 안내
@@ -203,7 +211,7 @@ export default function TourManageScreen() {
           contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 80 }, !tours.length && styles.listEmpty]}
           ItemSeparatorComponent={() => <View style={{ height: view === 'card' ? 12 : 8 }} />}
           renderItem={({ item }) => view === 'card'
-            ? <ManageCard tour={item} today={today} onOpen={openTour} onStep={step} onProcess={setProcessing} onEdit={edit} onRemove={remove} />
+            ? <ManageCard tour={item} today={today} onOpen={openTour} onStep={step} onProcess={setProcessing} onEdit={edit} onRemove={remove} onCancelEdit={cancelEdit} />
             : <TourRow tour={item} onPress={openTour} />}
           ListEmptyComponent={<TourEmpty message="등록한 투어가 없어요." />}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load('refresh')} tintColor="rgba(255,255,255,0.6)" />}
@@ -239,13 +247,17 @@ export default function TourManageScreen() {
   );
 }
 
-function ManageCard({ tour, today, onOpen, onStep, onProcess, onEdit, onRemove }: {
+function ManageCard({ tour, today, onOpen, onStep, onProcess, onEdit, onRemove, onCancelEdit }: {
   tour: MyTour; today: string;
   onOpen: (tour: MyTour) => void; onStep: (tour: MyTour, delta: 1 | -1) => void;
   onProcess: (tour: MyTour) => void; onEdit: (tour: MyTour) => void; onRemove: (tour: MyTour) => void;
+  onCancelEdit: (tour: MyTour) => void;
 }) {
   const actions = manageActions(tour.status);
-  const notice = manageNotice(tour.status, tour.endDate, today, tour.reviewNote);
+  // 공개 중인 투어의 수정본 상태(18장)가 있으면 그 안내가 우선
+  const editing = tour.editRequest;
+  const notice = editNotice(editing) ?? manageNotice(tour.status, tour.endDate, today, tour.reviewNote);
+  const editLabel = editing?.status === 'REJECTED' ? '보완 후 재요청' : actions.editLabel;
   const meta = [tour.countryName, formatTourPeriod(tour.startDate, tour.endDate), tour.fee !== null ? `참가비 ${formatFee(tour.fee)}` : null].filter(Boolean).join('  ·  ');
   return (
     <View style={styles.card}>
@@ -257,7 +269,12 @@ function ManageCard({ tour, today, onOpen, onStep, onProcess, onEdit, onRemove }
         </View>
         <Text style={styles.cardMeta} numberOfLines={1}>{meta}</Text>
       </Pressable>
-      {notice && <Text style={[styles.notice, tour.status === 'REJECTED' && styles.noticeRejected, tour.status === 'PENDING' && styles.noticePending]}>{notice}</Text>}
+      {notice && <Text style={[styles.notice, (tour.status === 'REJECTED' || editing?.status === 'REJECTED') && styles.noticeRejected, (tour.status === 'PENDING' || editing?.status === 'PENDING') && styles.noticePending]}>{notice}</Text>}
+      {editing && (
+        <Pressable accessibilityRole="button" hitSlop={8} onPress={() => onCancelEdit(tour)} style={({ pressed }) => [styles.cancelEdit, pressed && { opacity: 0.6 }]}>
+          <Text style={styles.cancelEditText}>수정 취소</Text>
+        </Pressable>
+      )}
 
       {actions.adjust && (
         <View style={styles.recruit}>
@@ -272,7 +289,7 @@ function ManageCard({ tour, today, onOpen, onStep, onProcess, onEdit, onRemove }
 
       <View style={styles.cardButtons}>
         {actions.process && <CardButton label="처리" onPress={() => onProcess(tour)} />}
-        {actions.edit && <CardButton label={actions.editLabel} onPress={() => onEdit(tour)} />}
+        {actions.edit && <CardButton label={editLabel} onPress={() => onEdit(tour)} />}
         {actions.remove && <CardButton label={actions.removeLabel} danger onPress={() => onRemove(tour)} />}
       </View>
     </View>
@@ -334,6 +351,8 @@ const styles = StyleSheet.create({
     fontFamily: 'SUIT-SemiBold', fontSize: 12, lineHeight: 18, color: '#FFD166',
     padding: 10, borderRadius: 10, backgroundColor: 'rgba(255,209,102,0.12)',
   },
+  cancelEdit: { alignSelf: 'flex-end', marginTop: -4 },
+  cancelEditText: { fontFamily: 'SUIT-SemiBold', fontSize: 13, color: '#FF8A7A', textDecorationLine: 'underline' },
   noticePending: { color: '#D6C2FF', backgroundColor: 'rgba(183,148,244,0.15)' },
   noticeRejected: { color: '#FFC58A', backgroundColor: 'rgba(255,159,67,0.15)' },
   recruit: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },

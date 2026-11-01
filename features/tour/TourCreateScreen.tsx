@@ -39,7 +39,7 @@ export default function TourCreateScreen() {
   const editing = !!editId;
   const [form, setForm] = useState<TourForm>(EMPTY_TOUR_FORM);
   const [initial, setInitial] = useState<TourForm>(EMPTY_TOUR_FORM);
-  const [editState, setEditState] = useState<{ status: TourStatus; recruitedCount: number; reviewNote: string | null } | null>(null);
+  const [editState, setEditState] = useState<{ status: TourStatus; recruitedCount: number; reviewNote: string | null; isPublic: boolean } | null>(null);
   const [loadingEdit, setLoadingEdit] = useState(editing);
   const [touched, setTouched] = useState<Partial<Record<TourField, boolean>>>({});
   const [sheet, setSheet] = useState<Sheet>(null);
@@ -73,9 +73,13 @@ export default function TourCreateScreen() {
     let alive = true;
     api.getTour(Number(editId)).then(({ tour, links }) => {
       if (!alive) return;
-      const loaded = formFromTour(tour, links.slice(0, L.linkMax));
+      // 18장: 공개 중인 투어에 수정본이 있으면 이어서 고침 (보완 요청을 받았으면 그 내용도 보임)
+      const draft = tour.editRequest?.payload;
+      const loaded = draft ? formFromTour(draft, draft.links.slice(0, L.linkMax)) : formFromTour(tour, links.slice(0, L.linkMax));
       setForm(loaded); setInitial(loaded);
-      setEditState({ status: tour.status, recruitedCount: tour.recruitedCount, reviewNote: tour.reviewNote ?? null });
+      const isPublic = ['PREPARING', 'RECRUITING', 'CLOSED'].includes(tour.status);
+      const note = isPublic ? (tour.editRequest?.status === 'REJECTED' ? tour.editRequest.reviewNote : null) : tour.reviewNote ?? null;
+      setEditState({ status: tour.status, recruitedCount: tour.recruitedCount, reviewNote: note, isPublic });
       // 이미 저장된 값이라 처음부터 검사 결과를 보여줌
       setTouched({ images: true, title: true, region: true, period: true, capacity: true, links: true });
     }).catch((e: any) => {
@@ -132,9 +136,11 @@ export default function TourCreateScreen() {
       if (editing) await api.updateTour(Number(editId), toTourRequest(form, urls));
       else await api.createTourRequest(toTourRequest(form, urls));
       disablePrevention();
-      const [title, message] = editing && !resubmit
-        ? ['수정했어요', '승인을 기다리는 요청에 바로 반영했어요.']
-        : ['등록 요청을 보냈어요', '관리자가 확인한 뒤 공개돼요. 승인되면 알림으로 알려드려요.'];
+      const [title, message] = editState?.isPublic
+        ? ['수정 요청을 보냈어요', '관리자가 확인하면 반영돼요. 그 전까지는 이전 내용이 보여요.']
+        : editing && !resubmit
+          ? ['수정했어요', '승인을 기다리는 요청에 바로 반영했어요.']
+          : ['등록 요청을 보냈어요', '관리자가 확인한 뒤 공개돼요. 승인되면 알림으로 알려드려요.'];
       Alert.alert(title, message, [
         { text: '확인', onPress: () => router.back() },
       ]);
@@ -172,7 +178,7 @@ export default function TourCreateScreen() {
           scrollEnabled={!dragging}
         >
           {/* 보완 후 재요청: 관리자가 적은 보완 내용을 맨 위에 */}
-          {resubmit && editState?.reviewNote && (
+          {editState?.reviewNote && (
             <View style={styles.reviewNote}>
               <Text style={styles.reviewNoteTitle}>관리자 보완 요청</Text>
               <Text style={styles.reviewNoteText}>{editState.reviewNote}</Text>
@@ -300,7 +306,7 @@ export default function TourCreateScreen() {
             disabled={!valid || submitting}
           >
             <GlassBackground radius={14} interactive tintColor={PROMINENT_TINT} />
-            {submitting ? <ActivityIndicator color={Colors.brand.primary} /> : <Text style={styles.submitText}>{!editing ? '등록 요청' : resubmit ? '보완 후 재요청' : '수정 저장'}</Text>}
+            {submitting ? <ActivityIndicator color={Colors.brand.primary} /> : <Text style={styles.submitText}>{!editing ? '등록 요청' : resubmit ? '보완 후 재요청' : editState?.isPublic ? '수정 요청' : '수정 저장'}</Text>}
           </Pressable>
         </View>
       </KeyboardAvoidingView>
