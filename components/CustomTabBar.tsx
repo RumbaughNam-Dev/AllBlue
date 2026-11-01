@@ -64,9 +64,11 @@ function TabIcon({ focused, tab }: { focused: boolean; tab: TabIconConfig }) {
 type Props = BottomTabBarProps & {
   // Width of the right safe-area strip to stand the bar up in, instead of floating it at the bottom.
   stripWidth?: number;
+  // Closes screens stacked over the tabs; true when it did, so the tab opens even if already selected.
+  leaveStack?: () => boolean;
 };
 
-export default function CustomTabBar({ state, emitter, navigateToTab, stripWidth }: Props) {
+export default function CustomTabBar({ state, emitter, navigateToTab, stripWidth, leaveStack }: Props) {
   const insets = useSafeAreaInsets();
   const vertical = stripWidth !== undefined;
   // Vertical: as wide as the strip allows, up to the usual bar height.
@@ -122,12 +124,13 @@ export default function CustomTabBar({ state, emitter, navigateToTab, stripWidth
         const tab = TAB_ICONS[index];
 
         const onPress = () => {
+          const leftStack = leaveStack?.() ?? false;
           const event = emitter.emit({
             type: 'tabPress',
             target: route.key,
             canPreventDefault: true,
           });
-          if (!isFocused && !event.defaultPrevented) {
+          if ((leftStack || !isFocused) && !event.defaultPrevented) {
             navigateToTab(route.key);
           }
         };
@@ -143,7 +146,7 @@ export default function CustomTabBar({ state, emitter, navigateToTab, stripWidth
 
   return (
     <View style={vertical
-      ? [styles.stripContainer, { width: stripWidth, right: -stripWidth, paddingBottom: getSideStripBottomGap(insets.bottom) }]
+      ? [styles.stripContainer, { width: stripWidth, right: 0, paddingBottom: getSideStripBottomGap(insets.bottom) }]
       : [styles.container, { paddingBottom: getTabBarBottomPadding(insets.bottom, Platform.OS) }]}>
       {LiquidGlassView ? (
         <LiquidGlassView glassEffectStyle="regular" colorScheme="dark" style={[styles.blurContainer, vertical && { width: barSize, borderRadius: barSize / 2 }]}>
@@ -171,7 +174,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 40,
   },
-  // Fills the strip to the right of the tab layout (which ends where the safe area begins);
+  // Fills the right safe-area strip of the window (drawn by StripTabBarHost above all screens);
   // the bar sits at its bottom, level with the screens' bottom content.
   stripContainer: {
     position: 'absolute',

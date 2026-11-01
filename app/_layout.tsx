@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from 'react';
 import { View, DeviceEventEmitter, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { hasSideTabStrip } from '@/utils/tabBarLayout';
+import { StripTabBarHost } from '@/components/StripTabBarHost';
 import { observeSchedulePushes } from '@/services/push';
 import { api } from '@/services/api';
 import { StatusBar } from 'expo-status-bar';
@@ -75,40 +76,42 @@ function RootLayoutNav() {
   return (
     <View style={{ flex: 1, backgroundColor: '#144A84' }}>
       <StatusBar style="light" />
-      <Stack screenOptions={{
-        headerShown: false,
-        contentStyle: { ...side, backgroundColor: '#144A84' },
-        gestureEnabled: false,
-        animation: 'simple_push',
-        navigationBarColor: '#144A84',
-        freezeOnBlur: false,
-      }}>
-        <Stack.Screen name="onboarding" />
-        <Stack.Screen name="login" />
-        <Stack.Screen name="register" />
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="profile" options={{ presentation: 'modal', gestureEnabled: true, animation: 'default', contentStyle: { ...side, backgroundColor: '#144A84' } }} />
-        <Stack.Screen name="profile-edit" options={{ presentation: 'fullScreenModal', contentStyle: { ...side, backgroundColor: '#144A84' } }} />
-        <Stack.Screen name="cert-upload" options={{ presentation: 'fullScreenModal', contentStyle: { ...side, backgroundColor: '#144A84' } }} />
-        <Stack.Screen name="cert-manage" options={{ presentation: 'fullScreenModal', contentStyle: { ...side, backgroundColor: '#144A84' } }} />
-        <Stack.Screen name="schedule-daily" options={{ gestureEnabled: true }} />
-        <Stack.Screen name="schedule-detail" options={{ gestureEnabled: true }} />
-        <Stack.Screen name="schedule-add" options={{ gestureEnabled: true, headerBackButtonMenuEnabled: false }} />
-        <Stack.Screen name="profile-view" options={{ presentation: 'modal', gestureEnabled: true, animation: 'default' }} />
-        <Stack.Screen name="achievement" options={{ gestureEnabled: true }} />
-        <Stack.Screen name="debriefing" options={{ gestureEnabled: true }} />
-        <Stack.Screen name="blocked-users" options={{ gestureEnabled: true }} />
-        <Stack.Screen name="inquiry" options={{ gestureEnabled: true }} />
-        <Stack.Screen name="inquiry-write" options={{ gestureEnabled: true }} />
-        <Stack.Screen name="inquiry-detail" options={{ gestureEnabled: true }} />
-        <Stack.Screen name="inquiry-manage" options={{ presentation: 'fullScreenModal', contentStyle: { ...side, backgroundColor: '#144A84' } }} />
-        <Stack.Screen name="inquiry-answer" options={{ gestureEnabled: true }} />
-        <Stack.Screen name="withdraw" options={{ gestureEnabled: true }} />
-        <Stack.Screen name="schedule-settings" options={{ gestureEnabled: true }} />
-        <Stack.Screen name="organization-register" options={{ gestureEnabled: true, contentStyle: { ...side, backgroundColor: '#144A84' } }} />
-        <Stack.Screen name="organization-manage" options={{ presentation: 'fullScreenModal', contentStyle: { ...side, backgroundColor: '#144A84' } }} />
-        <Stack.Screen name="organization-members" options={{ gestureEnabled: true, contentStyle: { ...side, backgroundColor: '#144A84' } }} />
-      </Stack>
+      <StripTabBarHost>
+        <Stack screenOptions={{
+          headerShown: false,
+          contentStyle: { ...side, backgroundColor: '#144A84' },
+          gestureEnabled: false,
+          animation: 'simple_push',
+          navigationBarColor: '#144A84',
+          freezeOnBlur: false,
+        }}>
+          <Stack.Screen name="onboarding" />
+          <Stack.Screen name="login" />
+          <Stack.Screen name="register" />
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="profile" options={{ presentation: 'modal', gestureEnabled: true, animation: 'default', contentStyle: { ...side, backgroundColor: '#144A84' } }} />
+          <Stack.Screen name="profile-edit" options={{ presentation: 'fullScreenModal', contentStyle: { ...side, backgroundColor: '#144A84' } }} />
+          <Stack.Screen name="cert-upload" options={{ presentation: 'fullScreenModal', contentStyle: { ...side, backgroundColor: '#144A84' } }} />
+          <Stack.Screen name="cert-manage" options={{ presentation: 'fullScreenModal', contentStyle: { ...side, backgroundColor: '#144A84' } }} />
+          <Stack.Screen name="schedule-daily" options={{ gestureEnabled: true }} />
+          <Stack.Screen name="schedule-detail" options={{ gestureEnabled: true }} />
+          <Stack.Screen name="schedule-add" options={{ gestureEnabled: true, headerBackButtonMenuEnabled: false }} />
+          <Stack.Screen name="profile-view" options={{ presentation: 'modal', gestureEnabled: true, animation: 'default' }} />
+          <Stack.Screen name="achievement" options={{ gestureEnabled: true }} />
+          <Stack.Screen name="debriefing" options={{ gestureEnabled: true }} />
+          <Stack.Screen name="blocked-users" options={{ gestureEnabled: true }} />
+          <Stack.Screen name="inquiry" options={{ gestureEnabled: true }} />
+          <Stack.Screen name="inquiry-write" options={{ gestureEnabled: true }} />
+          <Stack.Screen name="inquiry-detail" options={{ gestureEnabled: true }} />
+          <Stack.Screen name="inquiry-manage" options={{ presentation: 'fullScreenModal', contentStyle: { ...side, backgroundColor: '#144A84' } }} />
+          <Stack.Screen name="inquiry-answer" options={{ gestureEnabled: true }} />
+          <Stack.Screen name="withdraw" options={{ gestureEnabled: true }} />
+          <Stack.Screen name="schedule-settings" options={{ gestureEnabled: true }} />
+          <Stack.Screen name="organization-register" options={{ gestureEnabled: true, contentStyle: { ...side, backgroundColor: '#144A84' } }} />
+          <Stack.Screen name="organization-manage" options={{ presentation: 'fullScreenModal', contentStyle: { ...side, backgroundColor: '#144A84' } }} />
+          <Stack.Screen name="organization-members" options={{ gestureEnabled: true, contentStyle: { ...side, backgroundColor: '#144A84' } }} />
+        </Stack>
+      </StripTabBarHost>
     </View>
   );
 }

@@ -1,12 +1,12 @@
 import StartupPopups from '@/features/notices/StartupPopups';
 import NotificationBell from '@/features/notifications/NotificationBell';
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { AppState, View, Text, StyleSheet, Pressable, Platform } from 'react-native';
 import { Tabs, useRouter, useFocusEffect } from 'expo-router';
-import type { BottomTabBarProps } from 'expo-router/tabs';
 import { hasSideTabStrip } from '@/utils/tabBarLayout';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CustomTabBar from '@/components/CustomTabBar';
+import { StripTabBarRelay, useStripTabBarSetter } from '@/components/StripTabBarHost';
 import SideSheet from '@/components/SideSheet';
 import Colors from '@/constants/Colors';
 import { useAuth } from '@/contexts/AuthContext';
@@ -142,14 +142,14 @@ function CreateDiveAccessory({ date }: { date: string }) {
 function TabsBody() {
   const isSplit = useIsSplit();
   const insets = useSafeAreaInsets();
-  const strip = hasSideTabStrip(insets.right, Platform.OS);
-  // With a side strip the bar is drawn here, beside both halves, rather than inside the left half.
-  const [stripBarProps, setStripBarProps] = useState<BottomTabBarProps | null>(null);
+  // With a side strip the bar is drawn by StripTabBarHost above every screen, not inside the left half.
+  const setStripBar = useStripTabBarSetter();
+  const strip = hasSideTabStrip(insets.right, Platform.OS) && setStripBar !== null;
   return (
     <View style={styles.body}>
       <View style={styles.half}>
         <Tabs
-          tabBar={(props) => strip ? <TabBarRelay {...props} onChange={setStripBarProps} /> : <CustomTabBar {...props} />}
+          tabBar={(props) => strip ? <StripTabBarRelay {...props} onChange={setStripBar} /> : <CustomTabBar {...props} />}
           screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: '#144A84' } }}
         >
           <Tabs.Screen name="index" />
@@ -162,21 +162,10 @@ function TabsBody() {
           <PaneHost />
         </View>
       )}
-      {strip && stripBarProps && <CustomTabBar {...stripBarProps} stripWidth={insets.right} />}
     </View>
   );
 }
 
-// Hands the tab bar's props up to TabsBody, which draws the bar in the side strip.
-function TabBarRelay({ onChange, ...props }: BottomTabBarProps & { onChange: (props: BottomTabBarProps | null) => void }) {
-  const { state, emitter, navigateToTab } = props;
-  useEffect(() => {
-    onChange(props);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state, emitter, navigateToTab, onChange]);
-  useEffect(() => () => onChange(null), [onChange]);
-  return null;
-}
 
 const styles = StyleSheet.create({
   root: {
