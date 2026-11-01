@@ -12,7 +12,7 @@ export const SPLIT_MIN_WIDTH = 600;
 
 export type PaneTab = 'index' | 'b' | 'c' | 'tour';
 type Params = Record<string, string>;
-const PANE_PATHS = ['/schedule-daily', '/schedule-detail', '/profile-view', '/achievement', '/debriefing'] as const;
+const PANE_PATHS = ['/schedule-daily', '/schedule-detail', '/profile-view', '/achievement', '/debriefing', '/tour-search'] as const;
 type PanePath = typeof PANE_PATHS[number];
 type PaneRoute = { key: number; pathname: PanePath; params: Params };
 type Href = string | { pathname: string; params?: Record<string, unknown> };
@@ -27,6 +27,7 @@ const getPaneScreen = (pathname: PanePath): React.ComponentType => {
     case '/profile-view': return require('@/app/profile-view').default;
     case '/achievement': return require('@/app/achievement').default;
     case '/debriefing': return require('@/app/debriefing').default;
+    case '/tour-search': return require('@/app/tour-search').default;
   }
 };
 

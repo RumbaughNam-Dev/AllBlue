@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
   View, Text, TextInput, StyleSheet, Pressable, ScrollView, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, useWindowDimensions,
 } from 'react-native';
@@ -7,13 +7,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import Colors from '@/constants/Colors';
-import { api, CommonCode } from '@/services/api';
+import { api } from '@/services/api';
 import BottomSheet from '@/components/BottomSheet';
 import DatePickerSheet from '@/components/DatePickerSheet';
 import GlassCircle from '@/components/GlassCircle';
 import GlassBackground, { glassClear } from '@/components/GlassBackground';
 import StripBackSlot from '@/components/StripBackSlot';
 import TourImageGrid from './TourImageGrid';
+import { regionName, useTourRegions } from './useTourRegions';
 import {
   EMPTY_TOUR_FORM, TOUR_FORM_LIMITS as L, TourField, TourForm, digitsOnly, formatFee, isTourFormDirty, localToday, moveItem,
   toTourRequest, tourFormErrors,
@@ -35,9 +36,7 @@ export default function TourCreateScreen() {
   const [form, setForm] = useState<TourForm>(EMPTY_TOUR_FORM);
   const [touched, setTouched] = useState<Partial<Record<TourField, boolean>>>({});
   const [sheet, setSheet] = useState<Sheet>(null);
-  const [continents, setContinents] = useState<CommonCode[]>([]);
-  const [countries, setCountries] = useState<CommonCode[]>([]);
-  const [regionsFailed, setRegionsFailed] = useState(false);
+  const { continents, countries, failed: regionsFailed, reload: loadRegions, countriesOf } = useTourRegions();
   const [dragging, setDragging] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
@@ -49,18 +48,6 @@ export default function TourCreateScreen() {
   const shown = (field: TourField) => (touched[field] ? errors[field] : undefined);
   const valid = Object.keys(errors).length === 0;
 
-  const loadRegions = async () => {
-    try {
-      const [c, n] = await Promise.all([api.getCodes('TOUR_CONTINENT'), api.getCodes('TOUR_COUNTRY')]);
-      setContinents(c.data ?? []);
-      setCountries(n.data ?? []);
-      setRegionsFailed(!c.data?.length || !n.data?.length);
-    } catch {
-      setRegionsFailed(true);
-    }
-  };
-  useEffect(() => { void loadRegions(); }, []);
-
   // 작성 · 수정 중 뒤로가기는 확인 (바뀐 게 없으면 바로 나감)
   const disablePrevention = usePreventRemove(isTourFormDirty(form) && !submitting, ({ repeat }) => {
     Alert.alert('작성 중인 내용이 사라져요. 나갈까요?', undefined, [
@@ -69,11 +56,7 @@ export default function TourCreateScreen() {
     ]);
   });
 
-  const regionName = (codes: CommonCode[], code: string) => {
-    const item = codes.find(c => c.code === code);
-    return item ? item.nameKo ?? item.name : '';
-  };
-  const continentCountries = countries.filter(c => c.extraValue === form.continentCode);
+  const continentCountries = countriesOf(form.continentCode);
 
   const pickImages = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();

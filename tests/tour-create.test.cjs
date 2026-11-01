@@ -51,3 +51,70 @@ test('the request sent to the server trims text and drops empty lines', () => {
   assert.equal(form.toTourRequest({ ...filled, fee: '' }, []).fee, null);
   assert.equal(form.localToday(new Date(2026, 0, 5)), '2026-01-05');
 });
+
+const { hookDriver } = require('./notice-test-helpers.cjs');
+const nodes = value => !value ? [] : Array.isArray(value) ? value.flatMap(nodes) : typeof value === 'object' ? [value, ...nodes(value.children)] : [];
+const element = (type, props, ...children) => ({ type, props: props || {}, children });
+const flush = () => new Promise(setImmediate);
+
+function searchScreen(params, pages) {
+  const h = hookDriver(), calls = [];
+  const codes = { continents: [{ code: 'ASIA', name: 'Asia', nameKo: '아시아' }], countries: [{ code: 'PH', name: 'Philippines', nameKo: '필리핀', extraValue: 'ASIA' }] };
+  const Screen = loadModule('features/tour/TourSearchScreen.tsx', {
+    react: { ...h.react, createElement: element },
+    'react-native': {
+      ...Object.fromEntries(['View', 'Text', 'Pressable', 'FlatList', 'ActivityIndicator', 'RefreshControl'].map(n => [n, n])),
+      StyleSheet: { create: x => x }, useWindowDimensions: () => ({ width: 390 }),
+    },
+    'react-native-safe-area-context': { useSafeAreaInsets: () => ({ top: 0, bottom: 0 }) },
+    '@react-native-async-storage/async-storage': { __esModule: true, default: { getItem: async () => 'list', setItem: async () => {} } },
+    '@expo/vector-icons': { Ionicons: 'Ionicons' },
+    '@/constants/Colors': { brand: { primary: '#144A84', white: '#fff' } },
+    '@/services/api': { api: { searchTours: (conditions, sort, offset = 0) => { calls.push({ conditions, sort, offset }); return Promise.resolve(pages.shift()); } } },
+    '@/components/BottomSheet': { __esModule: true, default: 'BottomSheet' },
+    '@/components/GlassChip': { __esModule: true, default: 'GlassChip' },
+    '@/features/split/SplitPane': { useAppRouter: () => ({}), useIsPaneRoot: () => false, useScreenParams: () => params },
+    '@/hooks/useLatestRequest': loadModule('hooks/useLatestRequest.ts', { react: h.react, '@/utils/latestRequest': loadModule('utils/latestRequest.ts', {}) }),
+    './TourSearchPopup': { __esModule: true, default: 'TourSearchPopup', EMPTY_SEARCH: { title: '', instructor: '', continent: '', country: '', from: '', to: '' } },
+    './TourCards': { TourCardItem: 'TourCardItem', TourRow: 'TourRow', TourEmpty: 'TourEmpty' },
+    './ui': { showTourComingSoon() {} },
+    './useTourRegions': { useTourRegions: () => codes, regionName: (list, code) => list.find(c => c.code === code)?.nameKo ?? '' },
+  }).default;
+  return { render: () => nodes(h.render(Screen)), calls };
+}
+const texts = all => all.filter(n => n.type === 'Text').map(n => n.children.flat().join(''));
+const tour = id => ({ id, title: `t${id}` });
+
+test('search results summarize the conditions and use the opened sort', async () => {
+  const f = searchScreen({ title: '세부', continent: 'ASIA', country: 'PH', from: '2026-11-01', to: '2026-11-30', sort: 'START_ASC' },
+    [{ total: 1, sort: 'START_ASC', tours: [tour(1)], hasMore: false }]);
+  f.render(); await flush(); await flush();
+  const all = f.render();
+  assert.ok(texts(all).includes("'세부' · 아시아 › 필리핀"));
+  assert.ok(texts(all).includes('11.01 ~ 11.30 · 인솔 강사 전체'));
+  assert.ok(texts(all).includes('검색 결과 1개'));
+  assert.equal(f.calls[0].sort, 'START_ASC');
+  assert.equal(f.calls[0].conditions.country, 'PH');
+  assert.deepEqual(JSON.parse(JSON.stringify(all.find(n => n.type === 'BottomSheet').props.items.map(i => i.value))),
+    ['DEADLINE', 'START_ASC', 'START_DESC', 'CAPACITY_ASC', 'CAPACITY_DESC']);
+  assert.equal(all.find(n => n.type === 'FlatList').props.numColumns, 1, 'the remembered list view is used');
+});
+
+test("home '전체보기' opens without conditions, adds its own sort, pages and shows the empty state", async () => {
+  const f = searchScreen({ sort: 'RECENT' }, [
+    { total: 21, sort: 'RECENT', tours: Array.from({ length: 20 }, (_, i) => tour(i + 1)), hasMore: true },
+    { total: 21, sort: 'RECENT', tours: [tour(21)], hasMore: false },
+  ]);
+  f.render(); await flush(); await flush();
+  let all = f.render();
+  assert.ok(texts(all).includes('모든 지역의 투어'));
+  assert.equal(all.find(n => n.type === 'BottomSheet').props.items[0].value, 'RECENT');
+  await all.find(n => n.type === 'FlatList').props.onEndReached(); await flush();
+  all = f.render();
+  assert.equal(f.calls[1].offset, 20);
+  assert.equal(all.find(n => n.type === 'FlatList').props.data.length, 21);
+
+  const empty = searchScreen({}, [{ total: 0, sort: 'DEADLINE', tours: [], hasMore: false }]);
+  empty.render(); await flush(); await flush();
+  assert.equal(empty.render().find(n => n.type === 'FlatList').props.ListEmptyComponent.props.message, '검색된 투어가 없어요.');
+});

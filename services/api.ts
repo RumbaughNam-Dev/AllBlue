@@ -388,7 +388,17 @@ export type TourRequestInput = {
   startDate: string; endDate: string; capacity: number; fee: number | null; included: string[]; excluded: string[];
 };
 
+// 6장 정렬 (RECENT · POPULAR는 홈 '전체보기'용)
+export type TourSort = 'DEADLINE' | 'START_ASC' | 'START_DESC' | 'CAPACITY_ASC' | 'CAPACITY_DESC' | 'RECENT' | 'POPULAR';
+export type TourSearchConditions = { title: string; instructor: string; continent: string; country: string; from: string; to: string };
+export type TourSearchResult = { total: number; sort: TourSort; tours: TourCard[]; hasMore: boolean };
+
 export const api = {
+  searchTours(conditions: TourSearchConditions, sort: TourSort, offset = 0) {
+    const params = new URLSearchParams({ sort, offset: String(offset) });
+    for (const [key, value] of Object.entries(conditions)) if (value) params.set(key, value);
+    return request<TourSearchResult>(`/tours/search?${params}`);
+  },
   getCodes(group: string) { return request<{ success: boolean; data?: CommonCode[]; message?: string }>(`/codes?group=${encodeURIComponent(group)}`); },
   getTourHome() { return request<TourHome>('/tours/home'); },
   async uploadTourImage(uri: string, mimeType = 'image/jpeg') {

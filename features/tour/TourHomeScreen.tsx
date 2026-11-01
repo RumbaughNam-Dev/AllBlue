@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, FlatList, Pressable, Image, ActivityIndicator, RefreshControl, Platform, useWindowDimensions,
+  View, Text, StyleSheet, ScrollView, FlatList, Pressable, ActivityIndicator, RefreshControl, Platform, useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,18 +9,25 @@ import GlassChip from '@/components/GlassChip';
 import { useAppRouter, usePaneDefault } from '@/features/split/SplitPane';
 import { DUO_SYSTEM_TABS } from '@/utils/foldable';
 import { getTabBarContentClearance, getSideStripBottomGap, hasSideTabStrip } from '@/utils/tabBarLayout';
-import type { TourCard } from '@/services/api';
+import type { TourSearchConditions, TourSort } from '@/services/api';
 import TourBanner from './TourBanner';
-import { TOUR_STATUS, formatRecruitment, formatTourPeriod, showTourComingSoon } from './ui';
+import { showTourComingSoon } from './ui';
+import { TourCardItem, TourEmpty, TourRow } from './TourCards';
+import TourSearchPopup, { EMPTY_SEARCH } from './TourSearchPopup';
 import { useTourHome } from './useTourHome';
 
 const SIDE = 20;
-const CARD_WIDTH = 148;
 
 // 투어 홈: 위에 버튼 줄(고정), 아래로 광고 배너 · 최근 등록된 투어 · 최근 관심이 많은 투어.
 export default function TourHomeScreen() {
   const { home, loading, refreshing, error, retry, refresh } = useTourHome();
   const router = useAppRouter();
+  const [searching, setSearching] = useState(false);
+  // 검색 · 전체보기는 같은 결과 화면 (펼친 화면이면 오른쪽 칸)
+  const openResults = (conditions: TourSearchConditions, sort: TourSort) => router.push({
+    pathname: '/tour-search',
+    params: { ...Object.fromEntries(Object.entries(conditions).filter(([, v]) => v)), sort },
+  });
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
   const [width, setWidth] = useState(0);
@@ -43,7 +50,7 @@ export default function TourHomeScreen() {
             </>
           )}
         </View>
-        <ActionChip icon="search" label="투어 검색" />
+        <ActionChip icon="search" label="투어 검색" onPress={() => setSearching(true)} />
       </View>
 
       {loading && !home ? (
@@ -59,10 +66,7 @@ export default function TourHomeScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor="rgba(255,255,255,0.6)" />}
         >
           {empty ? (
-            <View style={styles.emptyArea}>
-              <Text style={styles.logo}>all<Text style={styles.logoAccent}>b</Text>lue</Text>
-              <Text style={styles.emptyMessage}>등록된 투어가 없어요.</Text>
-            </View>
+            <TourEmpty message="등록된 투어가 없어요." />
           ) : (
             <>
               {!!home?.banners.length && bannerWidth > 0 && (
@@ -72,22 +76,22 @@ export default function TourHomeScreen() {
               )}
               {!!home?.recent.length && (
                 <>
-                  <SectionHeader title="최근 등록된 투어" />
+                  <SectionHeader title="최근 등록된 투어" onSeeAll={() => openResults(EMPTY_SEARCH, 'RECENT')} />
                   <FlatList
                     data={home.recent}
                     keyExtractor={tour => String(tour.id)}
                     horizontal
                     showsHorizontalScrollIndicator={false}
                     contentContainerStyle={styles.cardList}
-                    renderItem={({ item }) => <TourCardItem tour={item} />}
+                    renderItem={({ item }) => <TourCardItem tour={item} onPress={showTourComingSoon} />}
                   />
                 </>
               )}
               {!!home?.popular.length && (
                 <>
-                  <SectionHeader title="최근 관심이 많은 투어" />
+                  <SectionHeader title="최근 관심이 많은 투어" onSeeAll={() => openResults(EMPTY_SEARCH, 'POPULAR')} />
                   <View style={styles.rows}>
-                    {home.popular.map(tour => <TourRow key={tour.id} tour={tour} />)}
+                    {home.popular.map(tour => <TourRow key={tour.id} tour={tour} onPress={showTourComingSoon} />)}
                   </View>
                 </>
               )}
@@ -95,6 +99,12 @@ export default function TourHomeScreen() {
           )}
         </ScrollView>
       )}
+      <TourSearchPopup
+        visible={searching}
+        initial={EMPTY_SEARCH}
+        onClose={() => setSearching(false)}
+        onSearch={conditions => { setSearching(false); openResults(conditions, 'DEADLINE'); }}
+      />
     </View>
   );
 }
@@ -112,68 +122,14 @@ function ActionChip({ icon, label, onPress = showTourComingSoon }: { icon?: 'add
   );
 }
 
-function SectionHeader({ title }: { title: string }) {
+function SectionHeader({ title, onSeeAll }: { title: string; onSeeAll: () => void }) {
   return (
     <View style={styles.sectionHeader}>
       <Text style={styles.sectionTitle}>{title}</Text>
-      <Pressable onPress={showTourComingSoon} hitSlop={8} style={({ pressed }) => pressed && { opacity: 0.6 }}>
+      <Pressable onPress={onSeeAll} hitSlop={8} style={({ pressed }) => pressed && { opacity: 0.6 }}>
         <Text style={styles.seeAll}>전체보기 ›</Text>
       </Pressable>
     </View>
-  );
-}
-
-function StatusBadge({ status }: { status: TourCard['status'] }) {
-  const meta = TOUR_STATUS[status];
-  if (!meta) return null;
-  return (
-    <View style={[styles.badge, { backgroundColor: meta.color }]}>
-      <Text style={[styles.badgeText, { color: meta.text }]}>{meta.label}</Text>
-    </View>
-  );
-}
-
-function Thumbnail({ uri, style }: { uri: string | null; style: object }) {
-  if (uri) return <Image source={{ uri }} style={style} resizeMode="cover" />;
-  return (
-    <View style={[style, styles.noImage]}>
-      <Ionicons name="airplane-outline" size={22} color="rgba(255,255,255,0.3)" />
-    </View>
-  );
-}
-
-function TourCardItem({ tour }: { tour: TourCard }) {
-  return (
-    <Pressable onPress={showTourComingSoon} style={({ pressed }) => [styles.card, pressed && { opacity: 0.7 }]}>
-      <View>
-        <Thumbnail uri={tour.imageUrl} style={styles.cardImage} />
-        <View style={styles.cardBadge}><StatusBadge status={tour.status} /></View>
-      </View>
-      <View style={styles.cardBody}>
-        <Text style={styles.title} numberOfLines={1}>{tour.title}</Text>
-        {/* Narrow card: country and dates on their own lines so neither gets cut off */}
-        <Text style={styles.meta} numberOfLines={1}>{tour.countryName}</Text>
-        <Text style={styles.meta} numberOfLines={1}>{formatTourPeriod(tour.startDate, tour.endDate)}</Text>
-        <Text style={styles.recruit}>{formatRecruitment(tour.recruitedCount, tour.capacity)}</Text>
-      </View>
-    </Pressable>
-  );
-}
-
-function TourRow({ tour }: { tour: TourCard }) {
-  return (
-    <Pressable onPress={showTourComingSoon} style={({ pressed }) => [styles.row, pressed && { opacity: 0.7 }]}>
-      <Thumbnail uri={tour.imageUrl} style={styles.rowImage} />
-      <View style={styles.rowBody}>
-        <Text style={styles.title} numberOfLines={1}>{tour.title}</Text>
-        <Text style={styles.meta} numberOfLines={1}>{tour.countryName} · {formatTourPeriod(tour.startDate, tour.endDate)}</Text>
-        <Text style={styles.meta} numberOfLines={1}>by {tour.instructor.nickname}</Text>
-      </View>
-      <View style={styles.rowSide}>
-        <StatusBadge status={tour.status} />
-        <Text style={styles.recruit}>{formatRecruitment(tour.recruitedCount, tour.capacity)}</Text>
-      </View>
-    </Pressable>
   );
 }
 
@@ -248,101 +204,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: SIDE,
     gap: 10,
   },
-  card: {
-    width: CARD_WIDTH,
-    borderRadius: 12,
-    overflow: 'hidden',
-    backgroundColor: 'rgba(255,255,255,0.1)',
-  },
-  cardImage: {
-    width: CARD_WIDTH,
-    height: CARD_WIDTH * 3 / 4,
-  },
-  cardBadge: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-  },
-  cardBody: {
-    paddingHorizontal: 10,
-    paddingTop: 8,
-    paddingBottom: 10,
-    gap: 3,
-  },
   rows: {
     paddingHorizontal: SIDE,
     gap: 8,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    padding: 10,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-  },
-  rowImage: {
-    width: 64,
-    height: 64,
-    borderRadius: 8,
-  },
-  rowBody: {
-    flex: 1,
-    gap: 3,
-  },
-  rowSide: {
-    alignItems: 'flex-end',
-    gap: 8,
-  },
-  noImage: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.06)',
-  },
-  title: {
-    fontFamily: 'SUIT-Bold',
-    fontSize: 14,
-    color: Colors.brand.white,
-  },
-  meta: {
-    fontFamily: 'SUIT-Regular',
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.55)',
-  },
-  recruit: {
-    fontFamily: 'SUIT-SemiBold',
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.85)',
-  },
-  badge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
-  },
-  badgeText: {
-    fontFamily: 'SUIT-Bold',
-    fontSize: 11,
-  },
-  emptyArea: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-  },
-  // Same face and spacing as the toolbar logo (SUIT-Regular, letterSpacing 4 at 20pt), scaled up.
-  logo: {
-    fontFamily: 'SUIT-Regular',
-    fontSize: 34,
-    letterSpacing: 34 * (4 / 20),
-    color: Colors.brand.white,
-  },
-  logoAccent: {
-    color: '#00E5FF',
-  },
-  emptyMessage: {
-    fontFamily: 'SUIT-SemiBold',
-    fontSize: 15,
-    color: 'rgba(255,255,255,0.6)',
   },
   emptyText: {
     fontFamily: 'SUIT-Regular',

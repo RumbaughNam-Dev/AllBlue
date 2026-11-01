@@ -69,6 +69,8 @@ function screen(state) {
     '@/utils/tabBarLayout': loadModule('utils/tabBarLayout.ts', {}),
     './TourBanner': { __esModule: true, default: 'TourBanner' },
     './ui': ui,
+    './TourCards': { TourCardItem: function TourCardItem() {}, TourRow: function TourRow() {}, TourEmpty: function TourEmpty() {} },
+    './TourSearchPopup': { __esModule: true, default: 'TourSearchPopup', EMPTY_SEARCH: {} },
     './useTourHome': { useTourHome: () => ({ refreshing: false, error: false, retry() {}, refresh() {}, loading: false, ...state }) },
   }).default;
   // First render measures nothing; lay the screen out at phone width like onLayout would.
@@ -93,6 +95,7 @@ test('tour home sections appear only with content; 16:9 banner capped at a third
   assert.equal(banner.props.height, 350 * 9 / 16);
   assert.deepEqual(named(all, 'SectionHeader').map(n => n.props.title), ['최근 등록된 투어', '최근 관심이 많은 투어']);
   assert.equal(all.find(n => n.type === 'FlatList').props.data.length, 2);
+  assert.ok(all.some(n => n.type === 'TourSearchPopup'), 'the search popup lives on the home screen');
   assert.equal(named(all, 'TourRow').length, 1);
 
   all = screen({ home: { canCreate: false, banners: [], recent: [], popular: [card(3)] } });
@@ -102,7 +105,7 @@ test('tour home sections appear only with content; 16:9 banner capped at a third
 
 test('tour home empty, loading and error states', () => {
   const texts = all => all.filter(n => n.type === 'Text').flatMap(n => n.children).filter(c => typeof c === 'string');
-  assert.ok(texts(screen({ home: { canCreate: false, banners: [], recent: [], popular: [] } })).includes('등록된 투어가 없어요.'));
+  assert.equal(named(screen({ home: { canCreate: false, banners: [], recent: [], popular: [] } }), 'TourEmpty')[0].props.message, '등록된 투어가 없어요.');
   assert.ok(screen({ home: null, loading: true }).some(n => n.type === 'ActivityIndicator'));
   assert.ok(texts(screen({ home: null, error: true })).some(t => t.includes('다시 시도')));
 });

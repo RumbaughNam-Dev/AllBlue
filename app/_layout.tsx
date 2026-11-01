@@ -51,7 +51,7 @@ function RootLayoutNav() {
       router.replace('/onboarding');
     } else if (hasSeenOnboarding && !isLoggedIn && !inLogin && !inRegister) {
       router.replace('/login');
-    } else if (isLoggedIn && !inApp && !['notices','notice-detail','notice-edit','profile','profile-edit','profile-view','cert-upload','cert-manage','schedule-daily','schedule-detail','schedule-add','achievement','debriefing','blocked-users','inquiry','inquiry-write','inquiry-detail','inquiry-manage','inquiry-answer','withdraw','schedule-settings','organization-register','organization-manage','organization-members','tour-create'].includes(segments[0] as string)) {
+    } else if (isLoggedIn && !inApp && !['notices','notice-detail','notice-edit','profile','profile-edit','profile-view','cert-upload','cert-manage','schedule-daily','schedule-detail','schedule-add','achievement','debriefing','blocked-users','inquiry','inquiry-write','inquiry-detail','inquiry-manage','inquiry-answer','withdraw','schedule-settings','organization-register','organization-manage','organization-members','tour-create','tour-search'].includes(segments[0] as string)) {
       router.replace('/(tabs)');
     }
 
@@ -113,6 +113,7 @@ function RootLayoutNav() {
           <Stack.Screen name="organization-members" options={{ gestureEnabled: true, contentStyle: { ...side, backgroundColor: '#144A84' } }} />
           {/* 밀어서 닫으면 작성 중인 내용이 사라지므로 뒤로가기 버튼(확인 창)으로만 나감 */}
           <Stack.Screen name="tour-create" options={{ contentStyle: { ...side, backgroundColor: '#144A84' } }} />
+          <Stack.Screen name="tour-search" options={{ gestureEnabled: true }} />
         </Stack>
       </StripTabBarHost>
     </View>
