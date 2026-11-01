@@ -1,7 +1,7 @@
-import type { TourRequestInput } from '@/services/api';
+import type { TourLink, TourRequestInput } from '@/services/api';
 
 // Mirrors common_code TOUR_CONFIG; the server checks the same rules.
-export const TOUR_FORM_LIMITS = { imageMax: 10, titleMin: 2, titleMax: 40, capacityMin: 2, capacityMax: 20, itemLength: 40, itemCount: 20 };
+export const TOUR_FORM_LIMITS = { imageMax: 10, titleMin: 2, titleMax: 40, capacityMin: 2, capacityMax: 20, itemLength: 40, itemCount: 20, linkMax: 5, linkNameMax: 20, linkUrlMax: 500 };
 
 // remote: already uploaded (editing a saved tour), sent as-is instead of uploading again
 export type LocalImage = { uri: string; mimeType: string; remote?: boolean };
@@ -16,11 +16,12 @@ export type TourForm = {
   fee: string; // digits as typed (shown with commas)
   included: string[];
   excluded: string[];
+  links: TourLink[]; // 문의 링크: 새 투어는 프로필 링크로 미리 채움 (17장)
 };
-export type TourField = 'images' | 'title' | 'region' | 'period' | 'capacity';
+export type TourField = 'images' | 'title' | 'region' | 'period' | 'capacity' | 'links';
 
 export const EMPTY_TOUR_FORM: TourForm = {
-  images: [], title: '', continentCode: '', countryCode: '', startDate: '', endDate: '', capacity: '', fee: '', included: [], excluded: [],
+  images: [], title: '', continentCode: '', countryCode: '', startDate: '', endDate: '', capacity: '', fee: '', included: [], excluded: [], links: [],
 };
 
 // 5장: 잘못된 값은 라벨 옆에 바로 보여줄 문구. 맞는 칸은 빠짐.
@@ -38,6 +39,22 @@ export function tourFormErrors(form: TourForm, today: string, minCapacity = 0): 
   const capacity = Number(form.capacity);
   if (!/^\d+$/.test(form.capacity) || capacity < L.capacityMin || capacity > L.capacityMax) errors.capacity = `${L.capacityMin}~${L.capacityMax}명`;
   else if (capacity < minCapacity) errors.capacity = `이미 모집된 ${minCapacity}명보다 적게 못 줄여요`;
+  if (form.links.length < 1) errors.links = '1개 이상 넣어 주세요';
+  return errors;
+}
+
+// 14장 링크 규칙 (서버와 같음): 앞뒤 공백을 빼고, https://가 없으면 붙임. 주소로 볼 수 없으면 null.
+export function normalizeLinkUrl(value: string) {
+  const trimmed = value.trim();
+  const url = /^https?:\/\//i.test(trimmed) ? trimmed.replace(/^http:\/\//i, 'https://') : `https://${trimmed}`;
+  return url.length <= TOUR_FORM_LIMITS.linkUrlMax && /^https:\/\/[^\s/?#]+\.[^\s/?#]+(?:[/?#]\S*)?$/i.test(url) ? url : null;
+}
+
+// 링크 추가 팝업: 칸 아래 빨간 글씨 (빈 칸은 아직 안 알림)
+export function linkErrors(name: string, url: string) {
+  const errors: { name?: string; url?: string } = {};
+  if (name.trim().length > TOUR_FORM_LIMITS.linkNameMax) errors.name = `${TOUR_FORM_LIMITS.linkNameMax}자까지 넣을 수 있어요`;
+  if (url.trim() && !normalizeLinkUrl(url)) errors.url = '주소를 다시 확인해 주세요';
   return errors;
 }
 
@@ -58,12 +75,12 @@ export function isTourFormDirty(form: TourForm, initial: TourForm = EMPTY_TOUR_F
 export function formFromTour(tour: {
   images: string[]; title: string; continentCode: string; countryCode: string; startDate: string; endDate: string;
   capacity: number; fee: number | null; included: string[]; excluded: string[];
-}): TourForm {
+}, links: TourLink[]): TourForm {
   return {
     images: tour.images.map(uri => ({ uri, mimeType: '', remote: true })),
     title: tour.title, continentCode: tour.continentCode, countryCode: tour.countryCode,
     startDate: tour.startDate, endDate: tour.endDate, capacity: String(tour.capacity), fee: tour.fee !== null ? String(tour.fee) : '',
-    included: tour.included, excluded: tour.excluded,
+    included: tour.included, excluded: tour.excluded, links,
   };
 }
 
@@ -89,6 +106,7 @@ export function toTourRequest(form: TourForm, imageUrls: string[]): TourRequestI
     fee: form.fee ? Number(digitsOnly(form.fee)) : null,
     included: lines(form.included),
     excluded: lines(form.excluded),
+    links: form.links,
   };
 }
 

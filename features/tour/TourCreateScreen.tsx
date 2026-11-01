@@ -14,6 +14,7 @@ import GlassCircle from '@/components/GlassCircle';
 import GlassBackground, { glassClear } from '@/components/GlassBackground';
 import StripBackSlot from '@/components/StripBackSlot';
 import TourImageGrid from './TourImageGrid';
+import TourLinkPopup from './TourLinkPopup';
 import { regionName, useTourRegions } from './useTourRegions';
 import {
   EMPTY_TOUR_FORM, TOUR_FORM_LIMITS as L, TourField, TourForm, digitsOnly, formFromTour, formatFee, isTourFormDirty, localToday, moveItem,
@@ -44,6 +45,7 @@ export default function TourCreateScreen() {
   const [sheet, setSheet] = useState<Sheet>(null);
   const { continents, countries, failed: regionsFailed, reload: loadRegions, countriesOf } = useTourRegions();
   const [dragging, setDragging] = useState(false);
+  const [addingLink, setAddingLink] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
   const today = localToday();
@@ -52,16 +54,30 @@ export default function TourCreateScreen() {
   const touch = (field: TourField) => setTouched(prev => (prev[field] ? prev : { ...prev, [field]: true }));
   const errors = useMemo(() => tourFormErrors(form, today, editState?.recruitedCount ?? 0), [form, today, editState]);
 
+  // 17장: 새 투어는 프로필 링크로 문의 링크를 미리 채움 (작성 중 바뀐 것으로 치지 않음). 없으면 바로 '1개 이상' 안내
+  useEffect(() => {
+    if (editId) return;
+    let alive = true;
+    api.getProfileLinks().then(({ links }) => {
+      if (!alive) return;
+      if (links.length) {
+        setForm(prev => (prev.links.length ? prev : { ...prev, links }));
+        setInitial(prev => ({ ...prev, links }));
+      } else touch('links');
+    }).catch(() => { if (alive) touch('links'); });
+    return () => { alive = false; };
+  }, [editId]);
+
   useEffect(() => {
     if (!editId) return;
     let alive = true;
-    api.getTour(Number(editId)).then(({ tour }) => {
+    api.getTour(Number(editId)).then(({ tour, links }) => {
       if (!alive) return;
-      const loaded = formFromTour(tour);
+      const loaded = formFromTour(tour, links.slice(0, L.linkMax));
       setForm(loaded); setInitial(loaded);
       setEditState({ status: tour.status, recruitedCount: tour.recruitedCount });
       // 이미 저장된 값이라 처음부터 검사 결과를 보여줌
-      setTouched({ images: true, title: true, region: true, period: true, capacity: true });
+      setTouched({ images: true, title: true, region: true, period: true, capacity: true, links: true });
     }).catch((e: any) => {
       if (!alive) return;
       Alert.alert('투어를 불러오지 못했어요', e?.message, [{ text: '확인', onPress: () => router.back() }]);
@@ -237,6 +253,35 @@ export default function TourCreateScreen() {
 
           <ItemList title="포함 사항" mark="✓" items={form.included} onChange={items => update('included', items)} />
           <ItemList title="불포함 사항" mark="✕" items={form.excluded} onChange={items => update('excluded', items)} />
+
+          <FieldLabel text="문의 링크" required note={`${form.links.length}/${L.linkMax}`} error={shown('links')} />
+          {form.links.map((link, index) => (
+            <View key={`${index}-${link.url}`} style={styles.item}>
+              <Ionicons name="link" size={15} color="#00E5FF" />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.itemText} numberOfLines={1}>{link.name}</Text>
+                <Text style={styles.linkUrl} numberOfLines={1}>{link.url}</Text>
+              </View>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`${link.name} 삭제`}
+                hitSlop={8}
+                onPress={() => { touch('links'); update('links', form.links.filter((_, i) => i !== index)); }}
+              >
+                <Ionicons name="close" size={16} color="rgba(255,255,255,0.5)" />
+              </Pressable>
+            </View>
+          ))}
+          {form.links.length < L.linkMax && (
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => setAddingLink(true)}
+              style={({ pressed }) => [styles.linkAdd, shown('links') && styles.inputError, pressed && { opacity: 0.6 }]}
+            >
+              <Text style={styles.linkAddText}>＋ 링크 추가</Text>
+            </Pressable>
+          )}
+          <Text style={styles.guide}>참가 문의를 받을 곳이에요. 상세의 '문의하기'를 누르면 열려요.{!editing && form.links.length === 0 ? '\n프로필에 링크를 넣어 두면 다음 투어부터 자동으로 채워져요.' : ''}</Text>
         </ScrollView>
 
         <View style={styles.bottomArea}>
@@ -254,6 +299,11 @@ export default function TourCreateScreen() {
       </KeyboardAvoidingView>
       )}
 
+      <TourLinkPopup
+        visible={addingLink}
+        onClose={() => setAddingLink(false)}
+        onAdd={link => { setAddingLink(false); touch('links'); setForm(prev => ({ ...prev, links: [...prev.links, link].slice(0, L.linkMax) })); }}
+      />
       <BottomSheet
         visible={sheet === 'continent'}
         onClose={() => { setSheet(null); touch('region'); }}
@@ -428,6 +478,12 @@ const styles = StyleSheet.create({
   },
   itemMark: { fontFamily: 'SUIT-Bold', fontSize: 14, color: '#00E5FF', width: 14, textAlign: 'center' },
   itemText: { flex: 1, fontFamily: 'SUIT-Regular', fontSize: 15, color: Colors.brand.white },
+  linkUrl: { fontFamily: 'SUIT-Regular', fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 2 },
+  linkAdd: {
+    alignItems: 'center', paddingVertical: 13,
+    borderRadius: 10, borderWidth: 1, borderStyle: 'dashed', borderColor: 'rgba(255,255,255,0.2)',
+  },
+  linkAddText: { fontFamily: 'SUIT-SemiBold', fontSize: 15, color: '#00E5FF' },
   itemAdd: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     borderRadius: 10, borderWidth: 1, borderStyle: 'dashed', borderColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 14,

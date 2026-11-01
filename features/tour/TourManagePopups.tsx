@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
+import { Modal, View, Text, StyleSheet, Pressable, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Colors from '@/constants/Colors';
 import type { TourStatus } from '@/services/api';
@@ -12,23 +12,23 @@ const PROMINENT_TINT = 'rgba(255,255,255,0.85)';
 const CAPACITY_MIN = 2, CAPACITY_MAX = 20;
 const range = (from: number, to: number) => Array.from({ length: to - from + 1 }, (_, i) => from + i);
 
-function Popup({ visible, title, onClose, children }: { visible: boolean; title: string; onClose: () => void; children: React.ReactNode }) {
+export function Popup({ visible, title, onClose, children }: { visible: boolean; title: string; onClose: () => void; children: React.ReactNode }) {
   return (
     <Modal transparent visible={visible} animationType="fade" statusBarTranslucent onRequestClose={onClose}>
       <PopupBackdrop />
       <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="닫기" />
-      <View style={styles.center} pointerEvents="box-none">
+      <KeyboardAvoidingView style={styles.center} behavior={Platform.OS === 'ios' ? 'padding' : undefined} pointerEvents="box-none">
         <View style={[styles.panel, glassClear]}>
           <GlassBackground radius={20} tintColor={PANEL_TINT} />
           <Text style={styles.title}>{title}</Text>
           {children}
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
 
-function Buttons({ confirm, onCancel, onConfirm, busy, disabled }: { confirm: string; onCancel: () => void; onConfirm: () => void; busy?: boolean; disabled?: boolean }) {
+export function Buttons({ confirm, onCancel, onConfirm, busy, disabled }: { confirm: string; onCancel: () => void; onConfirm: () => void; busy?: boolean; disabled?: boolean }) {
   return (
     <View style={styles.buttons}>
       <Pressable accessibilityRole="button" onPress={onCancel} style={({ pressed }) => [styles.cancel, pressed && { opacity: 0.6 }]}>

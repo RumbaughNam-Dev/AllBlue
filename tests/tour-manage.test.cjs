@@ -32,7 +32,8 @@ test('editing a saved tour: form round trip, dirty check and recruited minimum',
     images: ['https://x/a.jpg'], title: '세부 투어', continentCode: 'ASIA', countryCode: 'PH',
     startDate: '2026-11-20', endDate: '2026-11-24', capacity: 8, fee: null, included: ['숙박'], excluded: [],
   };
-  const initial = form.formFromTour(tour);
+  const initial = form.formFromTour(tour, [{ name: '블로그', url: 'https://blog.naver.com/x' }]);
+  assert.deepEqual(plain(initial.links), [{ name: '블로그', url: 'https://blog.naver.com/x' }]);
   assert.deepEqual(plain(initial.images), [{ uri: 'https://x/a.jpg', mimeType: '', remote: true }]);
   assert.equal(initial.capacity, '8');
   assert.equal(initial.fee, '');

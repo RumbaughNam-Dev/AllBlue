@@ -386,7 +386,9 @@ export type CommonCode = { code: string; name: string; nameKo: string | null; ex
 export type TourRequestInput = {
   images: string[]; title: string; continentCode: string; countryCode: string;
   startDate: string; endDate: string; capacity: number; fee: number | null; included: string[]; excluded: string[];
+  links: TourLink[];
 };
+export type TourLink = { name: string; url: string };
 
 // 6장 정렬 (RECENT · POPULAR는 홈 '전체보기'용)
 export type TourSort = 'DEADLINE' | 'START_ASC' | 'START_DESC' | 'CAPACITY_ASC' | 'CAPACITY_DESC' | 'RECENT' | 'POPULAR';
@@ -425,6 +427,8 @@ export const api = {
     return request<{ tourId: number; status: TourStatus }>(`/tours/${id}`, { method: 'PUT', body: JSON.stringify(input) });
   },
   getTour(id: number) { return request<TourDetail>(`/tours/${id}`); },
+  // 새 투어의 문의 링크를 미리 채울 내 프로필 링크
+  getProfileLinks() { return request<{ links: TourLink[] }>('/tours/profile-links'); },
   searchTours(conditions: TourSearchConditions, sort: TourSort, offset = 0) {
     const params = new URLSearchParams({ sort, offset: String(offset) });
     for (const [key, value] of Object.entries(conditions)) if (value) params.set(key, value);

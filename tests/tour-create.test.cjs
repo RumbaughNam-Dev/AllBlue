@@ -7,6 +7,7 @@ const filled = {
   ...form.EMPTY_TOUR_FORM,
   images: [{ uri: 'file://a.jpg', mimeType: 'image/jpeg' }], title: ' 세부   펀다이빙 3박 4일 ', continentCode: 'ASIA', countryCode: 'PH',
   startDate: '2026-11-20', endDate: '2026-11-24', capacity: '8', fee: '1200000', included: [' 숙박 4박 ', '   '], excluded: ['항공권'],
+  links: [{ name: '카카오톡 오픈채팅', url: 'https://open.kakao.com/o/x' }],
 };
 const today = '2026-11-02';
 // Values from the sandboxed module come from another realm; compare as plain data.
@@ -37,6 +38,15 @@ test('fee shows thousands separators and only digits are kept', () => {
   assert.equal(form.digitsOnly('1,200원'), '1200');
 });
 
+test('contact links: at least one, and addresses follow the profile link rules (slides 14 · 17)', () => {
+  assert.equal(form.tourFormErrors({ ...filled, links: [] }, today).links, '1개 이상 넣어 주세요');
+  assert.equal(form.normalizeLinkUrl(' blog.naver.com/allblue '), 'https://blog.naver.com/allblue');
+  assert.equal(form.normalizeLinkUrl('http://open.kakao.com/o/x'), 'https://open.kakao.com/o/x');
+  for (const bad of ['', 'kakao', 'https://', 'a b.com']) assert.equal(form.normalizeLinkUrl(bad), null);
+  assert.deepEqual(plain(form.linkErrors('', '')), {}, 'empty fields are not flagged yet');
+  assert.deepEqual(plain(form.linkErrors('x'.repeat(21), 'kakao')), { name: '20자까지 넣을 수 있어요', url: '주소를 다시 확인해 주세요' });
+});
+
 test('moving a photo changes the order and the first one is the cover', () => {
   assert.deepEqual(plain(form.moveItem(['a', 'b', 'c', 'd'], 3, 0)), ['d', 'a', 'b', 'c']);
   assert.deepEqual(plain(form.moveItem(['a', 'b', 'c'], 0, 2)), ['b', 'c', 'a']);
@@ -47,6 +57,7 @@ test('the request sent to the server trims text and drops empty lines', () => {
   assert.deepEqual(JSON.parse(JSON.stringify(form.toTourRequest(filled, ['https://x/allblue/tour/a.jpg']))), {
     images: ['https://x/allblue/tour/a.jpg'], title: '세부 펀다이빙 3박 4일', continentCode: 'ASIA', countryCode: 'PH',
     startDate: '2026-11-20', endDate: '2026-11-24', capacity: 8, fee: 1200000, included: ['숙박 4박'], excluded: ['항공권'],
+    links: [{ name: '카카오톡 오픈채팅', url: 'https://open.kakao.com/o/x' }],
   });
   assert.equal(form.toTourRequest({ ...filled, fee: '' }, []).fee, null);
   assert.equal(form.localToday(new Date(2026, 0, 5)), '2026-01-05');
