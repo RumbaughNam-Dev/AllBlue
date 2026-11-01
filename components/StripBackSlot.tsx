@@ -4,7 +4,6 @@ import type { ViewInstance } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from 'expo-router';
 import { hasSideTabStrip } from '@/utils/tabBarLayout';
-import { useIsInPane } from '@/features/split/SplitPane';
 
 // 아이폰 듀오의 오른쪽 여백 위쪽에 세로로 늘어선 카메라·위치·시계·배터리 표시 바로 아래 (창 기준 pt).
 // 접은 화면에서 이 표시가 약 200pt까지 내려옴
@@ -12,13 +11,12 @@ const STRIP_BACK_TOP = 212;
 
 // 화면 왼쪽 위의 뒤로가기 버튼을 감쌈. 오른쪽 여백이 있는 기기(아이폰 듀오)에서는 원래 자리를
 // 같은 크기로 비워 두고(제목 위치 유지), 버튼만 모든 화면에서 같은 곳 — 여백의 상태 표시 아래 — 에 그림.
-// 펼친 화면 오른쪽 칸에 열린 화면은 그 칸 안에 그대로 둠.
+// 펼친 화면 오른쪽 칸에서 연 화면도 같은 곳에 그림 (오른쪽 칸 첫 화면은 뒤로가기가 없음).
 export default function StripBackSlot({ size, children }: { size: number; children: React.ReactNode }) {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
-  const inPane = useIsInPane();
   const navigation = useNavigation();
-  const lift = hasSideTabStrip(insets.right, Platform.OS) && !inPane;
+  const lift = hasSideTabStrip(insets.right, Platform.OS);
   const ref = useRef<ViewInstance>(null);
   const [origin, setOrigin] = useState<{ x: number; y: number } | null>(null);
 
