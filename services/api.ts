@@ -405,7 +405,25 @@ export type TourDetail = {
   links: { name: string; url: string }[];
 };
 
+// 8~10장 투어 관리 (내가 만든 투어)
+export type MyTour = TourCard & { fee: number | null };
+export type Recruitment = { recruitedCount: number; capacity: number; status: TourStatus };
+
 export const api = {
+  getMyTours(tab: 'ongoing' | 'past', sort: TourSort) { return request<{ tours: MyTour[] }>(`/tours/mine?tab=${tab}&sort=${sort}`); },
+  stepRecruited(id: number, delta: 1 | -1) {
+    return request<Recruitment & { previous: Recruitment }>(`/tours/${id}/recruited`, { method: 'PATCH', body: JSON.stringify({ delta }) });
+  },
+  setRecruitment(id: number, value: { recruitedCount: number; capacity: number; status?: TourStatus }) {
+    return request<Recruitment>(`/tours/${id}/recruitment`, { method: 'PATCH', body: JSON.stringify(value) });
+  },
+  setTourStatus(id: number, status: TourStatus) {
+    return request<{ status: TourStatus }>(`/tours/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
+  },
+  deleteTour(id: number) { return request<{ success: boolean }>(`/tours/${id}`, { method: 'DELETE' }); },
+  updateTour(id: number, input: TourRequestInput) {
+    return request<{ tourId: number; status: TourStatus }>(`/tours/${id}`, { method: 'PUT', body: JSON.stringify(input) });
+  },
   getTour(id: number) { return request<TourDetail>(`/tours/${id}`); },
   searchTours(conditions: TourSearchConditions, sort: TourSort, offset = 0) {
     const params = new URLSearchParams({ sort, offset: String(offset) });

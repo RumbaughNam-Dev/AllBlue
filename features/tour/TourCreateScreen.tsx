@@ -1,13 +1,13 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View, Text, TextInput, StyleSheet, Pressable, ScrollView, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, useWindowDimensions,
 } from 'react-native';
-import { useRouter, usePreventRemove } from 'expo-router';
+import { useLocalSearchParams, useRouter, usePreventRemove } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import Colors from '@/constants/Colors';
-import { api } from '@/services/api';
+import { api, TourStatus } from '@/services/api';
 import BottomSheet from '@/components/BottomSheet';
 import DatePickerSheet from '@/components/DatePickerSheet';
 import GlassCircle from '@/components/GlassCircle';
@@ -16,7 +16,7 @@ import StripBackSlot from '@/components/StripBackSlot';
 import TourImageGrid from './TourImageGrid';
 import { regionName, useTourRegions } from './useTourRegions';
 import {
-  EMPTY_TOUR_FORM, TOUR_FORM_LIMITS as L, TourField, TourForm, digitsOnly, formatFee, isTourFormDirty, localToday, moveItem,
+  EMPTY_TOUR_FORM, TOUR_FORM_LIMITS as L, TourField, TourForm, digitsOnly, formFromTour, formatFee, isTourFormDirty, localToday, moveItem,
   toTourRequest, tourFormErrors,
 } from './tourForm';
 
@@ -33,7 +33,13 @@ export default function TourCreateScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
+  // 10장 '수정' · '수정 후 재요청'은 같은 화면 (승인 대기 · 불허 투어)
+  const { editId } = useLocalSearchParams<{ editId?: string }>();
+  const editing = !!editId;
   const [form, setForm] = useState<TourForm>(EMPTY_TOUR_FORM);
+  const [initial, setInitial] = useState<TourForm>(EMPTY_TOUR_FORM);
+  const [editState, setEditState] = useState<{ status: TourStatus; recruitedCount: number } | null>(null);
+  const [loadingEdit, setLoadingEdit] = useState(editing);
   const [touched, setTouched] = useState<Partial<Record<TourField, boolean>>>({});
   const [sheet, setSheet] = useState<Sheet>(null);
   const { continents, countries, failed: regionsFailed, reload: loadRegions, countriesOf } = useTourRegions();
@@ -44,12 +50,30 @@ export default function TourCreateScreen() {
 
   const update = <K extends keyof TourForm>(key: K, value: TourForm[K]) => setForm(prev => ({ ...prev, [key]: value }));
   const touch = (field: TourField) => setTouched(prev => (prev[field] ? prev : { ...prev, [field]: true }));
-  const errors = useMemo(() => tourFormErrors(form, today), [form, today]);
+  const errors = useMemo(() => tourFormErrors(form, today, editState?.recruitedCount ?? 0), [form, today, editState]);
+
+  useEffect(() => {
+    if (!editId) return;
+    let alive = true;
+    api.getTour(Number(editId)).then(({ tour }) => {
+      if (!alive) return;
+      const loaded = formFromTour(tour);
+      setForm(loaded); setInitial(loaded);
+      setEditState({ status: tour.status, recruitedCount: tour.recruitedCount });
+      // 이미 저장된 값이라 처음부터 검사 결과를 보여줌
+      setTouched({ images: true, title: true, region: true, period: true, capacity: true });
+    }).catch((e: any) => {
+      if (!alive) return;
+      Alert.alert('투어를 불러오지 못했어요', e?.message, [{ text: '확인', onPress: () => router.back() }]);
+    }).finally(() => { if (alive) setLoadingEdit(false); });
+    return () => { alive = false; };
+  }, [editId]);
+  const resubmit = editState?.status === 'REJECTED';
   const shown = (field: TourField) => (touched[field] ? errors[field] : undefined);
   const valid = Object.keys(errors).length === 0;
 
   // 작성 · 수정 중 뒤로가기는 확인 (바뀐 게 없으면 바로 나감)
-  const disablePrevention = usePreventRemove(isTourFormDirty(form) && !submitting, ({ repeat }) => {
+  const disablePrevention = usePreventRemove(isTourFormDirty(form, initial) && !submitting, ({ repeat }) => {
     Alert.alert('작성 중인 내용이 사라져요. 나갈까요?', undefined, [
       { text: '취소', style: 'cancel' },
       { text: '나가기', style: 'destructive', onPress: () => { disablePrevention(); repeat(); } },
@@ -87,10 +111,15 @@ export default function TourCreateScreen() {
     setSubmitting(true);
     try {
       const urls: string[] = [];
-      for (const image of form.images) urls.push((await api.uploadTourImage(image.uri, image.mimeType)).url);
-      await api.createTourRequest(toTourRequest(form, urls));
+      // 이미 올린 사진은 그대로, 새로 고른 사진만 올림
+      for (const image of form.images) urls.push(image.remote ? image.uri : (await api.uploadTourImage(image.uri, image.mimeType)).url);
+      if (editing) await api.updateTour(Number(editId), toTourRequest(form, urls));
+      else await api.createTourRequest(toTourRequest(form, urls));
       disablePrevention();
-      Alert.alert('등록 요청을 보냈어요', '관리자가 확인한 뒤 공개돼요. 승인되면 알림으로 알려드려요.', [
+      const [title, message] = editing && !resubmit
+        ? ['수정했어요', '승인을 기다리는 요청에 바로 반영했어요.']
+        : ['등록 요청을 보냈어요', '관리자가 확인한 뒤 공개돼요. 승인되면 알림으로 알려드려요.'];
+      Alert.alert(title, message, [
         { text: '확인', onPress: () => router.back() },
       ]);
     } catch (e: any) {
@@ -112,10 +141,13 @@ export default function TourCreateScreen() {
             </GlassCircle>
           </Pressable>
         </StripBackSlot>
-        <Text style={styles.headerTitle}>투어 만들기</Text>
+        <Text style={styles.headerTitle}>{editing ? '투어 수정' : '투어 만들기'}</Text>
         <View style={{ width: 36 }} />
       </View>
 
+      {loadingEdit ? (
+        <View style={styles.loading}><ActivityIndicator size="large" color="rgba(255,255,255,0.5)" /></View>
+      ) : (
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView
           contentContainerStyle={styles.scroll}
@@ -216,10 +248,11 @@ export default function TourCreateScreen() {
             disabled={!valid || submitting}
           >
             <GlassBackground radius={14} interactive tintColor={PROMINENT_TINT} />
-            {submitting ? <ActivityIndicator color={Colors.brand.primary} /> : <Text style={styles.submitText}>등록 요청</Text>}
+            {submitting ? <ActivityIndicator color={Colors.brand.primary} /> : <Text style={styles.submitText}>{!editing ? '등록 요청' : resubmit ? '다시 요청' : '수정 저장'}</Text>}
           </Pressable>
         </View>
       </KeyboardAvoidingView>
+      )}
 
       <BottomSheet
         visible={sheet === 'continent'}
@@ -342,6 +375,7 @@ function ItemList({ title, mark, items, onChange }: { title: string; mark: strin
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.brand.primary },
+  loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     height: 52, paddingHorizontal: 20,

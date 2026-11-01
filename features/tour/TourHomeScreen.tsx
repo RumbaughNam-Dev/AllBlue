@@ -49,7 +49,7 @@ export default function TourHomeScreen() {
           {home?.canCreate && (
             <>
               <ActionChip icon="add" label="투어 만들기" onPress={() => router.push('/tour-create')} />
-              <ActionChip label="투어 관리" />
+              <ActionChip label="투어 관리" onPress={() => router.push('/tour-manage')} />
             </>
           )}
         </View>

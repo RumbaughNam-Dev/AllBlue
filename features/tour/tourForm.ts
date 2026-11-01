@@ -3,7 +3,8 @@ import type { TourRequestInput } from '@/services/api';
 // Mirrors common_code TOUR_CONFIG; the server checks the same rules.
 export const TOUR_FORM_LIMITS = { imageMax: 10, titleMin: 2, titleMax: 40, capacityMin: 2, capacityMax: 20, itemLength: 40, itemCount: 20 };
 
-export type LocalImage = { uri: string; mimeType: string };
+// remote: already uploaded (editing a saved tour), sent as-is instead of uploading again
+export type LocalImage = { uri: string; mimeType: string; remote?: boolean };
 export type TourForm = {
   images: LocalImage[];
   title: string;
@@ -23,7 +24,8 @@ export const EMPTY_TOUR_FORM: TourForm = {
 };
 
 // 5장: 잘못된 값은 라벨 옆에 바로 보여줄 문구. 맞는 칸은 빠짐.
-export function tourFormErrors(form: TourForm, today: string): Partial<Record<TourField, string>> {
+// minCapacity: when editing, the tour can't go below the people already recruited.
+export function tourFormErrors(form: TourForm, today: string, minCapacity = 0): Partial<Record<TourField, string>> {
   const L = TOUR_FORM_LIMITS;
   const errors: Partial<Record<TourField, string>> = {};
   if (form.images.length < 1) errors.images = '1장 이상 올려 주세요';
@@ -35,6 +37,7 @@ export function tourFormErrors(form: TourForm, today: string): Partial<Record<To
   else if (form.endDate < form.startDate) errors.period = '종료일이 시작일보다 빨라요';
   const capacity = Number(form.capacity);
   if (!/^\d+$/.test(form.capacity) || capacity < L.capacityMin || capacity > L.capacityMax) errors.capacity = `${L.capacityMin}~${L.capacityMax}명`;
+  else if (capacity < minCapacity) errors.capacity = `이미 모집된 ${minCapacity}명보다 적게 못 줄여요`;
   return errors;
 }
 
@@ -46,9 +49,22 @@ export function formatFee(digits: string) {
   return trimmed.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
 
-// Something was entered, so leaving asks first (바뀐 게 없으면 바로 나감).
-export function isTourFormDirty(form: TourForm) {
-  return JSON.stringify(form) !== JSON.stringify(EMPTY_TOUR_FORM);
+// Something was entered or changed, so leaving asks first (바뀐 게 없으면 바로 나감).
+export function isTourFormDirty(form: TourForm, initial: TourForm = EMPTY_TOUR_FORM) {
+  return JSON.stringify(form) !== JSON.stringify(initial);
+}
+
+// 수정: 저장된 투어를 입력 칸으로
+export function formFromTour(tour: {
+  images: string[]; title: string; continentCode: string; countryCode: string; startDate: string; endDate: string;
+  capacity: number; fee: number | null; included: string[]; excluded: string[];
+}): TourForm {
+  return {
+    images: tour.images.map(uri => ({ uri, mimeType: '', remote: true })),
+    title: tour.title, continentCode: tour.continentCode, countryCode: tour.countryCode,
+    startDate: tour.startDate, endDate: tour.endDate, capacity: String(tour.capacity), fee: tour.fee !== null ? String(tour.fee) : '',
+    included: tour.included, excluded: tour.excluded,
+  };
 }
 
 export function moveItem<T>(list: T[], from: number, to: number) {
