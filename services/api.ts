@@ -687,7 +687,7 @@ export const api = {
     return parseResponse<{ success: boolean }>(result.status, result.body, token);
   },
 
-  updateProfile(data: Partial<Profile> & { organizationId?: number | null }) {
+  updateProfile(data: Partial<Profile> & { organizationId?: number | null; links?: TourLink[] }) {
     return request<{ success: boolean; profile: Profile }>('/profile', {
       method: 'PUT',
       body: JSON.stringify(data),

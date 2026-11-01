@@ -13,11 +13,12 @@ import Colors from '@/constants/Colors';
 import { useOrganizationSearch } from '@/hooks/useSearch';
 import { hasInstructorAccess } from '@/utils/userRole';
 import { useAuth } from '@/contexts/AuthContext';
-import { api, Profile, Organization } from '@/services/api';
+import { api, Profile, Organization, TourLink } from '@/services/api';
 import Spinner from '@/components/Spinner';
 import BottomSheet from '@/components/BottomSheet';
 import type { TextInputInstance } from 'react-native';
 import GlassCircle from '@/components/GlassCircle';
+import ProfileLinksEditor from '@/components/ProfileLinksEditor';
 
 export default function ProfileEditScreen() {
   const insets = useSafeAreaInsets();
@@ -31,6 +32,9 @@ export default function ProfileEditScreen() {
   const [nicknameTxt, setNicknameTxt] = useState(user?.nickname ?? '');
   const [nameTxt, setNameTxt] = useState(user?.name ?? '');
   const [description, setDescription] = useState('');
+  const [links, setLinks] = useState<TourLink[]>([]);
+  const [linksLoaded, setLinksLoaded] = useState(false);
+  const [draggingLink, setDraggingLink] = useState(false);
   const [shoesSize, setShoesSize] = useState('');
   const [finSize, setFinSize] = useState('');
   const [staMin, setStaMin] = useState('');
@@ -71,6 +75,8 @@ export default function ProfileEditScreen() {
             setSelectedOrg(res.user.organization);
           }
         }
+        // 링크를 못 불러왔으면 저장 때 보내지 않음 (있던 링크가 지워지지 않게)
+        if (res.links) { setLinks(res.links); setLinksLoaded(true); }
         const p = res.profile;
         if (p) {
           setLevel(p.level);
@@ -155,6 +161,7 @@ export default function ProfileEditScreen() {
         nickname: nicknameTxt.trim() || undefined,
         name: nameTxt.trim() || null,
         description: description.trim() || null,
+        ...(linksLoaded ? { links } : {}),
         organizationId: isInstructor ? (selectedOrg?.id ?? null) : undefined,
         shoesSize: toNum(shoesSize) as any,
         finSize: finSize.trim() || null,
@@ -213,7 +220,7 @@ export default function ProfileEditScreen() {
       </View>
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive">
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" scrollEnabled={!draggingLink}>
 
           {/* Profile Image */}
           <View style={styles.avatarSection}>
@@ -292,6 +299,11 @@ export default function ProfileEditScreen() {
             multiline
             numberOfLines={3}
           />
+
+          {/* Links (14장) */}
+          <Text style={styles.sectionLabel}>링크  <Text style={styles.optional}>(선택)</Text></Text>
+          <Text style={styles.linkGuide}>참가 문의 · 소개 링크 — 프로필에 이름으로 보여요</Text>
+          <ProfileLinksEditor links={links} onChange={setLinks} onDragChange={setDraggingLink} />
 
           {/* Sizes */}
           <Text style={styles.sectionLabel}>장비 정보</Text>
@@ -520,6 +532,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#00E5FF',
   },
+  optional: { fontFamily: 'SUIT-Regular', fontSize: 13, color: 'rgba(255,255,255,0.5)' },
+  linkGuide: { fontFamily: 'SUIT-Regular', fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: -4, marginBottom: 10 },
   sectionLabel: {
     fontFamily: 'SUIT-Bold',
     fontSize: 15,
