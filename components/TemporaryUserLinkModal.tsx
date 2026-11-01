@@ -78,7 +78,7 @@ export default function TemporaryUserLinkModal({ visible, scheduleId, source, on
         <PopupBackdrop />
         <KeyboardAvoidingView style={styles.keyboard} pointerEvents={profileUserId ? 'none' : 'auto'}
           accessibilityElementsHidden={!!profileUserId} importantForAccessibility={profileUserId ? 'no-hide-descendants' : 'auto'} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-          <View style={[styles.viewport, { paddingTop: topSpace, paddingBottom: bottomSpace }]}
+          <View style={[styles.viewport, { paddingTop: topSpace, paddingBottom: bottomSpace, paddingLeft: 20 + insets.left, paddingRight: 20 + insets.right }]}
             onLayout={event => setViewportHeight(event.nativeEvent.layout.height)}>
           <View style={[styles.card, { maxHeight: cardMaxHeight }]} accessibilityViewIsModal>
             <View style={styles.header}>

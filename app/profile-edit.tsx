@@ -391,7 +391,7 @@ export default function ProfileEditScreen() {
           <PopupBackdrop />
         </Pressable>
         <KeyboardAvoidingView style={styles.orgModalWrap} behavior={Platform.OS === 'ios' ? 'padding' : undefined} pointerEvents="box-none">
-          <View style={[styles.orgModalContent, { paddingBottom: insets.bottom + 16 }]}>
+          <View style={[styles.orgModalContent, { paddingBottom: insets.bottom + 16, paddingLeft: 24 + insets.left, paddingRight: 24 + insets.right }]}>
             <View style={styles.orgModalHeader}>
               <Text style={styles.orgModalTitle}>소속단체 선택</Text>
               <Pressable onPress={closeOrgPicker}>

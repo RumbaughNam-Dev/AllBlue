@@ -55,8 +55,8 @@ export default function Calendar({ events = [], calendarEvents = [], onDatePress
   // Measure the calendar itself: unfolded it only gets the left half of the window.
   const { width: windowWidth } = useWindowDimensions();
   const [measuredWidth, setMeasuredWidth] = useState(0);
-  const width = measuredWidth || windowWidth;
   const insets = useSafeAreaInsets();
+  const width = measuredWidth || windowWidth - insets.left - insets.right;
   // iPhone Duo uses the system tab bar, which the safe area already clears.
   const bottomSpace = isIPhoneDuo ? insets.bottom : getTabBarContentClearance(insets.bottom, Platform.OS);
   const [year, setYear] = useState(new Date().getFullYear());

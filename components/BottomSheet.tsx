@@ -109,7 +109,7 @@ export default function BottomSheet({ visible, onClose, title, items, onSelect, 
       <Animated.View style={[
         styles.container,
         glassClear,
-        { paddingBottom: insets.bottom + 16, transform: [{ translateY: slideAnim }], bottom: searchable ? keyboardAnim : 0 },
+        { paddingBottom: insets.bottom + 16, paddingLeft: 24 + insets.left, paddingRight: 24 + insets.right, transform: [{ translateY: slideAnim }], bottom: searchable ? keyboardAnim : 0 },
       ]}>
         <GlassBackground radius={20} tintColor={PANEL_TINT} />
         <Text style={styles.title}>{title}</Text>

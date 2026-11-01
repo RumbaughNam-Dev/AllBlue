@@ -424,7 +424,7 @@ export default function LoginScreen() {
       </View>
 
       <Modal transparent visible={demoOpen} animationType="fade" onRequestClose={() => { if (!loading) { setDemoOpen(false); setDemoCode(''); } }}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.demoBackdrop}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={[styles.demoBackdrop, { paddingLeft: 24 + insets.left, paddingRight: 24 + insets.right }]}>
           <View style={styles.demoCard}>
             <Text style={styles.demoTitle}>데모 모드로 체험하기</Text>
             <Text style={styles.demoDescription}>제공받은 접속 코드를 입력해주세요.{ '\n' }공용 계정이므로 개인정보는 입력하지 마세요.</Text>

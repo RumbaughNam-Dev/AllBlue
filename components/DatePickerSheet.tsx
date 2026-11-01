@@ -109,7 +109,7 @@ export default function DatePickerSheet({ visible, onClose, selectedDate, onSele
         </Pressable>
       </Animated.View>
 
-      <Animated.View style={[styles.sheet, glassClear, { transform: [{ translateY: slideAnim }], paddingBottom: insets.bottom + 16 }]}>
+      <Animated.View style={[styles.sheet, glassClear, { transform: [{ translateY: slideAnim }], paddingBottom: insets.bottom + 16, paddingLeft: insets.left, paddingRight: insets.right }]}>
         <GlassBackground radius={20} tintColor={PANEL_TINT} />
         <View style={styles.calendarWrap}>
           {/* 헤더 */}
