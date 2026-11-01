@@ -128,7 +128,8 @@ export type ScheduleParticipantSummary = {
 };
 
 export type InvitationStatus = 'pending' | 'accepted' | 'rejected' | 'removed';
-export type AppNotification = { id: number; senderId: string; receiverId: string; scheduleId: number; title: string; body: string; readAt: string | null; createdAt: string };
+// notificationType: SCHEDULE_INVITE(일정 초대) 또는 투어 알림 코드 (21장, tourId와 함께)
+export type AppNotification = { id: number; senderId: string; receiverId: string; notificationType?: string; scheduleId: number | null; tourId?: number | null; title: string; body: string; readAt: string | null; createdAt: string };
 
 export type Schedule = {
   invitationStatus?: InvitationStatus | null;
@@ -585,6 +586,7 @@ export const api = {
   getNotifications(options: { all?: boolean; before?: number; after?: number; ceiling?: number } = {}) {
     const params = new URLSearchParams();
     for (const [key, value] of Object.entries(options)) if (value !== undefined) params.set(key, String(value));
+    params.set('withTours', 'true'); // 투어 알림도 받음 (옛 앱은 일정 초대만 받음)
     return request<{ items: AppNotification[]; hasMore: boolean; unreadCount: number }>(`/notifications?${params}`);
   },
   readNotification(id: number) { return request(`/notifications/${id}/read`, { method: 'PATCH' }); },

@@ -1,5 +1,5 @@
-import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, FlatList, ActivityIndicator, RefreshControl, Image } from 'react-native';
+import React, { useCallback, useRef, useState } from 'react';
+import { View, Text, StyleSheet, Pressable, FlatList, ActivityIndicator, RefreshControl, Image, Alert } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,7 +7,7 @@ import Colors from '@/constants/Colors';
 import { api, TourRequestItem } from '@/services/api';
 import GlassCircle from '@/components/GlassCircle';
 import StripBackSlot from '@/components/StripBackSlot';
-import { useAppRouter, useIsPaneRoot } from '@/features/split/SplitPane';
+import { useAppRouter, useIsPaneRoot, useScreenParams } from '@/features/split/SplitPane';
 import { useLatestRequest } from '@/hooks/useLatestRequest';
 import { useSheetTop } from './useSheetTop';
 import { TourEmpty } from './TourCards';
@@ -35,6 +35,9 @@ export default function TourRequestsScreen() {
   const [busy, setBusy] = useState<number | null>(null);
   const [revising, setRevising] = useState<TourRequestItem | null>(null);
   const latest = useLatestRequest();
+  // 21장: 알림을 눌러 왔는데 그 건이 이미 처리됐으면 알려 줌 (한 번만)
+  const { focusTourId } = useScreenParams<{ focusTourId?: string }>();
+  const focusChecked = useRef(false);
 
   const load = useCallback(async (mode: 'first' | 'refresh' | 'quiet' = 'first') => {
     const isCurrent = latest.start();
@@ -43,6 +46,10 @@ export default function TourRequestsScreen() {
     try {
       const data = await api.getTourRequests();
       if (!isCurrent()) return;
+      if (focusTourId && !focusChecked.current) {
+        focusChecked.current = true;
+        if (!data.requests.some(r => r.tour.id === Number(focusTourId))) Alert.alert('알림', '이미 처리된 요청이에요.');
+      }
       setRequests(data.requests); setError(false);
     } catch {
       if (isCurrent() && mode !== 'quiet') setError(true);

@@ -8,7 +8,8 @@ import { View, DeviceEventEmitter, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { hasSideTabStrip } from '@/utils/tabBarLayout';
 import { StripTabBarHost } from '@/components/StripTabBarHost';
-import { observeSchedulePushes } from '@/services/push';
+import { observeSchedulePushes, observeTourPushes } from '@/services/push';
+import { tourNoticeDestination } from '@/features/tour/notices';
 import { api } from '@/services/api';
 import { StatusBar } from 'expo-status-bar';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
@@ -67,6 +68,16 @@ function RootLayoutNav() {
       if (notificationId) void api.readNotification(notificationId).then(() => DeviceEventEmitter.emit('notificationsChanged')).catch(() => {});
       routerRef.current.push({ pathname: '/schedule-detail', params: { id: String(scheduleId), filter: 'notification' } });
     }, () => DeviceEventEmitter.emit('notificationsChanged'));
+  }, [isLoggedIn, isLoading, ready, splashDone]);
+
+  // 21장 투어 알림 푸시: 등록요청 목록 · 신고 처리 · 투어 상세 · 투어 관리로
+  useEffect(() => {
+    if (!isLoggedIn || isLoading || !ready || !splashDone) return;
+    return observeTourPushes((code, tourId, notificationId) => {
+      if (notificationId) void api.readNotification(notificationId).then(() => DeviceEventEmitter.emit('notificationsChanged')).catch(() => {});
+      const destination = tourNoticeDestination(code, tourId);
+      if (destination) routerRef.current.push(destination);
+    });
   }, [isLoggedIn, isLoading, ready, splashDone]);
 
   if (!ready || !splashDone) {
