@@ -61,6 +61,9 @@ function TabIcon({ focused, tab }: { focused: boolean; tab: TabIconConfig }) {
   );
 }
 
+// Vertical bar: a rounded rectangle, not a fully rounded (oval-looking) capsule.
+const STRIP_RADIUS = 20;
+
 type Props = BottomTabBarProps & {
   // Width of the right safe-area strip to stand the bar up in, instead of floating it at the bottom.
   stripWidth?: number;
@@ -99,7 +102,7 @@ export default function CustomTabBar({ state, emitter, navigateToTab, stripWidth
   };
 
   const content = (
-    <View style={[styles.tabRow, vertical && { flexDirection: 'column', width: barSize, height: undefined, borderRadius: barSize / 2 - 4 }]} onLayout={onTabRowLayout}>
+    <View style={[styles.tabRow, vertical && { flexDirection: 'column', width: barSize, height: undefined, borderRadius: STRIP_RADIUS - 4 }]} onLayout={onTabRowLayout}>
       {/* Sliding highlight */}
       {innerWidthRef.current > 0 && (
         <Animated.View
@@ -108,7 +111,7 @@ export default function CustomTabBar({ state, emitter, navigateToTab, stripWidth
             vertical ? {
               width: tabSize,
               height: innerWidthRef.current / tabCount,
-              borderRadius: tabSize / 2 - 2,
+              borderRadius: STRIP_RADIUS - 6,
               transform: [{ translateY: slideX }],
             } : {
               width: innerWidthRef.current / tabCount,
@@ -149,15 +152,15 @@ export default function CustomTabBar({ state, emitter, navigateToTab, stripWidth
       ? [styles.stripContainer, { width: stripWidth, right: 0, paddingBottom: getSideStripBottomGap(insets.bottom) }]
       : [styles.container, { paddingBottom: getTabBarBottomPadding(insets.bottom, Platform.OS) }]}>
       {LiquidGlassView ? (
-        <LiquidGlassView glassEffectStyle="regular" colorScheme="dark" style={[styles.blurContainer, vertical && { width: barSize, borderRadius: barSize / 2 }]}>
+        <LiquidGlassView glassEffectStyle="regular" colorScheme="dark" style={[styles.blurContainer, vertical && { width: barSize, borderRadius: STRIP_RADIUS }]}>
           {content}
         </LiquidGlassView>
       ) : Platform.OS === 'ios' ? (
-        <BlurView intensity={60} tint="dark" style={[styles.blurContainer, vertical && { width: barSize, borderRadius: barSize / 2 }]}>
+        <BlurView intensity={60} tint="dark" style={[styles.blurContainer, vertical && { width: barSize, borderRadius: STRIP_RADIUS }]}>
           {content}
         </BlurView>
       ) : (
-        <View style={[styles.androidContainer, vertical && { width: barSize, borderRadius: barSize / 2 }]}>
+        <View style={[styles.androidContainer, vertical && { width: barSize, borderRadius: STRIP_RADIUS }]}>
           {content}
         </View>
       )}
