@@ -4,8 +4,9 @@ import { Stack, useRouter, useSegments, useGlobalSearchParams } from 'expo-route
 import * as SplashScreen from 'expo-splash-screen';
 import * as SystemUI from 'expo-system-ui';
 import { useEffect, useRef, useState } from 'react';
-import { View, DeviceEventEmitter } from 'react-native';
+import { View, DeviceEventEmitter, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { hasSideTabStrip } from '@/utils/tabBarLayout';
 import { observeSchedulePushes } from '@/services/push';
 import { api } from '@/services/api';
 import { StatusBar } from 'expo-status-bar';
@@ -23,7 +24,8 @@ function RootLayoutNav() {
   const router = useRouter();
   // 아이폰 듀오처럼 좌우에 상태표시·버튼 영역이 있는 기기에서 그 영역을 피해 그림
   const { left, right } = useSafeAreaInsets();
-  const side = { paddingLeft: left, paddingRight: right };
+  // 그런 기기는 상태표시가 오른쪽으로 가서 위쪽 여백이 거의 0 — 상단 바가 맨 위에 붙지 않게 살짝 띄움
+  const side = { paddingLeft: left, paddingRight: right, paddingTop: hasSideTabStrip(right, Platform.OS) ? 12 : 0 };
   const segments = useSegments();
   const linkParams = useGlobalSearchParams<{ id?: string; filter?: string }>();
   useScheduleLinkResume({
