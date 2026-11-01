@@ -10,7 +10,7 @@ import Colors from '@/constants/Colors';
 // is wide enough and wider than tall. Unfolded but turned upright, it reads like the folded phone.
 export const SPLIT_MIN_WIDTH = 600;
 
-export type PaneTab = 'index' | 'b' | 'c';
+export type PaneTab = 'index' | 'b' | 'c' | 'tour';
 type Params = Record<string, string>;
 const PANE_PATHS = ['/schedule-daily', '/schedule-detail', '/profile-view', '/achievement', '/debriefing'] as const;
 type PanePath = typeof PANE_PATHS[number];
@@ -44,8 +44,8 @@ type SplitValue = {
 const SplitContext = createContext<SplitValue | null>(null);
 const PaneScreenContext = createContext<{ route: PaneRoute; index: number } | null>(null);
 
-const TAB_BY_PATH: Record<string, PaneTab> = { '/': 'index', '/b': 'b', '/c': 'c' };
-const EMPTY_STACKS: Record<PaneTab, PaneRoute[]> = { index: [], b: [], c: [] };
+const TAB_BY_PATH: Record<string, PaneTab> = { '/': 'index', '/b': 'b', '/c': 'c', '/tour': 'tour' };
+const EMPTY_STACKS: Record<PaneTab, PaneRoute[]> = { index: [], b: [], c: [], tour: [] };
 
 const toParams = (params?: Record<string, unknown>): Params =>
   Object.fromEntries(Object.entries(params ?? {}).filter(([, v]) => v != null).map(([k, v]) => [k, String(v)]));
