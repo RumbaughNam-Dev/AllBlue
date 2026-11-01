@@ -4,7 +4,7 @@ import {
 } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { useAppRouter, useScreenParams, useIsPaneRoot, useIsInPane } from '@/features/split/SplitPane';
-import { isIPhoneDuo } from '@/utils/foldable';
+import { DUO_SYSTEM_TABS } from '@/utils/foldable';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import Colors from '@/constants/Colors';
@@ -21,7 +21,7 @@ export default function ScheduleDailyScreen() {
   const isPaneRoot = useIsPaneRoot();
   // On iPhone Duo's right pane the tab bar accessory offers this button instead.
   const inPane = useIsInPane();
-  const showAddButton = !(isIPhoneDuo && inPane);
+  const showAddButton = !(DUO_SYSTEM_TABS && inPane);
   const { date, filter = 'mine', sourceLabel } = useScreenParams<{ date: string; filter?: string; sourceLabel?: string }>();
   const source = sourceLabel ?? (filter === 'instructor' ? '강사 일정' : filter === 'closeFriend' ? '친한친구 일정' : filter.startsWith('group_') ? '그룹 일정' : '내 일정');
   const [schedules, setSchedules] = useState<Schedule[]>([]);

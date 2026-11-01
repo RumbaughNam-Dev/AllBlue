@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { readPinnedOrder, sortPinnedFriends } from '@/utils/pinnedFriends';
 import { getTabBarContentClearance, hasSideTabStrip } from '@/utils/tabBarLayout';
-import { isIPhoneDuo } from '@/utils/foldable';
+import { DUO_SYSTEM_TABS } from '@/utils/foldable';
 import { maskPhone } from '@/utils/format';
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { AppState, Alert, TextInput, Platform, Animated, Easing, useWindowDimensions, Keyboard } from 'react-native';
@@ -26,7 +26,7 @@ export function useFriends() {
   const router = useAppRouter();
   const insets = useSafeAreaInsets();
   // iPhone Duo uses the system tab bar, which the safe area already clears.
-  const bottomSpace = isIPhoneDuo || hasSideTabStrip(insets.right, Platform.OS) ? insets.bottom : getTabBarContentClearance(insets.bottom, Platform.OS);
+  const bottomSpace = DUO_SYSTEM_TABS || hasSideTabStrip(insets.right, Platform.OS) ? insets.bottom : getTabBarContentClearance(insets.bottom, Platform.OS);
 
   const [activeTab, setActiveTab] = useState<TabType>('close');
   const activeTabRef = useRef(activeTab);

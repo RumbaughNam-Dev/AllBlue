@@ -16,7 +16,7 @@ import GlassCircle from '@/components/GlassCircle';
 import { SplitProvider, PaneHost, useIsSplit, useActivePane } from '@/features/split/SplitPane';
 import { NativeTabs } from 'expo-router/native-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { isIPhoneDuo } from '@/utils/foldable';
+import { DUO_SYSTEM_TABS } from '@/utils/foldable';
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
@@ -48,7 +48,7 @@ export default function TabLayout() {
   }, [user?.id]));
 
   return (
-    <SplitProvider paneInScenes={isIPhoneDuo}>
+    <SplitProvider paneInScenes={DUO_SYSTEM_TABS}>
     <View style={[styles.root, { paddingTop: insets.top }]}>
       {/* Toolbar */}
       <View style={styles.toolbar}>
@@ -80,7 +80,7 @@ export default function TabLayout() {
         </View>
       </View>
 
-      {isIPhoneDuo ? <DuoTabsBody /> : <TabsBody />}
+      {DUO_SYSTEM_TABS ? <DuoTabsBody /> : <TabsBody />}
 
       {user && <StartupPopups key={user.id} userId={user.id} />}
 

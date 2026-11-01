@@ -12,3 +12,8 @@ export const isIPhoneDuo: boolean = (() => {
     return false;
   }
 })();
+
+// iOS stands the system tab bar up in that strip only for apps built with the iOS 27.1 SDK. The current
+// store build isn't, so the system bar stayed across the bottom; the iPhone Duo uses the app's own bar
+// (vertical in the strip, see CustomTabBar) until then. Set to isIPhoneDuo once built with 27.1.
+export const DUO_SYSTEM_TABS: boolean = false;
