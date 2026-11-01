@@ -392,6 +392,12 @@ export type TourRequestInput = {
   links: TourLink[];
 };
 export type TourLink = { name: string; url: string };
+// 15장 투어 등록요청 (admin)
+export type TourRequestItem = {
+  id: number; type: 'CREATE' | 'UPDATE'; requestedAt: string;
+  tour: { id: number; title: string; countryName: string; startDate: string; endDate: string; fee: number | null; imageUrl: string | null };
+  instructor: { userId: string; nickname: string; name: string | null };
+};
 
 // 6장 정렬 (RECENT · POPULAR는 홈 '전체보기'용)
 export type TourSort = 'DEADLINE' | 'START_ASC' | 'START_DESC' | 'CAPACITY_ASC' | 'CAPACITY_DESC' | 'RECENT' | 'POPULAR';
@@ -402,6 +408,7 @@ export type TourSearchResult = { total: number; sort: TourSort; tours: TourCard[
 export type TourDetail = {
   tour: {
     id: number; title: string; status: TourStatus; isMine: boolean; isPublic: boolean;
+    pendingRequest: { id: number; type: 'CREATE' | 'UPDATE' } | null; // admin이 심사 중일 때만
     continentCode: string; continentName: string; countryCode: string; countryName: string;
     startDate: string; endDate: string; capacity: number; recruitedCount: number; fee: number | null;
     images: string[]; included: string[]; excluded: string[];
@@ -432,6 +439,9 @@ export const api = {
   getTour(id: number) { return request<TourDetail>(`/tours/${id}`); },
   // 새 투어의 문의 링크를 미리 채울 내 프로필 링크
   getProfileLinks() { return request<{ links: TourLink[] }>('/tours/profile-links'); },
+  getTourRequests() { return request<{ requests: TourRequestItem[] }>('/tours/requests'); },
+  approveTourRequest(id: number) { return request<{ requestId: number; tourId: number; status: TourStatus }>(`/tours/requests/${id}/approve`, { method: 'POST' }); },
+  rejectTourRequest(id: number) { return request<{ requestId: number; tourId: number; status: TourStatus }>(`/tours/requests/${id}/reject`, { method: 'POST' }); },
   searchTours(conditions: TourSearchConditions, sort: TourSort, offset = 0) {
     const params = new URLSearchParams({ sort, offset: String(offset) });
     for (const [key, value] of Object.entries(conditions)) if (value) params.set(key, value);

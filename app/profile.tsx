@@ -38,6 +38,7 @@ export default function ProfileScreen() {
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [memberPendingCount, setMemberPendingCount] = useState(0);
   const [orgPendingCount, setOrgPendingCount] = useState(0);
+  const [tourRequestCount, setTourRequestCount] = useState(0);
   const [adminMenuVisible, setAdminMenuVisible] = useState(false);
 
   useFocusEffect(
@@ -54,6 +55,9 @@ export default function ProfileScreen() {
           if (res.profile?.level === 'A') {
             api.getPendingOrganizations()
               .then((r) => setOrgPendingCount((r.organizations ?? []).length))
+              .catch(() => {});
+            api.getTourRequests()
+              .then((r) => setTourRequestCount(r.requests.length))
               .catch(() => {});
           }
           if (res.user) {
@@ -85,12 +89,13 @@ export default function ProfileScreen() {
   );
 
 
-  const adminPendingTotal = inquiryPendingCount + pendingCount + orgPendingCount;
+  const adminPendingTotal = inquiryPendingCount + pendingCount + orgPendingCount + tourRequestCount;
   const pendingBadge = (count: number) => (count > 0 ? `${count}건` : undefined);
   const adminMenuItems = [
     { label: '문의 요청 처리', value: '/inquiry-manage', badge: pendingBadge(inquiryPendingCount) },
     { label: '자격증 등록 처리', value: '/cert-manage', badge: pendingBadge(pendingCount) },
     { label: '단체 등록처리', value: '/organization-manage', badge: pendingBadge(orgPendingCount) },
+    { label: '투어 등록요청', value: '/tour-requests', badge: pendingBadge(tourRequestCount) },
   ];
 
   const certificateRow = (label: string, imageUrl?: string) => (

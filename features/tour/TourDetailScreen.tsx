@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, Image, ActivityIndicator, Linking, Alert, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, Image, ActivityIndicator, Linking, Alert, Platform, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/Colors';
 import { api, TourDetail } from '@/services/api';
@@ -14,6 +14,7 @@ import { useAppRouter, useIsPaneRoot, useScreenParams } from '@/features/split/S
 import { useLatestRequest } from '@/hooks/useLatestRequest';
 import { StatusBadge, TourEmpty } from './TourCards';
 import { formatFee, formatStay, formatTourPeriod } from './ui';
+import { confirmTourRequest, RequestDecision } from './requests';
 
 const SIDE = 20;
 // Main actions stay white (prominent glass) so the navy label keeps its contrast.
@@ -21,7 +22,8 @@ const PROMINENT_TINT = 'rgba(255,255,255,0.85)';
 
 // 11장 투어 상세: 맨 위 인솔 강사, 아래로 투어 정보 · 포함/불포함 · 소개 이미지, 하단 고정 '문의하기'.
 export default function TourDetailScreen() {
-  const { id } = useScreenParams<{ id: string }>();
+  // inSheet: 프로필 시트 안(관리자 기능 → 투어 등록요청)에서 열림 → 시트 위쪽 여백만
+  const { id, inSheet } = useScreenParams<{ id: string; inSheet?: string }>();
   const router = useAppRouter();
   const isPaneRoot = useIsPaneRoot();
   const insets = useSafeAreaInsets();
@@ -54,6 +56,17 @@ export default function TourDetailScreen() {
     else setLinkSheet(true);
   };
 
+  // 15장: admin이 심사 중인 투어를 열면 하단에서 승인 · 불허, 처리 후 목록으로 돌아감
+  const [processing, setProcessing] = useState(false);
+  const process = async (decision: RequestDecision) => {
+    const pending = detail?.tour.pendingRequest;
+    if (!pending || processing) return;
+    setProcessing(true);
+    const done = await confirmTourRequest(pending.id, detail.tour.title, decision);
+    setProcessing(false);
+    if (done) router.back();
+  };
+
   const header = (
     <View style={styles.header}>
       {isPaneRoot ? <View style={styles.backButton} /> : (
@@ -72,7 +85,7 @@ export default function TourDetailScreen() {
 
   if (state !== 'ready' || !detail) {
     return (
-      <View style={[styles.container, { paddingTop: insets.top }]}>
+      <View style={[styles.container, { paddingTop: inSheet && Platform.OS === 'ios' ? 10 : insets.top }]}>
         {header}
         {state === 'loading' ? (
           <View style={styles.center}><ActivityIndicator size="large" color="rgba(255,255,255,0.5)" /></View>
@@ -93,7 +106,7 @@ export default function TourDetailScreen() {
   const remaining = tour.capacity - tour.recruitedCount;
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: inSheet && Platform.OS === 'ios' ? 10 : insets.top }]}>
       {header}
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {!tour.isPublic && (
@@ -141,6 +154,16 @@ export default function TourDetailScreen() {
         </View>
       </ScrollView>
 
+      {tour.pendingRequest ? (
+      <View style={[styles.bottomArea, styles.reviewArea, { paddingBottom: insets.bottom + 12 }]}>
+        <Pressable accessibilityRole="button" disabled={processing} onPress={() => process('reject')} style={({ pressed }) => [styles.reject, pressed && { opacity: 0.7 }]}>
+          <Text style={styles.rejectText}>불허</Text>
+        </Pressable>
+        <Pressable accessibilityRole="button" disabled={processing} onPress={() => process('approve')} style={({ pressed }) => [styles.approve, pressed && { opacity: 0.8 }]}>
+          <Text style={styles.approveText}>승인</Text>
+        </Pressable>
+      </View>
+      ) : (
       <View style={[styles.bottomArea, { paddingBottom: insets.bottom + 12 }]}>
         <Pressable
           accessibilityRole="button"
@@ -154,6 +177,7 @@ export default function TourDetailScreen() {
         </Pressable>
         {!links.length && <Text style={styles.noLink}>강사가 아직 문의 링크를 등록하지 않았어요</Text>}
       </View>
+      )}
 
       {viewing && <CertificateImageViewer imageUrl={viewing} onClose={() => setViewing(null)} />}
       <BottomSheet
@@ -242,6 +266,11 @@ const styles = StyleSheet.create({
   images: { gap: 10 },
   image: { width: '100%', borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.06)' },
   bottomArea: { paddingHorizontal: SIDE, paddingTop: 10, gap: 6 },
+  reviewArea: { flexDirection: 'row', gap: 10 },
+  reject: { flex: 1, height: 54, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.9)' },
+  rejectText: { fontFamily: 'SUIT-Bold', fontSize: 16, color: '#C53030' },
+  approve: { flex: 1.4, height: 54, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: '#00B4D8' },
+  approveText: { fontFamily: 'SUIT-Bold', fontSize: 16, color: '#032A36' },
   inquire: {
     height: 54, borderRadius: 14, alignItems: 'center', justifyContent: 'center',
     backgroundColor: Colors.brand.white,
