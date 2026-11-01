@@ -150,7 +150,9 @@ function TourCardItem({ tour }: { tour: TourCard }) {
       </View>
       <View style={styles.cardBody}>
         <Text style={styles.title} numberOfLines={1}>{tour.title}</Text>
-        <Text style={styles.meta} numberOfLines={1}>{tour.countryName} · {formatTourPeriod(tour.startDate, tour.endDate)}</Text>
+        {/* Narrow card: country and dates on their own lines so neither gets cut off */}
+        <Text style={styles.meta} numberOfLines={1}>{tour.countryName}</Text>
+        <Text style={styles.meta} numberOfLines={1}>{formatTourPeriod(tour.startDate, tour.endDate)}</Text>
         <Text style={styles.recruit}>{formatRecruitment(tour.recruitedCount, tour.capacity)}</Text>
       </View>
     </Pressable>
