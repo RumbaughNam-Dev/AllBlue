@@ -1,8 +1,10 @@
 import StartupPopups from '@/features/notices/StartupPopups';
 import NotificationBell from '@/features/notifications/NotificationBell';
-import React, { useState, useRef, useCallback } from 'react';
-import { AppState, View, Text, StyleSheet, Pressable } from 'react-native';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { AppState, View, Text, StyleSheet, Pressable, Platform } from 'react-native';
 import { Tabs, useRouter, useFocusEffect } from 'expo-router';
+import type { BottomTabBarProps } from 'expo-router/tabs';
+import { hasSideTabStrip } from '@/utils/tabBarLayout';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CustomTabBar from '@/components/CustomTabBar';
 import SideSheet from '@/components/SideSheet';
@@ -139,11 +141,15 @@ function CreateDiveAccessory({ date }: { date: string }) {
 // Unfolded, the tab screen takes the left half and screens opened from it the right half.
 function TabsBody() {
   const isSplit = useIsSplit();
+  const insets = useSafeAreaInsets();
+  const strip = hasSideTabStrip(insets.right, Platform.OS);
+  // With a side strip the bar is drawn here, beside both halves, rather than inside the left half.
+  const [stripBarProps, setStripBarProps] = useState<BottomTabBarProps | null>(null);
   return (
     <View style={styles.body}>
       <View style={styles.half}>
         <Tabs
-          tabBar={(props) => <CustomTabBar {...props} />}
+          tabBar={(props) => strip ? <TabBarRelay {...props} onChange={setStripBarProps} /> : <CustomTabBar {...props} />}
           screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: '#144A84' } }}
         >
           <Tabs.Screen name="index" />
@@ -156,8 +162,20 @@ function TabsBody() {
           <PaneHost />
         </View>
       )}
+      {strip && stripBarProps && <CustomTabBar {...stripBarProps} stripWidth={insets.right} />}
     </View>
   );
+}
+
+// Hands the tab bar's props up to TabsBody, which draws the bar in the side strip.
+function TabBarRelay({ onChange, ...props }: BottomTabBarProps & { onChange: (props: BottomTabBarProps | null) => void }) {
+  const { state, emitter, navigateToTab } = props;
+  useEffect(() => {
+    onChange(props);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state, emitter, navigateToTab, onChange]);
+  useEffect(() => () => onChange(null), [onChange]);
+  return null;
 }
 
 const styles = StyleSheet.create({

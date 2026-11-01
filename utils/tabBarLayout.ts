@@ -7,3 +7,11 @@ export function getTabBarBottomPadding(bottomInset: number, platform: string): n
 export function getTabBarContentClearance(bottomInset: number, platform: string): number {
   return TAB_BAR_HEIGHT + getTabBarBottomPadding(bottomInset, platform) + 16;
 }
+
+// A right safe-area strip at least this wide (iPhone Duo: status and system buttons on the right)
+// holds the tab bar vertically instead of floating it over the bottom of the content.
+export const SIDE_TAB_STRIP_MIN = 44;
+
+export function hasSideTabStrip(rightInset: number, platform: string): boolean {
+  return platform === 'ios' && rightInset >= SIDE_TAB_STRIP_MIN;
+}

@@ -1,5 +1,5 @@
 import { getScheduleMarkerColor } from '@/utils/scheduleMarker';
-import { getTabBarContentClearance } from '@/utils/tabBarLayout';
+import { getTabBarContentClearance, hasSideTabStrip } from '@/utils/tabBarLayout';
 import React, { useState, useCallback, useRef, useMemo } from 'react';
 import {
   View, Text, StyleSheet, SectionList, Pressable, ActivityIndicator, Platform,
@@ -51,7 +51,7 @@ export default function TabB() {
   usePaneDefault('b', { message: '여기에 일정 상세 내용이 표시돼요', hint: '왼쪽에서 궁금한 다이빙 일정을 눌러 보세요' });
   const insets = useSafeAreaInsets();
   // iPhone Duo uses the system tab bar, which the safe area already clears.
-  const bottomSpace = isIPhoneDuo ? insets.bottom : getTabBarContentClearance(insets.bottom, Platform.OS);
+  const bottomSpace = isIPhoneDuo || hasSideTabStrip(insets.right, Platform.OS) ? insets.bottom : getTabBarContentClearance(insets.bottom, Platform.OS);
   const [scheduleMap, setScheduleMap] = useState<Map<string, Schedule[]>>(new Map());
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);

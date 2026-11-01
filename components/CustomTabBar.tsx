@@ -17,7 +17,7 @@ type TabIconConfig = {
 
 const TAB_ICONS: TabIconConfig[] = [
   { pack: 'ionicons', icon: 'calendar', iconOutline: 'calendar-outline' },
-  { pack: 'image', icon: '', iconOutline: '', image: require('@/assets/images/icon-snorkel.png') },
+  { pack: 'image', icon: '', iconOutline: '', image: require('@/assets/images/icon-snorkel-tab.png') },
   { pack: 'ionicons', icon: 'people', iconOutline: 'people-outline' },
 ];
 
@@ -61,8 +61,17 @@ function TabIcon({ focused, tab }: { focused: boolean; tab: TabIconConfig }) {
   );
 }
 
-export default function CustomTabBar({ state, emitter, navigateToTab }: BottomTabBarProps) {
+type Props = BottomTabBarProps & {
+  // Width of the right safe-area strip to stand the bar up in, instead of floating it at the bottom.
+  stripWidth?: number;
+};
+
+export default function CustomTabBar({ state, emitter, navigateToTab, stripWidth }: Props) {
   const insets = useSafeAreaInsets();
+  const vertical = stripWidth !== undefined;
+  // Vertical: as wide as the strip allows, up to the usual bar height.
+  const barSize = vertical ? Math.min(TAB_BAR_HEIGHT, stripWidth - 4) : TAB_BAR_HEIGHT;
+  const tabSize = barSize - 8;
   const tabCount = state.routes.length;
   const slideX = useRef(new Animated.Value(0)).current;
   const innerWidthRef = useRef(0);
@@ -80,7 +89,7 @@ export default function CustomTabBar({ state, emitter, navigateToTab }: BottomTa
   }, [state.index]);
 
   const onTabRowLayout = (e: LayoutChangeEvent) => {
-    const totalWidth = e.nativeEvent.layout.width;
+    const totalWidth = vertical ? e.nativeEvent.layout.height : e.nativeEvent.layout.width;
     const padding = 8; // 4px each side
     innerWidthRef.current = totalWidth - padding;
     const tabWidth = innerWidthRef.current / tabCount;
@@ -88,13 +97,18 @@ export default function CustomTabBar({ state, emitter, navigateToTab }: BottomTa
   };
 
   const content = (
-    <View style={styles.tabRow} onLayout={onTabRowLayout}>
+    <View style={[styles.tabRow, vertical && { flexDirection: 'column', width: barSize, height: undefined, borderRadius: barSize / 2 - 4 }]} onLayout={onTabRowLayout}>
       {/* Sliding highlight */}
       {innerWidthRef.current > 0 && (
         <Animated.View
           style={[
             styles.highlight,
-            {
+            vertical ? {
+              width: tabSize,
+              height: innerWidthRef.current / tabCount,
+              borderRadius: tabSize / 2 - 2,
+              transform: [{ translateY: slideX }],
+            } : {
               width: innerWidthRef.current / tabCount,
               transform: [{ translateX: slideX }],
             },
@@ -119,7 +133,7 @@ export default function CustomTabBar({ state, emitter, navigateToTab }: BottomTa
         };
 
         return (
-          <Pressable key={route.key} onPress={onPress} style={styles.tab}>
+          <Pressable key={route.key} onPress={onPress} style={[styles.tab, vertical && { flex: 0, width: tabSize, height: tabSize }]}>
             <TabIcon focused={isFocused} tab={tab} />
           </Pressable>
         );
@@ -128,17 +142,19 @@ export default function CustomTabBar({ state, emitter, navigateToTab }: BottomTa
   );
 
   return (
-    <View style={[styles.container, { paddingBottom: getTabBarBottomPadding(insets.bottom, Platform.OS) }]}>
+    <View style={vertical
+      ? [styles.stripContainer, { width: stripWidth, right: -stripWidth, paddingBottom: insets.bottom }]
+      : [styles.container, { paddingBottom: getTabBarBottomPadding(insets.bottom, Platform.OS) }]}>
       {LiquidGlassView ? (
-        <LiquidGlassView glassEffectStyle="regular" colorScheme="dark" style={styles.blurContainer}>
+        <LiquidGlassView glassEffectStyle="regular" colorScheme="dark" style={[styles.blurContainer, vertical && { width: barSize, borderRadius: barSize / 2 }]}>
           {content}
         </LiquidGlassView>
       ) : Platform.OS === 'ios' ? (
-        <BlurView intensity={60} tint="dark" style={styles.blurContainer}>
+        <BlurView intensity={60} tint="dark" style={[styles.blurContainer, vertical && { width: barSize, borderRadius: barSize / 2 }]}>
           {content}
         </BlurView>
       ) : (
-        <View style={styles.androidContainer}>
+        <View style={[styles.androidContainer, vertical && { width: barSize, borderRadius: barSize / 2 }]}>
           {content}
         </View>
       )}
@@ -154,6 +170,14 @@ const styles = StyleSheet.create({
     right: 0,
     alignItems: 'center',
     paddingHorizontal: 40,
+  },
+  // Fills the strip to the right of the tab layout (which ends where the safe area begins).
+  stripContainer: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   blurContainer: {
     width: '100%',

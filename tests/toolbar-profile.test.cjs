@@ -21,6 +21,7 @@ test('toolbar refreshes cached levels on focus and foreground, ignoring old resp
   for (const name of ['features/notices/StartupPopups', 'features/notifications/NotificationBell', 'components/CustomTabBar', 'components/SideSheet', 'components/ProfileAvatar', 'components/GlassCircle']) modules[`@/${name}`] = name;
   modules['expo-router/native-tabs'] = { NativeTabs: { BottomAccessory: {} } };
   modules['@expo/vector-icons'] = { Ionicons: 'Ionicons' };
+  modules['@/utils/tabBarLayout'] = { hasSideTabStrip: () => false };
   const Screen = loadModule('app/(tabs)/_layout.tsx', modules).default;
   const render = () => h.render(Screen);
   const flush = () => new Promise(setImmediate);
