@@ -102,7 +102,8 @@ function DuoTabsBody() {
         <NativeTabs.Trigger.Label>캘린더</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="b">
-        <NativeTabs.Trigger.Icon src={require('@/assets/images/icon-snorkel.png')} />
+        {/* 시스템 탭바는 이미지 원래 크기로 그려서, 탭 아이콘 크기(25pt)로 만든 이미지를 씀 */}
+        <NativeTabs.Trigger.Icon src={require('@/assets/images/icon-snorkel-tab.png')} />
         <NativeTabs.Trigger.Label>다이빙</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="c">
