@@ -160,7 +160,7 @@ export default function TourDetailScreen() {
         visible={linkSheet}
         onClose={() => setLinkSheet(false)}
         title="문의하기"
-        items={links.map(link => ({ label: link.name, value: link.url }))}
+        items={links.map(link => ({ label: link.name, value: link.url, icon: 'link' as const }))}
         fitContent
         onSelect={url => void openLink(url)}
       />

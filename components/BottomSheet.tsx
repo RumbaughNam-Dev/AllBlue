@@ -8,9 +8,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/Colors';
 import type { ScrollViewInstance } from 'react-native';
 import GlassBackground, { glassClear, PANEL_TINT } from '@/components/GlassBackground';
+import { Ionicons } from '@expo/vector-icons';
 
 // badge: short text shown at the right of the item (e.g. a pending count '3건')
-type BottomSheetItem = { label: string; value: any; badge?: string };
+// icon: small white icon before the label (e.g. 'link' for contact links)
+type BottomSheetItem = { label: string; value: any; badge?: string; icon?: 'link' };
 
 type Props = {
   visible: boolean;
@@ -145,7 +147,8 @@ export default function BottomSheet({ visible, onClose, title, items, onSelect, 
                   style={({ pressed }) => [styles.item, pressed && { opacity: 0.6 }]}
                   onPress={() => { onSelect(item.value); if (closeOnSelect) onClose(); }}
                 >
-                  <Text style={[styles.itemText, isSelected && styles.itemTextSelected]}>{item.label}</Text>
+                  {item.icon && <Ionicons name={item.icon} size={18} color={Colors.brand.white} style={styles.itemIcon} />}
+                  <Text style={[styles.itemText, item.icon && styles.itemTextWithIcon, isSelected && styles.itemTextSelected]}>{item.label}</Text>
                   {!!item.badge && <Text style={styles.itemBadge}>{item.badge}</Text>}
                   {isSelected && <Text style={styles.checkMark}>✓</Text>}
                 </Pressable>
@@ -184,6 +187,8 @@ const styles = StyleSheet.create({
     paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)',
   },
   itemText: { fontFamily: 'SUIT-Regular', fontSize: 16, color: Colors.brand.white },
+  itemIcon: { marginRight: 10 },
+  itemTextWithIcon: { flex: 1 },
   itemTextSelected: { fontFamily: 'SUIT-Bold', color: Colors.brand.accent },
   checkMark: { fontSize: 16, color: Colors.brand.accent, marginLeft: 8 },
   searchInput: {

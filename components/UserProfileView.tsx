@@ -12,6 +12,7 @@ import { hasInstructorAccess } from '@/utils/userRole';
 import { groupProfileCertifications } from '@/utils/profileCertifications';
 import GlassBackground, { glassClear } from '@/components/GlassBackground';
 import GlassCircle from '@/components/GlassCircle';
+import LinkChips from '@/components/LinkChips';
 
 // Main actions stay white (prominent glass) so the navy label keeps its contrast.
 const PROMINENT_TINT = 'rgba(255,255,255,0.85)';
@@ -38,18 +39,20 @@ export default function UserProfileView({ userId, onClose, onOpenLog }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [retry, setRetry] = useState(0);
+  const [links, setLinks] = useState<{ name: string; url: string }[]>([]);
 
   useEffect(() => {
     let active = true;
     setIsMyStudent(false);
     setUserInfo(null);
-    setLoading(true); setError(false); setProfile(null); setCertifications([]); setOrganization(null);
+    setLoading(true); setError(false); setProfile(null); setCertifications([]); setOrganization(null); setLinks([]);
     if (!userId) { setLoading(false); setError(true); return; }
     api.getUserProfile(userId)
       .then((res) => {
         if (!active) return;
         setProfile(res.profile);
         setCertifications(res.certifications ?? []);
+        setLinks(res.links ?? []);
         setUserInfo(res.user);
         setIsMyStudent(res.isMyStudent ?? false);
         if (res.user.organization && res.user.organization.status !== 'rejected') {
@@ -126,6 +129,8 @@ export default function UserProfileView({ userId, onClose, onOpenLog }: Props) {
               ))}
             </View>
           ) : null}
+
+          <LinkChips links={links} />
 
           <View style={styles.divider} />
 

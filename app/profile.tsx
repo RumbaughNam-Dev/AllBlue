@@ -13,6 +13,7 @@ import Spinner from '@/components/Spinner';
 import LevelBadge from '@/components/LevelBadge';
 import GlassBackground, { glassClear } from '@/components/GlassBackground';
 import BottomSheet from '@/components/BottomSheet';
+import LinkChips from '@/components/LinkChips';
 
 function formatRecord(val: number | null, unit?: string): string {
   if (val === null || val === undefined) return '--';
@@ -28,6 +29,7 @@ export default function ProfileScreen() {
   const [certificationOptions, setCertificationOptions] = useState<CertificationOption[]>([]);
   const certificationGroups = groupProfileCertifications(certifications, certificationOptions);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [links, setLinks] = useState<{ name: string; url: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [pendingCount, setPendingCount] = useState(0);
   const [inquiryPendingCount, setInquiryPendingCount] = useState(0);
@@ -44,6 +46,7 @@ export default function ProfileScreen() {
           if (options) setCertificationOptions(options.data);
           setProfile(res.profile);
           setCertifications(res.certifications ?? []);
+          setLinks(res.links ?? []);
           // 단체 등록 대기 건수는 admin만 조회 가능
           if (res.profile?.level === 'A') {
             api.getPendingOrganizations()
@@ -178,6 +181,8 @@ export default function ProfileScreen() {
                 ))}
               </View>
             ) : null}
+
+            <LinkChips links={links} />
 
             <View style={styles.divider} />
 

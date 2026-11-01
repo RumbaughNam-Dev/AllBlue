@@ -352,6 +352,7 @@ export type ProfileResponse = {
   certifications?: Certification[];
   user: { id: number; isTemporary?: boolean; name?: string; nickname: string; profileImage?: string; organization?: Organization | null };
   profile: Profile | null;
+  links?: TourLink[]; // 프로필 링크 (13장)
   isMyStudent?: boolean;
 };
 
