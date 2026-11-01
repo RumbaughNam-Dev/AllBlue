@@ -143,7 +143,7 @@ export default function CustomTabBar({ state, emitter, navigateToTab, stripWidth
 
   return (
     <View style={vertical
-      ? [styles.stripContainer, { width: stripWidth, right: -stripWidth, paddingBottom: insets.bottom }]
+      ? [styles.stripContainer, { width: stripWidth, right: -stripWidth, paddingBottom: getTabBarBottomPadding(insets.bottom, Platform.OS) }]
       : [styles.container, { paddingBottom: getTabBarBottomPadding(insets.bottom, Platform.OS) }]}>
       {LiquidGlassView ? (
         <LiquidGlassView glassEffectStyle="regular" colorScheme="dark" style={[styles.blurContainer, vertical && { width: barSize, borderRadius: barSize / 2 }]}>
@@ -171,13 +171,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 40,
   },
-  // Fills the strip to the right of the tab layout (which ends where the safe area begins).
+  // Fills the strip to the right of the tab layout (which ends where the safe area begins);
+  // the bar sits at its bottom, as high off the edge as the bottom bar.
   stripContainer: {
     position: 'absolute',
     top: 0,
     bottom: 0,
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-end',
   },
   blurContainer: {
     width: '100%',
