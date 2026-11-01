@@ -2,7 +2,7 @@
   "expo": {
     "name": "AllBlue",
     "slug": "allblue",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "allblue",
@@ -11,6 +11,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.rumbaugh.allblue",
+      "googleServicesFile": "./GoogleService-Info.plist",
       "backgroundColor": "#144A84",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
@@ -64,7 +65,24 @@
       "expo-web-browser",
       "expo-notifications",
       "expo-font",
-      "expo-status-bar"
+      "expo-status-bar",
+      "@react-native-firebase/app",
+      [
+        "@react-native-firebase/analytics",
+        {
+          "ios": {
+            "withoutAdIdSupport": true
+          }
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "dynamic"
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
