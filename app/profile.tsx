@@ -12,6 +12,7 @@ import { api, Profile, Organization, Certification, CertificationOption } from '
 import Spinner from '@/components/Spinner';
 import LevelBadge from '@/components/LevelBadge';
 import GlassBackground, { glassClear } from '@/components/GlassBackground';
+import BottomSheet from '@/components/BottomSheet';
 
 function formatRecord(val: number | null, unit?: string): string {
   if (val === null || val === undefined) return '--';
@@ -32,6 +33,8 @@ export default function ProfileScreen() {
   const [inquiryPendingCount, setInquiryPendingCount] = useState(0);
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [memberPendingCount, setMemberPendingCount] = useState(0);
+  const [orgPendingCount, setOrgPendingCount] = useState(0);
+  const [adminMenuVisible, setAdminMenuVisible] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -41,6 +44,12 @@ export default function ProfileScreen() {
           if (options) setCertificationOptions(options.data);
           setProfile(res.profile);
           setCertifications(res.certifications ?? []);
+          // 단체 등록 대기 건수는 admin만 조회 가능
+          if (res.profile?.level === 'A') {
+            api.getPendingOrganizations()
+              .then((r) => setOrgPendingCount((r.organizations ?? []).length))
+              .catch(() => {});
+          }
           if (res.user) {
             updateUser({
               nickname: res.user.nickname,
@@ -70,6 +79,14 @@ export default function ProfileScreen() {
   );
 
 
+  const adminPendingTotal = inquiryPendingCount + pendingCount + orgPendingCount;
+  const pendingBadge = (count: number) => (count > 0 ? `${count}건` : undefined);
+  const adminMenuItems = [
+    { label: '문의 요청 처리', value: '/inquiry-manage', badge: pendingBadge(inquiryPendingCount) },
+    { label: '자격증 등록 처리', value: '/cert-manage', badge: pendingBadge(pendingCount) },
+    { label: '단체 등록처리', value: '/organization-manage', badge: pendingBadge(orgPendingCount) },
+  ];
+
   const certificateRow = (label: string, imageUrl?: string) => (
     <View style={styles.certificationRow}>
       <Text numberOfLines={1} style={[styles.role, styles.certificationText]}>{label}</Text>
@@ -83,6 +100,15 @@ export default function ProfileScreen() {
     <View style={[styles.container, { paddingTop: Platform.OS === 'ios' ? 16 : insets.top + 16, paddingBottom: insets.bottom }]}>
       <StatusBar style="light" />
       {certificateImage && <CertificateImageViewer key={certificateImage} imageUrl={certificateImage} onClose={() => setCertificateImage(null)} />}
+      <BottomSheet
+        visible={adminMenuVisible}
+        onClose={() => setAdminMenuVisible(false)}
+        title="관리자 기능"
+        items={adminMenuItems}
+        fitContent
+        // 시트가 닫히는 애니메이션(250ms)이 끝난 뒤 화면을 엶
+        onSelect={(path) => setTimeout(() => router.push(path), 260)}
+      />
 
       {loading ? (
         <View style={styles.loadingArea}>
@@ -218,38 +244,18 @@ export default function ProfileScreen() {
           {/* Bottom Buttons */}
           <View style={styles.bottomArea}>
             {profile?.level === 'A' && (
-              <>
-                <Pressable
-                  style={({ pressed }) => [styles.certButton, pressed && { opacity: 0.85 }]}
-                  onPress={() => router.push('/inquiry-manage')}
-                >
-                  <View style={styles.certButtonInner}>
-                    <Text style={styles.certButtonText}>문의 요청 처리</Text>
-                    {inquiryPendingCount > 0 && (
-                      <Text style={styles.certCount}>{inquiryPendingCount}건</Text>
-                    )}
-                  </View>
-                </Pressable>
-                <Pressable
-                  style={({ pressed }) => [styles.certButton, pressed && { opacity: 0.85 }]}
-                  onPress={() => router.push('/cert-manage')}
-                >
-                  <View style={styles.certButtonInner}>
-                    <Text style={styles.certButtonText}>자격증 등록 처리</Text>
-                    {pendingCount > 0 && (
-                      <Text style={styles.certCount}>{pendingCount}건</Text>
-                    )}
-                  </View>
-                </Pressable>
-                <Pressable
-                  style={({ pressed }) => [styles.certButton, pressed && { opacity: 0.85 }]}
-                  onPress={() => router.push('/organization-manage')}
-                >
-                  <View style={styles.certButtonInner}>
-                    <Text style={styles.certButtonText}>단체 등록처리</Text>
-                  </View>
-                </Pressable>
-              </>
+              // admin 전용 처리 기능은 버튼 하나로 묶고, 누르면 기능별 건수와 함께 시트로 보여줌
+              <Pressable
+                style={({ pressed }) => [styles.certButton, pressed && { opacity: 0.85 }]}
+                onPress={() => setAdminMenuVisible(true)}
+              >
+                <View style={styles.certButtonInner}>
+                  <Text style={styles.certButtonText}>관리자 기능</Text>
+                  {adminPendingTotal > 0 && (
+                    <Text style={styles.certCount}>{adminPendingTotal}건</Text>
+                  )}
+                </View>
+              </Pressable>
             )}
             {organization?.isRepresentative && (
               <Pressable

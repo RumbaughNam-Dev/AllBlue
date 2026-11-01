@@ -9,7 +9,8 @@ import Colors from '@/constants/Colors';
 import type { ScrollViewInstance } from 'react-native';
 import GlassBackground, { glassClear, PANEL_TINT } from '@/components/GlassBackground';
 
-type BottomSheetItem = { label: string; value: any };
+// badge: short text shown at the right of the item (e.g. a pending count '3건')
+type BottomSheetItem = { label: string; value: any; badge?: string };
 
 type Props = {
   visible: boolean;
@@ -23,9 +24,11 @@ type Props = {
   selectedValue?: any;
   // Always shown at the bottom, even while searching (e.g. '직접 입력')
   pinnedItems?: BottomSheetItem[];
+  // Size to the items (up to half the screen) instead of always taking half the screen
+  fitContent?: boolean;
 };
 
-export default function BottomSheet({ visible, onClose, title, items, onSelect, searchable, selectedValue, closeOnSelect = true, loading = false, pinnedItems = [] }: Props) {
+export default function BottomSheet({ visible, onClose, title, items, onSelect, searchable, selectedValue, closeOnSelect = true, loading = false, pinnedItems = [], fitContent = false }: Props) {
   const insets = useSafeAreaInsets();
   const { height: screenHeight } = useWindowDimensions();
   const backdropAnim = useRef(new Animated.Value(0)).current;
@@ -108,6 +111,7 @@ export default function BottomSheet({ visible, onClose, title, items, onSelect, 
       </Animated.View>
       <Animated.View style={[
         styles.container,
+        fitContent && styles.containerFit,
         glassClear,
         { paddingBottom: insets.bottom + 16, paddingLeft: 24 + insets.left, paddingRight: 24 + insets.right, transform: [{ translateY: slideAnim }], bottom: searchable ? keyboardAnim : 0 },
       ]}>
@@ -123,7 +127,7 @@ export default function BottomSheet({ visible, onClose, title, items, onSelect, 
             autoCorrect={false}
           />
         )}
-        <ScrollView ref={scrollRef} style={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+        <ScrollView ref={scrollRef} style={[styles.scroll, fitContent && styles.scrollFit]} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           {loading ? (
             <ActivityIndicator style={{ padding: 24 }} color={Colors.brand.white} accessibilityLabel="자격증 목록 불러오는 중" />
           ) : filtered.length === 0 && pinnedItems.length === 0 ? (
@@ -142,6 +146,7 @@ export default function BottomSheet({ visible, onClose, title, items, onSelect, 
                   onPress={() => { onSelect(item.value); if (closeOnSelect) onClose(); }}
                 >
                   <Text style={[styles.itemText, isSelected && styles.itemTextSelected]}>{item.label}</Text>
+                  {!!item.badge && <Text style={styles.itemBadge}>{item.badge}</Text>}
                   {isSelected && <Text style={styles.checkMark}>✓</Text>}
                 </Pressable>
               );
@@ -163,6 +168,12 @@ const styles = StyleSheet.create({
     position: 'absolute', bottom: 0, left: 0, right: 0,
     backgroundColor: Colors.brand.deep, borderTopLeftRadius: 20, borderTopRightRadius: 20,
     paddingTop: 20, paddingHorizontal: 24, height: '50%',
+  },
+  containerFit: { height: undefined, maxHeight: '50%' },
+  scrollFit: { flexGrow: 0 },
+  itemBadge: {
+    fontFamily: 'SUIT-Bold', fontSize: 13, color: Colors.brand.white,
+    backgroundColor: '#E53030', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2, overflow: 'hidden',
   },
   title: {
     fontFamily: 'SUIT-Bold', fontSize: 18, color: Colors.brand.white, marginBottom: 16,
