@@ -90,7 +90,7 @@ export default function InquiryDetailScreen() {
           {inquiry.attachment && isImageAttachment && (
             <Image
               source={{ uri: inquiry.attachment.fileUrl }}
-              style={[styles.heroImage, { width: screenWidth, height: screenWidth * 0.65 }]}
+              style={[styles.heroImage, { width: screenWidth - insets.left - insets.right, height: (screenWidth - insets.left - insets.right) * 0.65 }]}
               resizeMode="cover"
             />
           )}

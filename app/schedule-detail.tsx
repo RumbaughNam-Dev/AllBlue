@@ -515,7 +515,7 @@ export default function ScheduleDetailScreen() {
       <Modal visible={menuVisible} transparent animationType="fade" onRequestClose={() => setMenuVisible(false)}>
         <Pressable style={styles.menuBackdrop} onPress={() => setMenuVisible(false)}>
           <PopupBackdrop />
-          <View style={[styles.menuDropdown, { top: Platform.OS === 'ios' ? insets.top + 52 : 52 }]}>
+          <View style={[styles.menuDropdown, { top: Platform.OS === 'ios' ? insets.top + 52 : 52, right: 20 + insets.right }]}>
             <Pressable
               disabled={!schedule}
               style={({ pressed }) => [styles.menuItem, !schedule && { opacity: 0.4 }, pressed && { backgroundColor: 'rgba(255,255,255,0.08)' }]}

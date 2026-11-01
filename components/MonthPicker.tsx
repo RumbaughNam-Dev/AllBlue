@@ -18,8 +18,9 @@ type Props = {
 };
 
 export default function MonthPicker({ currentYear, currentMonth, onSelect }: Props) {
-  const { width, height } = useWindowDimensions();
+  const { width: windowWidth, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+  const width = windowWidth - insets.left - insets.right;
   const cellWidth = width / 3;
 
   const today = new Date();

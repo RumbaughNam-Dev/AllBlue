@@ -134,7 +134,7 @@ export default function CertManageScreen() {
     }
   };
 
-  const imageWidth = width - 48;
+  const imageWidth = width - insets.left - insets.right - 48;
 
   const renderItem = ({ item }: { item: CertRequest }) => (
     <View style={styles.card}>
@@ -203,7 +203,7 @@ export default function CertManageScreen() {
 
       <Modal visible={!!approveTarget} transparent animationType="fade"
         onRequestClose={() => { if (!approving) setApproveTarget(null); }}>
-        <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <KeyboardAvoidingView style={[styles.modalOverlay, { paddingLeft: insets.left, paddingRight: insets.right }]} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <PopupBackdrop />
           <Pressable style={styles.modalBackdrop} disabled={approving} onPress={() => setApproveTarget(null)} />
           <View style={[styles.modalContent, { maxHeight: '80%' }]}>
@@ -267,7 +267,7 @@ export default function CertManageScreen() {
       {/* Reject Reason Modal */}
       <Modal visible={!!rejectTarget} transparent animationType="fade">
         <KeyboardAvoidingView
-          style={styles.modalOverlay}
+          style={[styles.modalOverlay, { paddingLeft: insets.left, paddingRight: insets.right }]}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
           <PopupBackdrop />

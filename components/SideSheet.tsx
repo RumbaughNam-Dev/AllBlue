@@ -159,6 +159,7 @@ export default function SideSheet({ visible, onClose }: Props) {
             width: sheetWidth,
             paddingTop: insets.top + 8,
             paddingBottom: insets.bottom + 16,
+            paddingRight: 24 + insets.right,
             transform: [{ translateX: slideAnim }],
           },
         ]}

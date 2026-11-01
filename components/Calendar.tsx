@@ -51,8 +51,9 @@ const DEFAULT_FILTERS: FilterOption[] = [
 
 export default function Calendar({ events = [], calendarEvents = [], onDatePress, onMonthChange, scheduleFilter = 'mine', onFilterChange, filterOptions }: Props) {
   const filters = filterOptions ?? DEFAULT_FILTERS;
-  const { width } = useWindowDimensions();
+  const { width: windowWidth } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+  const width = windowWidth - insets.left - insets.right;
   const bottomSpace = getTabBarContentClearance(insets.bottom, Platform.OS);
   const [year, setYear] = useState(new Date().getFullYear());
   const [month, setMonth] = useState(new Date().getMonth());
