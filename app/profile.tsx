@@ -8,12 +8,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import Colors from '@/constants/Colors';
 import { useAuth } from '@/contexts/AuthContext';
-import { api, Profile, Organization, Certification, CertificationOption } from '@/services/api';
+import { api, Profile, Organization, Certification, CertificationOption, ProfileTour } from '@/services/api';
 import Spinner from '@/components/Spinner';
 import LevelBadge from '@/components/LevelBadge';
 import GlassBackground, { glassClear } from '@/components/GlassBackground';
 import BottomSheet from '@/components/BottomSheet';
 import LinkChips from '@/components/LinkChips';
+import ProfileTours from '@/features/tour/ProfileTours';
 
 function formatRecord(val: number | null, unit?: string): string {
   if (val === null || val === undefined) return '--';
@@ -30,6 +31,7 @@ export default function ProfileScreen() {
   const certificationGroups = groupProfileCertifications(certifications, certificationOptions);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [links, setLinks] = useState<{ name: string; url: string }[]>([]);
+  const [tours, setTours] = useState<ProfileTour[]>([]);
   const [loading, setLoading] = useState(true);
   const [pendingCount, setPendingCount] = useState(0);
   const [inquiryPendingCount, setInquiryPendingCount] = useState(0);
@@ -47,6 +49,7 @@ export default function ProfileScreen() {
           setProfile(res.profile);
           setCertifications(res.certifications ?? []);
           setLinks(res.links ?? []);
+          setTours(res.completedTours ?? []);
           // 단체 등록 대기 건수는 admin만 조회 가능
           if (res.profile?.level === 'A') {
             api.getPendingOrganizations()
@@ -244,6 +247,7 @@ export default function ProfileScreen() {
             </View>
 
             <View style={styles.divider} />
+            <ProfileTours tours={tours} />
           </ScrollView>
 
           {/* Bottom Buttons */}

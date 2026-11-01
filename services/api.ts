@@ -353,8 +353,10 @@ export type ProfileResponse = {
   user: { id: number; isTemporary?: boolean; name?: string; nickname: string; profileImage?: string; organization?: Organization | null };
   profile: Profile | null;
   links?: TourLink[]; // 프로필 링크 (13장)
+  completedTours?: ProfileTour[]; // 진행한 투어 (13장)
   isMyStudent?: boolean;
 };
+export type ProfileTour = { id: number; title: string; countryName: string; startDate: string; endDate: string; capacity: number; recruitedCount: number };
 
 export type TemporaryLinkTarget = { id: number; userId: string; nickname: string; name?: string | null; profileImage?: string | null; level?: string; badgeLevel?: string | number | null; phoneHint?: string | null };
 export type TemporaryUnlinkPreview = {
