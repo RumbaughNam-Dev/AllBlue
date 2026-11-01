@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
-  View, Text, StyleSheet, Pressable, ScrollView, Alert, ActivityIndicator, Image,
+  View, Text, StyleSheet, Pressable, ScrollView, Alert, ActivityIndicator, Image, Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -59,7 +59,7 @@ export default function OrganizationManageScreen() {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+    <View style={[styles.container, { paddingTop: Platform.OS === 'ios' ? 10 : insets.top, paddingBottom: insets.bottom }]}>
       <StatusBar style="light" />
 
       <View style={styles.header}>

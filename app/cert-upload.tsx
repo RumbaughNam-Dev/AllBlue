@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, Pressable, Image, Alert,
-  Platform, ActivityIndicator,
+  Platform, ActivityIndicator, ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -10,6 +10,8 @@ import * as ImagePicker from 'expo-image-picker';
 import Colors from '@/constants/Colors';
 import { api } from '@/services/api';
 import GlassBackground, { glassClear } from '@/components/GlassBackground';
+import GlassCircle from '@/components/GlassCircle';
+import StripBackSlot from '@/components/StripBackSlot';
 
 // Main actions stay white (prominent glass) so the navy label keeps its contrast.
 const PROMINENT_TINT = 'rgba(255,255,255,0.85)';
@@ -81,19 +83,24 @@ export default function CertUploadScreen() {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+    <View style={[styles.container, { paddingTop: Platform.OS === 'ios' ? 10 : insets.top, paddingBottom: insets.bottom }]}>
       <StatusBar style="light" />
 
       {/* Header */}
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={({ pressed }) => [pressed && { opacity: 0.6 }]}>
-          <Text style={styles.headerCancel}>취소</Text>
-        </Pressable>
+        <StripBackSlot size={36}>
+          <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.6 }]}>
+            <GlassCircle fallbackStyle={styles.backCircle}>
+              <Text style={styles.backArrow}>{'<'}</Text>
+            </GlassCircle>
+          </Pressable>
+        </StripBackSlot>
         <Text style={styles.headerTitle}>자격증 등록 요청</Text>
-        <View style={{ width: 40 }} />
+        <View style={{ width: 36 }} />
       </View>
 
-      <View style={styles.content}>
+      {/* 제목과 아래 버튼 사이만 스크롤 */}
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Reject Notice */}
         {rejectReason && (
           <View style={styles.rejectBanner}>
@@ -127,7 +134,7 @@ export default function CertUploadScreen() {
             <Text style={styles.changeText}>다른 사진 선택</Text>
           </Pressable>
         )}
-      </View>
+      </ScrollView>
 
       {/* Submit Button */}
       <View style={styles.bottomArea}>
@@ -161,23 +168,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    height: 48,
+    height: 52,
     paddingHorizontal: 20,
   },
-  headerCancel: {
-    fontFamily: 'SUIT-Regular',
-    fontSize: 16,
-    color: 'rgba(255,255,255,0.6)',
+  backButton: { width: 36, height: 36 },
+  backCircle: {
+    width: 36, height: 36, borderRadius: 18,
+    borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.4)',
+    alignItems: 'center', justifyContent: 'center',
   },
+  backArrow: { fontFamily: 'SUIT-Bold', fontSize: 16, color: Colors.brand.white, marginRight: 1 },
   headerTitle: {
     fontFamily: 'SUIT-Bold',
     fontSize: 18,
     color: Colors.brand.white,
   },
-  content: {
+  scroll: {
     flex: 1,
+  },
+  content: {
     paddingHorizontal: 24,
     paddingTop: 24,
+    paddingBottom: 24,
   },
   rejectBanner: {
     flexDirection: 'row',

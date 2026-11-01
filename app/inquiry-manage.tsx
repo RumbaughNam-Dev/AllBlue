@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import {
-  View, Text, StyleSheet, FlatList, Pressable,
+  View, Text, StyleSheet, FlatList, Pressable, Platform,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -60,7 +60,7 @@ export default function InquiryManageScreen() {
   );
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+    <View style={[styles.container, { paddingTop: Platform.OS === 'ios' ? 10 : insets.top, paddingBottom: insets.bottom }]}>
       <StatusBar style="light" />
 
       <View style={styles.header}>

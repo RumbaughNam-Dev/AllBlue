@@ -14,6 +14,8 @@ import Constants from 'expo-constants';
 import Colors from '@/constants/Colors';
 import { api, CertRequest, CertificationOption } from '@/services/api';
 import Spinner from '@/components/Spinner';
+import GlassCircle from '@/components/GlassCircle';
+import StripBackSlot from '@/components/StripBackSlot';
 
 export default function CertManageScreen() {
   const insets = useSafeAreaInsets();
@@ -174,15 +176,19 @@ export default function CertManageScreen() {
   );
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+    <View style={[styles.container, { paddingTop: Platform.OS === 'ios' ? 10 : insets.top, paddingBottom: insets.bottom }]}>
       <StatusBar style="light" />
 
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={({ pressed }) => [pressed && { opacity: 0.6 }]}>
-          <Text style={styles.headerCancel}>닫기</Text>
-        </Pressable>
+        <StripBackSlot size={36}>
+          <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.6 }]}>
+            <GlassCircle fallbackStyle={styles.backCircle}>
+              <Text style={styles.backArrow}>{'<'}</Text>
+            </GlassCircle>
+          </Pressable>
+        </StripBackSlot>
         <Text style={styles.headerTitle}>자격증 등록 처리</Text>
-        <View style={{ width: 40 }} />
+        <View style={{ width: 36 }} />
       </View>
 
       {loading ? (
@@ -325,14 +331,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    height: 48,
+    height: 52,
     paddingHorizontal: 20,
   },
-  headerCancel: {
-    fontFamily: 'SUIT-Regular',
-    fontSize: 16,
-    color: 'rgba(255,255,255,0.6)',
+  backButton: { width: 36, height: 36 },
+  backCircle: {
+    width: 36, height: 36, borderRadius: 18,
+    borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.4)',
+    alignItems: 'center', justifyContent: 'center',
   },
+  backArrow: { fontFamily: 'SUIT-Bold', fontSize: 16, color: Colors.brand.white, marginRight: 1 },
   headerTitle: {
     fontFamily: 'SUIT-Bold',
     fontSize: 18,

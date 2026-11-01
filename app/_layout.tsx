@@ -92,8 +92,8 @@ function RootLayoutNav() {
           {/* 아래에서 올라오는 시트는 iOS가 이미 오른쪽 여백을 피해 놓으므로 여백 패딩을 넣지 않음 */}
           <Stack.Screen name="profile" options={{ presentation: 'modal', gestureEnabled: true, animation: 'default', contentStyle: { backgroundColor: '#144A84' } }} />
           <Stack.Screen name="profile-edit" options={{ presentation: 'fullScreenModal', contentStyle: { ...side, backgroundColor: '#144A84' } }} />
-          <Stack.Screen name="cert-upload" options={{ presentation: 'fullScreenModal', contentStyle: { ...side, backgroundColor: '#144A84' } }} />
-          <Stack.Screen name="cert-manage" options={{ presentation: 'fullScreenModal', contentStyle: { ...side, backgroundColor: '#144A84' } }} />
+          <Stack.Screen name="cert-upload" options={{ gestureEnabled: true, contentStyle: { ...side, backgroundColor: '#144A84' } }} />
+          <Stack.Screen name="cert-manage" options={{ gestureEnabled: true, contentStyle: { ...side, backgroundColor: '#144A84' } }} />
           <Stack.Screen name="schedule-daily" options={{ gestureEnabled: true }} />
           <Stack.Screen name="schedule-detail" options={{ gestureEnabled: true }} />
           <Stack.Screen name="schedule-add" options={{ gestureEnabled: true, headerBackButtonMenuEnabled: false }} />
@@ -104,12 +104,12 @@ function RootLayoutNav() {
           <Stack.Screen name="inquiry" options={{ gestureEnabled: true }} />
           <Stack.Screen name="inquiry-write" options={{ gestureEnabled: true }} />
           <Stack.Screen name="inquiry-detail" options={{ gestureEnabled: true }} />
-          <Stack.Screen name="inquiry-manage" options={{ presentation: 'fullScreenModal', contentStyle: { ...side, backgroundColor: '#144A84' } }} />
+          <Stack.Screen name="inquiry-manage" options={{ gestureEnabled: true, contentStyle: { ...side, backgroundColor: '#144A84' } }} />
           <Stack.Screen name="inquiry-answer" options={{ gestureEnabled: true }} />
           <Stack.Screen name="withdraw" options={{ gestureEnabled: true }} />
           <Stack.Screen name="schedule-settings" options={{ gestureEnabled: true }} />
           <Stack.Screen name="organization-register" options={{ gestureEnabled: true, contentStyle: { ...side, backgroundColor: '#144A84' } }} />
-          <Stack.Screen name="organization-manage" options={{ presentation: 'fullScreenModal', contentStyle: { ...side, backgroundColor: '#144A84' } }} />
+          <Stack.Screen name="organization-manage" options={{ gestureEnabled: true, contentStyle: { ...side, backgroundColor: '#144A84' } }} />
           <Stack.Screen name="organization-members" options={{ gestureEnabled: true, contentStyle: { ...side, backgroundColor: '#144A84' } }} />
         </Stack>
       </StripTabBarHost>
