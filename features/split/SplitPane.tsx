@@ -6,7 +6,8 @@ import Colors from '@/constants/Colors';
 
 // Unfolded foldables (iPhone Duo inner display, Galaxy Z Fold) split the tab screens 1:1:
 // the tab screen stays on the left and screens opened from it show on the right.
-// Decided by window width, not by fold state, as Apple and Google recommend.
+// Decided by window size, not by fold state, as Apple and Google recommend: only when the window
+// is wide enough and wider than tall. Unfolded but turned upright, it reads like the folded phone.
 export const SPLIT_MIN_WIDTH = 600;
 
 export type PaneTab = 'index' | 'b' | 'c';
@@ -52,8 +53,8 @@ const toParams = (params?: Record<string, unknown>): Params =>
 export function SplitProvider({ children, paneInScenes = false }: { children: React.ReactNode; paneInScenes?: boolean }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { width } = useWindowDimensions();
-  const isSplit = width >= SPLIT_MIN_WIDTH;
+  const { width, height } = useWindowDimensions();
+  const isSplit = width >= SPLIT_MIN_WIDTH && width > height;
   const [stacks, setStacks] = useState(EMPTY_STACKS);
   const [defaults, setDefaults] = useState<Partial<Record<PaneTab, PaneDefault>>>({});
   const tabRef = useRef<PaneTab>('index');
