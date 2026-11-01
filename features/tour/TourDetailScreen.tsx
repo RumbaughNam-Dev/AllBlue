@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, Image, ActivityIndicator, Linking, Alert, Platform, Share, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, Image, ActivityIndicator, Linking, Alert, Platform, Share } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/Colors';
 import { api, TourDetail } from '@/services/api';
@@ -63,28 +63,16 @@ export default function TourDetailScreen() {
     else setLinkSheet(true);
   };
 
-  // '⋯': 공유하기(24장) · 신고하기 · 강사 차단(19장). 내 투어에서는 공유하기만
+  // '⋯': 공유하기(24장) · 신고하기(19장). 내 투어에서는 공유하기만
   const [menu, setMenu] = useState(false);
   const [reporting, setReporting] = useState(false);
   const canShare = !!detail?.tour.shareUrl;
   const canReport = !!detail && detail.tour.isPublic && !detail.tour.isMine;
-  const onMenu = (action: 'share' | 'report' | 'block') => {
+  const onMenu = (action: 'share' | 'report') => {
     if (!detail) return;
-    if (action === 'share') { setTimeout(() => void shareTour(), AFTER_SHEET_MS); return; }
     // 메뉴 시트가 다 닫힌 뒤에 열어야 iOS에서 다음 창이 뜸 (시트 닫힘 애니메이션 250ms + 모달 내림)
-    if (action === 'report') { setTimeout(() => setReporting(true), AFTER_SHEET_MS); return; }
-    const name = detail.instructor.nickname;
-    setTimeout(() => Alert.alert(`${name}님을 차단할까요?`, '차단하면 이 강사의 투어가 내 화면에서 모두 안 보여요.\n차단 목록에서 언제든 풀 수 있어요.', [
-      { text: '취소', style: 'cancel' },
-      {
-        text: '차단', style: 'destructive', onPress: async () => {
-          try {
-            await api.blockUser(detail.instructor.userId);
-            Alert.alert('차단했어요', undefined, [{ text: '확인', onPress: () => router.back() }]);
-          } catch (e: any) { if (!e?._handled) Alert.alert('알림', e?.message ?? '차단하지 못했어요. 잠시 후 다시 시도해 주세요.'); }
-        },
-      },
-    ]), AFTER_SHEET_MS);
+    if (action === 'share') setTimeout(() => void shareTour(), AFTER_SHEET_MS);
+    else setTimeout(() => setReporting(true), AFTER_SHEET_MS);
   };
   // 휴대폰 공유 창: 투어명 · 나라 · 기간 + 링크 (가격 · 모집현황은 링크를 연 화면에서 최신으로)
   const shareTour = async () => {
@@ -256,7 +244,7 @@ export default function TourDetailScreen() {
         title={tour.title}
         items={[
           ...(canShare ? [{ label: '공유하기', value: 'share' }] : []),
-          ...(canReport ? [{ label: '신고하기', value: 'report' }, { label: `이 강사 차단하기 (${instructor.nickname})`, value: 'block' }] : []),
+          ...(canReport ? [{ label: '신고하기', value: 'report' }] : []),
         ]}
         fitContent
         onSelect={onMenu}
@@ -305,16 +293,23 @@ function ItemSection({ title, mark, items }: { title: string; mark: string; item
   );
 }
 
-// 등록한 순서대로 세로로 이어서, 화면 폭에 맞춘 원래 비율로
+// 등록한 순서대로 세로로 이어서, 폭을 가득 채우고 원래 비율 그대로 (좌우 · 위아래 잘림 없음)
+// 비율을 알기 전에도 contain이라 잘리지 않고, 받아 온 크기로 칸 높이를 맞춤
 function FittedImage({ uri }: { uri: string }) {
-  const { width: windowWidth } = useWindowDimensions();
-  const [ratio, setRatio] = useState(3 / 4);
+  const [aspect, setAspect] = useState(4 / 3);
   useEffect(() => {
     let alive = true;
-    Image.getSize(uri, (w, h) => { if (alive && w && h) setRatio(h / w); }, () => {});
+    Image.getSize(uri, (w, h) => { if (alive && w && h) setAspect(w / h); }, () => {});
     return () => { alive = false; };
   }, [uri]);
-  return <Image source={{ uri }} style={[styles.image, { height: Math.round((windowWidth - SIDE * 2) * ratio) }]} resizeMode="cover" />;
+  return (
+    <Image
+      source={{ uri }}
+      onLoad={e => { const { width: w, height: h } = e.nativeEvent.source ?? {}; if (w && h) setAspect(w / h); }}
+      style={[styles.image, { aspectRatio: aspect }]}
+      resizeMode="contain"
+    />
+  );
 }
 
 const styles = StyleSheet.create({
