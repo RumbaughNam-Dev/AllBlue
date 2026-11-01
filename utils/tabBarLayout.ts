@@ -13,9 +13,9 @@ export function getTabBarContentClearance(bottomInset: number, platform: string)
 export const SIDE_TAB_STRIP_MIN = 44;
 
 // With the bar in the side strip: one bottom gap for the bar and every screen's bottom content
-// (banner, buttons), the same as the day timeline's '다이빙 만들기' button.
+// (banner, buttons) — half the usual bottom-safe-area-plus-12 gap, which looked too tall on the Duo.
 export function getSideStripBottomGap(bottomInset: number): number {
-  return bottomInset + 12;
+  return Math.round((bottomInset + 12) / 2);
 }
 
 // iOS's status icons in that strip (camera, clock, battery) sit this far left of the strip's center;

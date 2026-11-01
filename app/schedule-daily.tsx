@@ -1,10 +1,11 @@
 import React, { useState, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, Pressable, ScrollView, Linking,
+  View, Text, StyleSheet, Pressable, ScrollView, Linking, Platform,
 } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { useAppRouter, useScreenParams, useIsPaneRoot, useIsInPane } from '@/features/split/SplitPane';
 import { DUO_SYSTEM_TABS } from '@/utils/foldable';
+import { getSideStripBottomGap, hasSideTabStrip } from '@/utils/tabBarLayout';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import Colors from '@/constants/Colors';
@@ -80,7 +81,11 @@ export default function ScheduleDailyScreen() {
   const formatShortDate = (d: string) => { const [, mm, dd] = d.split('-').map(Number); return `${mm}/${dd}`; };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+    <View style={[styles.container, {
+      paddingTop: insets.top,
+      // iPhone Duo: the add button's bottom (12pt into bottomArea) lines up with the side tab bar.
+      paddingBottom: hasSideTabStrip(insets.right, Platform.OS) ? Math.max(0, getSideStripBottomGap(insets.bottom) - 12) : insets.bottom,
+    }]}>
       <StatusBar style="light" />
 
       {/* Header */}
