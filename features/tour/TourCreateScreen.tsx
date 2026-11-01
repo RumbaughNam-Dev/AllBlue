@@ -39,7 +39,7 @@ export default function TourCreateScreen() {
   const editing = !!editId;
   const [form, setForm] = useState<TourForm>(EMPTY_TOUR_FORM);
   const [initial, setInitial] = useState<TourForm>(EMPTY_TOUR_FORM);
-  const [editState, setEditState] = useState<{ status: TourStatus; recruitedCount: number } | null>(null);
+  const [editState, setEditState] = useState<{ status: TourStatus; recruitedCount: number; reviewNote: string | null } | null>(null);
   const [loadingEdit, setLoadingEdit] = useState(editing);
   const [touched, setTouched] = useState<Partial<Record<TourField, boolean>>>({});
   const [sheet, setSheet] = useState<Sheet>(null);
@@ -75,7 +75,7 @@ export default function TourCreateScreen() {
       if (!alive) return;
       const loaded = formFromTour(tour, links.slice(0, L.linkMax));
       setForm(loaded); setInitial(loaded);
-      setEditState({ status: tour.status, recruitedCount: tour.recruitedCount });
+      setEditState({ status: tour.status, recruitedCount: tour.recruitedCount, reviewNote: tour.reviewNote ?? null });
       // 이미 저장된 값이라 처음부터 검사 결과를 보여줌
       setTouched({ images: true, title: true, region: true, period: true, capacity: true, links: true });
     }).catch((e: any) => {
@@ -171,6 +171,13 @@ export default function TourCreateScreen() {
           keyboardDismissMode="interactive"
           scrollEnabled={!dragging}
         >
+          {/* 보완 후 재요청: 관리자가 적은 보완 내용을 맨 위에 */}
+          {resubmit && editState?.reviewNote && (
+            <View style={styles.reviewNote}>
+              <Text style={styles.reviewNoteTitle}>관리자 보완 요청</Text>
+              <Text style={styles.reviewNoteText}>{editState.reviewNote}</Text>
+            </View>
+          )}
           <FieldLabel text="소개 이미지" required note={`최대 ${L.imageMax}장 · 첫 장이 대표`} error={shown('images')} />
           <TourImageGrid
             images={form.images}
@@ -293,7 +300,7 @@ export default function TourCreateScreen() {
             disabled={!valid || submitting}
           >
             <GlassBackground radius={14} interactive tintColor={PROMINENT_TINT} />
-            {submitting ? <ActivityIndicator color={Colors.brand.primary} /> : <Text style={styles.submitText}>{!editing ? '등록 요청' : resubmit ? '다시 요청' : '수정 저장'}</Text>}
+            {submitting ? <ActivityIndicator color={Colors.brand.primary} /> : <Text style={styles.submitText}>{!editing ? '등록 요청' : resubmit ? '보완 후 재요청' : '수정 저장'}</Text>}
           </Pressable>
         </View>
       </KeyboardAvoidingView>
@@ -426,6 +433,9 @@ function ItemList({ title, mark, items, onChange }: { title: string; mark: strin
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.brand.primary },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  reviewNote: { marginTop: 8, padding: 14, borderRadius: 12, backgroundColor: 'rgba(255,159,67,0.15)', gap: 6 },
+  reviewNoteTitle: { fontFamily: 'SUIT-Bold', fontSize: 13, color: '#FFC58A' },
+  reviewNoteText: { fontFamily: 'SUIT-Regular', fontSize: 14, lineHeight: 20, color: Colors.brand.white },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     height: 52, paddingHorizontal: 20,

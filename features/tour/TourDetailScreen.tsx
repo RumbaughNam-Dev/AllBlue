@@ -14,7 +14,8 @@ import { useAppRouter, useIsPaneRoot, useScreenParams } from '@/features/split/S
 import { useLatestRequest } from '@/hooks/useLatestRequest';
 import { StatusBadge, TourEmpty } from './TourCards';
 import { formatFee, formatStay, formatTourPeriod, shareContent } from './ui';
-import { confirmTourRequest, RequestDecision } from './requests';
+import { confirmApprove, sendRevision } from './requests';
+import ReviewNotePopup from './ReviewNotePopup';
 import TourReportPopup, { ReportReason } from './TourReportPopup';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -103,13 +104,19 @@ export default function TourDetailScreen() {
 
   // 15장: admin이 심사 중인 투어를 열면 하단에서 승인 · 불허, 처리 후 목록으로 돌아감
   const [processing, setProcessing] = useState(false);
-  const process = async (decision: RequestDecision) => {
+  const [revising, setRevising] = useState(false);
+  const approve = async () => {
     const pending = detail?.tour.pendingRequest;
     if (!pending || processing) return;
     setProcessing(true);
-    const done = await confirmTourRequest(pending.id, detail.tour.title, decision);
+    const done = await confirmApprove(pending.id, detail.tour.title);
     setProcessing(false);
     if (done) router.back();
+  };
+  const revise = async (note: string) => {
+    const pending = detail?.tour.pendingRequest;
+    if (!pending) return;
+    if (await sendRevision(pending.id, note)) { setRevising(false); router.back(); }
   };
 
   const header = (
@@ -209,10 +216,10 @@ export default function TourDetailScreen() {
 
       {tour.pendingRequest ? (
       <View style={[styles.bottomArea, styles.reviewArea, { paddingBottom: insets.bottom + 12 }]}>
-        <Pressable accessibilityRole="button" disabled={processing} onPress={() => process('reject')} style={({ pressed }) => [styles.reject, pressed && { opacity: 0.7 }]}>
-          <Text style={styles.rejectText}>불허</Text>
+        <Pressable accessibilityRole="button" disabled={processing} onPress={() => setRevising(true)} style={({ pressed }) => [styles.reject, pressed && { opacity: 0.7 }]}>
+          <Text style={styles.rejectText}>보완 요청</Text>
         </Pressable>
-        <Pressable accessibilityRole="button" disabled={processing} onPress={() => process('approve')} style={({ pressed }) => [styles.approve, pressed && { opacity: 0.8 }]}>
+        <Pressable accessibilityRole="button" disabled={processing} onPress={approve} style={({ pressed }) => [styles.approve, pressed && { opacity: 0.8 }]}>
           <Text style={styles.approveText}>승인</Text>
         </Pressable>
       </View>
@@ -242,6 +249,13 @@ export default function TourDetailScreen() {
         ]}
         fitContent
         onSelect={onMenu}
+      />
+      <ReviewNotePopup
+        visible={revising}
+        title="보완 요청"
+        subtitle={`'${tour.title}'에서 보완할 점을 적어 주세요.\n강사의 투어 관리 카드에 그대로 보여요.`}
+        onClose={() => setRevising(false)}
+        onSubmit={revise}
       />
       <TourReportPopup visible={reporting} onClose={() => setReporting(false)} onSubmit={submitReport} />
       {viewing && <CertificateImageViewer imageUrl={viewing} onClose={() => setViewing(null)} />}

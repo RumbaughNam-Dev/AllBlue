@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator, RefreshControl, Image, Platform } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator, RefreshControl, Image } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/Colors';
@@ -8,6 +8,7 @@ import GlassCircle from '@/components/GlassCircle';
 import StripBackSlot from '@/components/StripBackSlot';
 import { useAppRouter, useIsPaneRoot } from '@/features/split/SplitPane';
 import { useLatestRequest } from '@/hooks/useLatestRequest';
+import { useSheetTop } from './useSheetTop';
 import { TourEmpty } from './TourCards';
 import { BANNER_STATE, shortDay } from './banners';
 
@@ -18,6 +19,7 @@ export default function TourBannersScreen() {
   const router = useAppRouter();
   const isPaneRoot = useIsPaneRoot();
   const insets = useSafeAreaInsets();
+  const { top: sheetTop, inSheet } = useSheetTop();
   const [data, setData] = useState<{ liveCount: number; max: number; banners: TourBannerItem[]; ended: TourBannerItem[] } | null>(null);
   const [error, setError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -38,7 +40,7 @@ export default function TourBannersScreen() {
   // 수정하고 돌아오면 다시 불러옴
   useFocusEffect(useCallback(() => { void load(); }, [load]));
 
-  const open = (banner?: TourBannerItem) => router.push({ pathname: '/tour-banner-edit', params: banner ? { id: String(banner.id) } : {} });
+  const open = (banner?: TourBannerItem) => router.push({ pathname: '/tour-banner-edit', params: banner ? { id: String(banner.id), inSheet } : { inSheet } });
 
   const row = (banner: TourBannerItem) => {
     const state = BANNER_STATE[banner.state];
@@ -61,8 +63,7 @@ export default function TourBannersScreen() {
   };
 
   return (
-    // 관리자 기능은 프로필 시트 안에서 열림 (다른 관리자 화면과 같은 위쪽 여백)
-    <View style={[styles.container, { paddingTop: Platform.OS === 'ios' ? 10 : insets.top }]}>
+    <View style={[styles.container, { paddingTop: sheetTop }]}>
       <View style={styles.header}>
         {isPaneRoot ? <View style={styles.side} /> : (
           <StripBackSlot size={36}>

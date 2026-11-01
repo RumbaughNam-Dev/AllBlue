@@ -21,23 +21,24 @@ export function processDaysLeft(status: TourStatus, endDate: string, today: stri
   return Math.max(0, Math.round((toTime(endDate) + PROCESS_DAYS * dayMs - toTime(today)) / dayMs));
 }
 
-// 카드 안내 문구 (8 · 10장)
-export function manageNotice(status: TourStatus, endDate: string, today: string) {
+// 카드 안내 문구 (8 · 10장). 보완 요청이면 관리자가 적은 내용을 함께 보여줌
+export function manageNotice(status: TourStatus, endDate: string, today: string, reviewNote?: string | null) {
   if (status === 'PENDING') return '관리자 승인을 기다리고 있어요. 승인되면 알림으로 알려드려요.';
-  if (status === 'REJECTED') return '등록이 불허됐어요. 고쳐서 다시 요청할 수 있어요.';
+  if (status === 'REJECTED') return reviewNote ? `관리자가 보완을 요청했어요\n“${reviewNote}”` : '관리자가 보완을 요청했어요. 보완해서 다시 요청해 주세요.';
   const left = processDaysLeft(status, endDate, today);
   if (left !== null) return `일정이 지난 투어예요. ${PROCESS_DAYS}일 내에 투어를 처리해주세요  ·  ${left === 0 ? 'D-DAY' : `D-${left}`}`;
   return null;
 }
 
-// 카드에 보이는 조작: 공개 중이면 + / − · 처리 · 수정 · 삭제, 승인 대기면 수정 · 삭제, 불허면 수정 후 재요청 · 삭제, 지난 투어는 삭제만
+// 카드에 보이는 조작: 공개 중이면 + / − · 처리 · 수정 · 삭제, 승인 대기면 수정 · 삭제, 보완 요청이면 보완 후 재요청 · 등록 취소, 지난 투어는 삭제만
 export function manageActions(status: TourStatus) {
   const isPublic = PUBLIC_STATUSES.includes(status);
   return {
     adjust: isPublic,
     process: isPublic,
     edit: status === 'PENDING' || status === 'REJECTED' || isPublic,
-    editLabel: status === 'REJECTED' ? '수정 후 재요청' : '수정',
+    editLabel: status === 'REJECTED' ? '보완 후 재요청' : '수정',
     remove: true,
+    removeLabel: status === 'REJECTED' ? '등록 취소' : '삭제',
   };
 }

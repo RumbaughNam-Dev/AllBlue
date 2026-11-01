@@ -422,6 +422,7 @@ export type TourDetail = {
     id: number; title: string; status: TourStatus; isMine: boolean; isPublic: boolean;
     pendingRequest: { id: number; type: 'CREATE' | 'UPDATE' } | null; // admin이 심사 중일 때만
     shareUrl: string | null; // 24장 공유 링크, 공개 중일 때만
+    reviewNote: string | null; // 보완 요청 내용 (만든 강사 · admin)
     continentCode: string; continentName: string; countryCode: string; countryName: string;
     startDate: string; endDate: string; capacity: number; recruitedCount: number; fee: number | null;
     images: string[]; included: string[]; excluded: string[];
@@ -431,7 +432,7 @@ export type TourDetail = {
 };
 
 // 8~10장 투어 관리 (내가 만든 투어)
-export type MyTour = TourCard & { fee: number | null };
+export type MyTour = TourCard & { fee: number | null; reviewNote: string | null }; // reviewNote: 보완 요청 내용
 export type Recruitment = { recruitedCount: number; capacity: number; status: TourStatus };
 
 export const api = {
@@ -455,7 +456,7 @@ export const api = {
   reportTour(id: number, reason: string, memo: string) { return request<{ success: boolean }>(`/tours/${id}/report`, { method: 'POST', body: JSON.stringify({ reason, memo }) }); },
   getTourReports() { return request<{ tours: TourReportGroup[] }>('/tours/reports'); },
   dismissTourReports(tourId: number) { return request<{ tourId: number; status: TourStatus }>(`/tours/reports/${tourId}/dismiss`, { method: 'POST' }); },
-  takeDownTour(tourId: number) { return request<{ tourId: number; status: TourStatus }>(`/tours/reports/${tourId}/take-down`, { method: 'POST' }); },
+  takeDownTour(tourId: number, note: string) { return request<{ tourId: number; status: TourStatus }>(`/tours/reports/${tourId}/take-down`, { method: 'POST', body: JSON.stringify({ note }) }); },
   getTourBanners() { return request<{ liveCount: number; max: number; banners: TourBannerItem[]; ended: TourBannerItem[] }>('/tours/banners'); },
   getBannerTourOptions() { return request<{ tours: { id: number; title: string; startDate: string; endDate: string }[] }>('/tours/banners/tours'); },
   saveTourBanner(id: number | null, input: TourBannerInput) {
@@ -464,7 +465,8 @@ export const api = {
   deleteTourBanner(id: number) { return request<{ success: boolean }>(`/tours/banners/${id}`, { method: 'DELETE' }); },
   getTourRequests() { return request<{ requests: TourRequestItem[] }>('/tours/requests'); },
   approveTourRequest(id: number) { return request<{ requestId: number; tourId: number; status: TourStatus }>(`/tours/requests/${id}/approve`, { method: 'POST' }); },
-  rejectTourRequest(id: number) { return request<{ requestId: number; tourId: number; status: TourStatus }>(`/tours/requests/${id}/reject`, { method: 'POST' }); },
+  // 보완 요청: 보완할 점(note)과 함께
+  reviseTourRequest(id: number, note: string) { return request<{ requestId: number; tourId: number; status: TourStatus }>(`/tours/requests/${id}/revise`, { method: 'POST', body: JSON.stringify({ note }) }); },
   searchTours(conditions: TourSearchConditions, sort: TourSort, offset = 0) {
     const params = new URLSearchParams({ sort, offset: String(offset) });
     for (const [key, value] of Object.entries(conditions)) if (value) params.set(key, value);

@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, FlatList, ActivityIndicator, RefreshControl, Image, Platform } from 'react-native';
+import { View, Text, StyleSheet, Pressable, FlatList, ActivityIndicator, RefreshControl, Image } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,8 +9,10 @@ import GlassCircle from '@/components/GlassCircle';
 import StripBackSlot from '@/components/StripBackSlot';
 import { useAppRouter, useIsPaneRoot } from '@/features/split/SplitPane';
 import { useLatestRequest } from '@/hooks/useLatestRequest';
+import { useSheetTop } from './useSheetTop';
 import { TourEmpty } from './TourCards';
-import { confirmTourRequest, formatRequestedAt, RequestDecision } from './requests';
+import { confirmApprove, formatRequestedAt, sendRevision } from './requests';
+import ReviewNotePopup from './ReviewNotePopup';
 import { formatFee, formatTourPeriod } from './ui';
 
 const SIDE = 20;
@@ -25,11 +27,13 @@ export default function TourRequestsScreen() {
   const router = useAppRouter();
   const isPaneRoot = useIsPaneRoot();
   const insets = useSafeAreaInsets();
+  const { top: sheetTop, inSheet } = useSheetTop();
   const [requests, setRequests] = useState<TourRequestItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(false);
   const [busy, setBusy] = useState<number | null>(null);
+  const [revising, setRevising] = useState<TourRequestItem | null>(null);
   const latest = useLatestRequest();
 
   const load = useCallback(async (mode: 'first' | 'refresh' | 'quiet' = 'first') => {
@@ -49,12 +53,16 @@ export default function TourRequestsScreen() {
   // 상세에서 처리하고 돌아오면 다시 불러옴
   useFocusEffect(useCallback(() => { void load(requests.length ? 'quiet' : 'first'); }, [load]));
 
-  const process = async (item: TourRequestItem, decision: RequestDecision) => {
+  const done = (item: TourRequestItem) => setRequests(prev => prev.filter(r => r.id !== item.id)); // 처리한 카드는 목록에서 빠짐
+  const approve = async (item: TourRequestItem) => {
     if (busy !== null) return;
     setBusy(item.id);
-    const done = await confirmTourRequest(item.id, item.tour.title, decision);
+    if (await confirmApprove(item.id, item.tour.title)) done(item);
     setBusy(null);
-    if (done) setRequests(prev => prev.filter(r => r.id !== item.id)); // 처리한 카드는 목록에서 빠짐
+  };
+  const revise = async (note: string) => {
+    if (!revising) return;
+    if (await sendRevision(revising.id, note)) { done(revising); setRevising(null); }
   };
 
   const renderItem = ({ item }: { item: TourRequestItem }) => {
@@ -64,7 +72,7 @@ export default function TourRequestsScreen() {
     const requester = item.instructor.name ? `${item.instructor.nickname} (${item.instructor.name})` : item.instructor.nickname;
     return (
       <View style={styles.card}>
-        <Pressable accessibilityRole="button" accessibilityLabel={`${item.tour.title} 상세 보기`} onPress={() => router.push({ pathname: '/tour-detail', params: { id: String(item.tour.id), inSheet: '1' } })} style={({ pressed }) => pressed && { opacity: 0.8 }}>
+        <Pressable accessibilityRole="button" accessibilityLabel={`${item.tour.title} 상세 보기`} onPress={() => router.push({ pathname: '/tour-detail', params: { id: String(item.tour.id), inSheet } })} style={({ pressed }) => pressed && { opacity: 0.8 }}>
           <View style={styles.imageWrap}>
             {item.tour.imageUrl
               ? <Image source={{ uri: item.tour.imageUrl }} style={styles.image} resizeMode="cover" />
@@ -78,10 +86,10 @@ export default function TourRequestsScreen() {
           </View>
         </Pressable>
         <View style={styles.buttons}>
-          <Pressable accessibilityRole="button" accessibilityLabel={`${item.tour.title} 불허`} disabled={busy !== null} onPress={() => process(item, 'reject')} style={({ pressed }) => [styles.reject, pressed && { opacity: 0.7 }]}>
-            <Text style={styles.rejectText}>불허</Text>
+          <Pressable accessibilityRole="button" accessibilityLabel={`${item.tour.title} 보완 요청`} disabled={busy !== null} onPress={() => setRevising(item)} style={({ pressed }) => [styles.reject, pressed && { opacity: 0.7 }]}>
+            <Text style={styles.rejectText}>보완 요청</Text>
           </Pressable>
-          <Pressable accessibilityRole="button" accessibilityLabel={`${item.tour.title} 승인`} disabled={busy !== null} onPress={() => process(item, 'approve')} style={({ pressed }) => [styles.approve, pressed && { opacity: 0.8 }]}>
+          <Pressable accessibilityRole="button" accessibilityLabel={`${item.tour.title} 승인`} disabled={busy !== null} onPress={() => approve(item)} style={({ pressed }) => [styles.approve, pressed && { opacity: 0.8 }]}>
             <Text style={styles.approveText}>승인</Text>
           </Pressable>
         </View>
@@ -90,8 +98,7 @@ export default function TourRequestsScreen() {
   };
 
   return (
-    // 관리자 기능은 프로필 시트 안에서 열림 (다른 관리자 화면과 같은 위쪽 여백)
-    <View style={[styles.container, { paddingTop: Platform.OS === 'ios' ? 10 : insets.top }]}>
+    <View style={[styles.container, { paddingTop: sheetTop }]}>
       <View style={styles.header}>
         {isPaneRoot ? <View style={styles.backButton} /> : (
           <StripBackSlot size={36}>
@@ -124,6 +131,13 @@ export default function TourRequestsScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load('refresh')} tintColor="rgba(255,255,255,0.6)" />}
         />
       )}
+      <ReviewNotePopup
+        visible={!!revising}
+        title="보완 요청"
+        subtitle={`'${revising?.tour.title ?? ''}'에서 보완할 점을 적어 주세요.\n강사의 투어 관리 카드에 그대로 보여요.`}
+        onClose={() => setRevising(null)}
+        onSubmit={revise}
+      />
     </View>
   );
 }

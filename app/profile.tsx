@@ -103,7 +103,7 @@ export default function ProfileScreen() {
         items={adminMenuItems}
         fitContent
         // 시트가 닫히는 애니메이션(250ms)이 끝난 뒤 화면을 엶
-        onSelect={(path) => setTimeout(() => router.push(path), 260)}
+        onSelect={(path) => setTimeout(() => router.push(path.startsWith('/tour-') ? { pathname: path, params: { inSheet: '1' } } : path), 260)}
       />
 
       {loading ? (

@@ -4,7 +4,7 @@ import type { TourStatus } from '@/services/api';
 // Mirrors common_code TOUR_STATUS (label, badge color) on the server.
 export const TOUR_STATUS: Record<TourStatus, { label: string; color: string; text: string }> = {
   PENDING: { label: '승인 대기', color: '#B794F4', text: '#1E0F3D' },
-  REJECTED: { label: '불허', color: '#C53030', text: '#FFFFFF' },
+  REJECTED: { label: '보완 요청', color: '#FF9F43', text: '#3D2000' }, // 코드는 그대로, 관리자가 보완을 요청한 상태
   PREPARING: { label: '준비중', color: '#8FB3D9', text: '#0B2440' },
   RECRUITING: { label: '모집중', color: '#00B4D8', text: '#032A36' },
   CLOSED: { label: '모집 마감', color: '#FFD166', text: '#3D2B00' },

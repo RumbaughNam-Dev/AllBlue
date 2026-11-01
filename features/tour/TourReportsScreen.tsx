@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, FlatList, ActivityIndicator, RefreshControl, Image, Platform } from 'react-native';
+import { View, Text, StyleSheet, Pressable, FlatList, ActivityIndicator, RefreshControl, Image } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,8 +9,10 @@ import GlassCircle from '@/components/GlassCircle';
 import StripBackSlot from '@/components/StripBackSlot';
 import { useAppRouter, useIsPaneRoot } from '@/features/split/SplitPane';
 import { useLatestRequest } from '@/hooks/useLatestRequest';
+import { useSheetTop } from './useSheetTop';
 import { TourEmpty } from './TourCards';
-import { confirmTourReports, formatRequestedAt, ReportDecision } from './requests';
+import { confirmDismissReports, formatRequestedAt, sendTakeDown } from './requests';
+import ReviewNotePopup from './ReviewNotePopup';
 
 const SIDE = 20;
 // 19장 투어 신고 처리 (admin): 투어별로 묶어 신고 수 · 사유, 신고 많은 순. 카드를 누르면 투어 상세
@@ -18,11 +20,13 @@ export default function TourReportsScreen() {
   const router = useAppRouter();
   const isPaneRoot = useIsPaneRoot();
   const insets = useSafeAreaInsets();
+  const { top: sheetTop, inSheet } = useSheetTop();
   const [groups, setGroups] = useState<TourReportGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(false);
   const [busy, setBusy] = useState<number | null>(null);
+  const [takingDown, setTakingDown] = useState<TourReportGroup | null>(null);
   const latest = useLatestRequest();
 
   const load = useCallback(async (mode: 'first' | 'refresh' | 'quiet' = 'first') => {
@@ -42,12 +46,16 @@ export default function TourReportsScreen() {
   // 상세에서 처리하고 돌아오면 다시 불러옴
   useFocusEffect(useCallback(() => { void load(groups.length ? 'quiet' : 'first'); }, [load]));
 
-  const process = async (item: TourReportGroup, decision: ReportDecision) => {
+  const done = (item: TourReportGroup) => setGroups(prev => prev.filter(g => g.tourId !== item.tourId)); // 처리한 카드는 목록에서 빠짐
+  const dismiss = async (item: TourReportGroup) => {
     if (busy !== null) return;
     setBusy(item.tourId);
-    const done = await confirmTourReports(item.tourId, item.title, decision);
+    if (await confirmDismissReports(item.tourId, item.title)) done(item);
     setBusy(null);
-    if (done) setGroups(prev => prev.filter(g => g.tourId !== item.tourId)); // 처리한 카드는 목록에서 빠짐
+  };
+  const takeDown = async (note: string) => {
+    if (!takingDown) return;
+    if (await sendTakeDown(takingDown.tourId, note)) { done(takingDown); setTakingDown(null); }
   };
 
   const renderItem = ({ item }: { item: TourReportGroup }) => {
@@ -56,7 +64,7 @@ export default function TourReportsScreen() {
     const memo = item.memo ? `“${item.memo}”${item.moreMemos ? ` 외 ${item.moreMemos}건` : ''}` : null;
     return (
       <View style={styles.card}>
-        <Pressable accessibilityRole="button" accessibilityLabel={`${item.title} 상세 보기`} onPress={() => router.push({ pathname: '/tour-detail', params: { id: String(item.tourId), inSheet: '1' } })} style={({ pressed }) => pressed && { opacity: 0.8 }}>
+        <Pressable accessibilityRole="button" accessibilityLabel={`${item.title} 상세 보기`} onPress={() => router.push({ pathname: '/tour-detail', params: { id: String(item.tourId), inSheet } })} style={({ pressed }) => pressed && { opacity: 0.8 }}>
           <View style={styles.imageWrap}>
             {item.imageUrl
               ? <Image source={{ uri: item.imageUrl }} style={styles.image} resizeMode="cover" />
@@ -71,11 +79,11 @@ export default function TourReportsScreen() {
           </View>
         </Pressable>
         <View style={styles.buttons}>
-          <Pressable accessibilityRole="button" accessibilityLabel={`${item.title} 문제 없음`} disabled={busy !== null} onPress={() => process(item, 'dismiss')} style={({ pressed }) => [styles.reject, pressed && { opacity: 0.7 }]}>
+          <Pressable accessibilityRole="button" accessibilityLabel={`${item.title} 문제 없음`} disabled={busy !== null} onPress={() => dismiss(item)} style={({ pressed }) => [styles.reject, pressed && { opacity: 0.7 }]}>
             <Text style={styles.dismissText}>문제 없음</Text>
           </Pressable>
-          <Pressable accessibilityRole="button" accessibilityLabel={`${item.title} 불허로 내리기`} disabled={busy !== null} onPress={() => process(item, 'takeDown')} style={({ pressed }) => [styles.takeDown, pressed && { opacity: 0.8 }]}>
-            <Text style={styles.takeDownText}>불허로 내리기</Text>
+          <Pressable accessibilityRole="button" accessibilityLabel={`${item.title} 내리고 보완 요청`} disabled={busy !== null} onPress={() => setTakingDown(item)} style={({ pressed }) => [styles.takeDown, pressed && { opacity: 0.8 }]}>
+            <Text style={styles.takeDownText}>내리고 보완 요청</Text>
           </Pressable>
         </View>
       </View>
@@ -83,8 +91,7 @@ export default function TourReportsScreen() {
   };
 
   return (
-    // 관리자 기능은 프로필 시트 안에서 열림 (다른 관리자 화면과 같은 위쪽 여백)
-    <View style={[styles.container, { paddingTop: Platform.OS === 'ios' ? 10 : insets.top }]}>
+    <View style={[styles.container, { paddingTop: sheetTop }]}>
       <View style={styles.header}>
         {isPaneRoot ? <View style={styles.backButton} /> : (
           <StripBackSlot size={36}>
@@ -117,6 +124,15 @@ export default function TourReportsScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load('refresh')} tintColor="rgba(255,255,255,0.6)" />}
         />
       )}
+      <ReviewNotePopup
+        visible={!!takingDown}
+        title="내리고 보완 요청"
+        subtitle={`'${takingDown?.title ?? ''}'을(를) 비공개로 내려요.\n강사에게 보완할 점을 적어 주세요.`}
+        confirm="내리기"
+        initial={takingDown ? `신고 내용: ${takingDown.reasons.map(r => r.name).join(', ')}` : ''}
+        onClose={() => setTakingDown(null)}
+        onSubmit={takeDown}
+      />
     </View>
   );
 }

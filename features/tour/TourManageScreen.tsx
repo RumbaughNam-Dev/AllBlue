@@ -132,10 +132,15 @@ export default function TourManageScreen() {
   // 10장 삭제 확인: 투어 이름과 함께, 모집된 인원이 있으면 따로 알리라고 안내
   const remove = (tour: MyTour) => {
     const notice = tour.recruitedCount > 0 ? `\n\n모집된 ${tour.recruitedCount}명에게는 따로 알려 주세요.` : '';
-    Alert.alert('투어를 삭제할까요?', `'${tour.title}'을 삭제하면 되돌릴 수 없어요.${notice}`, [
-      { text: '취소', style: 'cancel' },
+    // 보완 요청 투어의 '등록 취소'는 등록 요청을 거두고 투어를 지움
+    const [title, message] = tour.status === 'REJECTED'
+      ? ['등록을 취소할까요?', `'${tour.title}' 등록 요청을 취소하고 투어를 삭제해요. 되돌릴 수 없어요.`]
+      : ['투어를 삭제할까요?', `'${tour.title}'을 삭제하면 되돌릴 수 없어요.${notice}`];
+    const cancelRequest = tour.status === 'REJECTED';
+    Alert.alert(title, message, [
+      { text: cancelRequest ? '닫기' : '취소', style: 'cancel' },
       {
-        text: '삭제', style: 'destructive', onPress: async () => {
+        text: cancelRequest ? '등록 취소' : '삭제', style: 'destructive', onPress: async () => {
           try {
             await api.deleteTour(tour.id);
             setTours(prev => prev.filter(t => t.id !== tour.id));
@@ -240,7 +245,7 @@ function ManageCard({ tour, today, onOpen, onStep, onProcess, onEdit, onRemove }
   onProcess: (tour: MyTour) => void; onEdit: (tour: MyTour) => void; onRemove: (tour: MyTour) => void;
 }) {
   const actions = manageActions(tour.status);
-  const notice = manageNotice(tour.status, tour.endDate, today);
+  const notice = manageNotice(tour.status, tour.endDate, today, tour.reviewNote);
   const meta = [tour.countryName, formatTourPeriod(tour.startDate, tour.endDate), tour.fee !== null ? `참가비 ${formatFee(tour.fee)}` : null].filter(Boolean).join('  ·  ');
   return (
     <View style={styles.card}>
@@ -268,7 +273,7 @@ function ManageCard({ tour, today, onOpen, onStep, onProcess, onEdit, onRemove }
       <View style={styles.cardButtons}>
         {actions.process && <CardButton label="처리" onPress={() => onProcess(tour)} />}
         {actions.edit && <CardButton label={actions.editLabel} onPress={() => onEdit(tour)} />}
-        {actions.remove && <CardButton label="삭제" danger onPress={() => onRemove(tour)} />}
+        {actions.remove && <CardButton label={actions.removeLabel} danger onPress={() => onRemove(tour)} />}
       </View>
     </View>
   );
@@ -330,7 +335,7 @@ const styles = StyleSheet.create({
     padding: 10, borderRadius: 10, backgroundColor: 'rgba(255,209,102,0.12)',
   },
   noticePending: { color: '#D6C2FF', backgroundColor: 'rgba(183,148,244,0.15)' },
-  noticeRejected: { color: '#FF9C8A', backgroundColor: 'rgba(197,48,48,0.18)' },
+  noticeRejected: { color: '#FFC58A', backgroundColor: 'rgba(255,159,67,0.15)' },
   recruit: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   recruitLabel: { fontFamily: 'SUIT-Regular', fontSize: 13, color: 'rgba(255,255,255,0.55)' },
   stepper: { flexDirection: 'row', alignItems: 'center' },

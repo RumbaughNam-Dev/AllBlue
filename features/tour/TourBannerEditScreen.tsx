@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, Image, Switch, Alert, ActivityIndicator, Platform, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, Image, Switch, Alert, ActivityIndicator, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,6 +11,7 @@ import GlassCircle from '@/components/GlassCircle';
 import StripBackSlot from '@/components/StripBackSlot';
 import { useAppRouter, useScreenParams } from '@/features/split/SplitPane';
 import { localToday } from './tourForm';
+import { useSheetTop } from './useSheetTop';
 import { bannerFormError, BannerForm, shortDay } from './banners';
 import { formatTourPeriod } from './ui';
 
@@ -23,6 +24,7 @@ type Sheet = 'tour' | 'start' | 'end' | null;
 export default function TourBannerEditScreen() {
   const router = useAppRouter();
   const insets = useSafeAreaInsets();
+  const { top: sheetTop, inSheet } = useSheetTop();
   const { width } = useWindowDimensions();
   const { id } = useScreenParams<{ id?: string }>();
   const bannerId = id ? Number(id) : null;
@@ -98,7 +100,7 @@ export default function TourBannerEditScreen() {
   const imageWidth = Math.min(width, 700) - SIDE * 2;
 
   return (
-    <View style={[styles.container, { paddingTop: Platform.OS === 'ios' ? 10 : insets.top }]}>
+    <View style={[styles.container, { paddingTop: sheetTop }]}>
       <View style={styles.header}>
         <StripBackSlot size={36}>
           <Pressable accessibilityRole="button" accessibilityLabel="뒤로" onPress={() => router.back()} style={({ pressed }) => [styles.side, pressed && { opacity: 0.6 }]}>
