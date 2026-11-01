@@ -12,6 +12,7 @@ import StripBackSlot from '@/components/StripBackSlot';
 import { useAppRouter, useScreenParams } from '@/features/split/SplitPane';
 import { localToday } from './tourForm';
 import { useSheetTop } from './useSheetTop';
+import { useLeaveConfirm } from '@/hooks/useLeaveConfirm';
 import { bannerFormError, BannerForm, shortDay } from './banners';
 import { formatTourPeriod } from './ui';
 
@@ -29,6 +30,7 @@ export default function TourBannerEditScreen() {
   const { id } = useScreenParams<{ id?: string }>();
   const bannerId = id ? Number(id) : null;
   const [form, setForm] = useState<BannerForm>(EMPTY);
+  const [initial, setInitial] = useState<BannerForm>(EMPTY);
   const [tours, setTours] = useState<{ id: number; title: string; startDate: string; endDate: string }[]>([]);
   const [currentTitle, setCurrentTitle] = useState('');
   const [loading, setLoading] = useState(true);
@@ -45,7 +47,9 @@ export default function TourBannerEditScreen() {
         const banner = list ? [...list.banners, ...list.ended].find(b => b.id === bannerId) : null;
         if (bannerId && !banner) throw new Error('배너를 찾을 수 없어요.');
         if (banner) {
-          setForm({ imageUri: banner.imageUrl, remote: true, mimeType: 'image/jpeg', tourId: banner.tourId, startDate: banner.startDate, endDate: banner.endDate, isEnabled: banner.isEnabled });
+          const loaded = { imageUri: banner.imageUrl, remote: true, mimeType: 'image/jpeg', tourId: banner.tourId, startDate: banner.startDate, endDate: banner.endDate, isEnabled: banner.isEnabled };
+          setForm(loaded);
+          setInitial(loaded);
           setCurrentTitle(banner.tourTitle);
         }
       })
@@ -55,6 +59,10 @@ export default function TourBannerEditScreen() {
   }, [bannerId]);
 
   const update = (patch: Partial<BannerForm>) => setForm(prev => ({ ...prev, ...patch }));
+  // 25장: 바꾼 내용이 있으면 나가기 전에 확인 (저장 · 삭제 중에는 확인 없이 나감)
+  const [leaving, setLeaving] = useState(false);
+  const dirty = !loading && !saving && !leaving && JSON.stringify(form) !== JSON.stringify(initial);
+  const goBack = useLeaveConfirm(dirty, router.back);
   const error = bannerFormError(form);
   const tourTitle = tours.find(t => t.id === form.tourId)?.title ?? (form.tourId ? currentTitle : '');
   const tourItems = useMemo(() => tours.map(t => ({ label: `${t.title}  ·  ${formatTourPeriod(t.startDate, t.endDate)}`, value: t.id })), [tours]);
@@ -89,7 +97,9 @@ export default function TourBannerEditScreen() {
       { text: '취소', style: 'cancel' },
       {
         text: '삭제', style: 'destructive', onPress: async () => {
+          setLeaving(true);
           try { await api.deleteTourBanner(bannerId); router.back(); } catch (e: any) {
+            setLeaving(false);
             if (!e?._handled) Alert.alert('알림', e?.message ?? '삭제하지 못했어요.');
           }
         },
@@ -103,7 +113,7 @@ export default function TourBannerEditScreen() {
     <View style={[styles.container, { paddingTop: sheetTop }]}>
       <View style={styles.header}>
         <StripBackSlot size={36}>
-          <Pressable accessibilityRole="button" accessibilityLabel="뒤로" onPress={() => router.back()} style={({ pressed }) => [styles.side, pressed && { opacity: 0.6 }]}>
+          <Pressable accessibilityRole="button" accessibilityLabel="뒤로" onPress={goBack} style={({ pressed }) => [styles.side, pressed && { opacity: 0.6 }]}>
             <GlassCircle fallbackStyle={styles.backCircle}>
               <Text style={styles.backArrow}>{'<'}</Text>
             </GlassCircle>

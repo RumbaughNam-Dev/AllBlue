@@ -11,6 +11,7 @@ import { StatusBar } from 'expo-status-bar';
 import * as ImagePicker from 'expo-image-picker';
 import Colors from '@/constants/Colors';
 import { useOrganizationSearch } from '@/hooks/useSearch';
+import { useLeaveConfirm } from '@/hooks/useLeaveConfirm';
 import { hasInstructorAccess } from '@/utils/userRole';
 import { useAuth } from '@/contexts/AuthContext';
 import { api, Profile, Organization, TourLink } from '@/services/api';
@@ -110,11 +111,25 @@ export default function ProfileEditScreen() {
         .then((res) => {
           if (res.user?.organization && res.user.organization.status !== 'rejected') {
             setSelectedOrg(res.user.organization);
+            setBaseOrgId(res.user.organization.id); // 서버에서 바뀐 소속은 '바꾼 내용'이 아님
           }
         })
         .catch(() => {});
     }, [])
   );
+
+  // 25장: 불러온 뒤 바꾼 내용이 있으면 취소 · 뒤로가기 · 밀어서 뒤로 전에 확인 (저장하면 확인 없이 나감)
+  const [saved, setSaved] = useState(false);
+  const [baseOrgId, setBaseOrgId] = useState<number | null>(null);
+  const [baseline, setBaseline] = useState<string | null>(null);
+  const fields = JSON.stringify([imageChanged, nicknameTxt, nameTxt, description, links, shoesSize, finSize, staMin, staSec, dynb, dyn, dnf, fim, cwtb, cwt, cnf]);
+  useEffect(() => {
+    if (loading || baseline !== null) return;
+    setBaseline(fields);
+    setBaseOrgId(selectedOrg?.id ?? null);
+  }, [loading]);
+  const dirty = baseline !== null && !saving && !saved && (fields !== baseline || (selectedOrg?.id ?? null) !== baseOrgId);
+  const cancel = useLeaveConfirm(dirty, router.back);
 
   const toNum = (v: string): number | null => {
     const trimmed = v.trim();
@@ -178,6 +193,7 @@ export default function ProfileEditScreen() {
         nickname: nicknameTxt.trim() || user?.nickname,
         name: nameTxt.trim() || undefined,
       });
+      setSaved(true);
       Alert.alert('알림', '프로필이 저장되었습니다.', [
         { text: '확인', onPress: () => router.back() },
       ]);
@@ -206,7 +222,7 @@ export default function ProfileEditScreen() {
 
       {/* Header */}
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={({ pressed }) => [pressed && { opacity: 0.6 }]}>
+        <Pressable onPress={cancel} style={({ pressed }) => [pressed && { opacity: 0.6 }]}>
           <Text style={styles.headerCancel}>취소</Text>
         </Pressable>
         <Text style={styles.headerTitle}>프로필 편집</Text>
