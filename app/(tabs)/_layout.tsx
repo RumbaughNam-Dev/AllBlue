@@ -22,6 +22,8 @@ export default function TabLayout() {
   const insets = useSafeAreaInsets();
   const [sheetVisible, setSheetVisible] = useState(false);
   const { user, updateUser } = useAuth();
+  // 커뮤니티 탭은 지금 admin에게만 보임 (다른 사용자는 탭 3개 그대로)
+  const showCommunity = user?.level === 'A';
   const router = useRouter();
   const updateUserRef = useRef(updateUser);
   updateUserRef.current = updateUser;
@@ -80,7 +82,7 @@ export default function TabLayout() {
         </View>
       </View>
 
-      {DUO_SYSTEM_TABS ? <DuoTabsBody /> : <TabsBody />}
+      {DUO_SYSTEM_TABS ? <DuoTabsBody showCommunity={showCommunity} /> : <TabsBody showCommunity={showCommunity} />}
 
       {user && <StartupPopups key={user.id} userId={user.id} />}
 
@@ -93,7 +95,7 @@ export default function TabLayout() {
 
 // iPhone Duo: the system tab bar and its bottom accessory, which iOS moves to the spare strip on the
 // right when unfolded. Each tab screen holds its own right pane (SplitScene).
-function DuoTabsBody() {
+function DuoTabsBody({ showCommunity }: { showCommunity: boolean }) {
   const { activeTab, route } = useActivePane();
   // Where the in-screen '다이빙 만들기' buttons were: the dive list, and the day shown on the right.
   const createDate = activeTab === 'b' ? '' : activeTab === 'index' && route?.pathname === '/schedule-daily' ? route.params.date : null;
@@ -112,7 +114,7 @@ function DuoTabsBody() {
         <NativeTabs.Trigger.Icon sf="person.2" />
         <NativeTabs.Trigger.Label>친구</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="community">
+      <NativeTabs.Trigger name="community" hidden={!showCommunity}>
         <NativeTabs.Trigger.Icon sf="bubble.left.and.bubble.right" />
         <NativeTabs.Trigger.Label>커뮤니티</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
@@ -143,7 +145,7 @@ function CreateDiveAccessory({ date }: { date: string }) {
 }
 
 // Unfolded, the tab screen takes the left half and screens opened from it the right half.
-function TabsBody() {
+function TabsBody({ showCommunity }: { showCommunity: boolean }) {
   const isSplit = useIsSplit();
   const insets = useSafeAreaInsets();
   // With a side strip the bar is drawn by StripTabBarHost above every screen, not inside the left half.
@@ -159,7 +161,10 @@ function TabsBody() {
           <Tabs.Screen name="index" />
           <Tabs.Screen name="b" />
           <Tabs.Screen name="c" />
-          <Tabs.Screen name="community" />
+          {/* 막히면 탭 바에서 빠지고, 주소로 열어도 첫 탭으로 돌아감 */}
+          <Tabs.Protected guard={showCommunity}>
+            <Tabs.Screen name="community" />
+          </Tabs.Protected>
         </Tabs>
       </View>
       {isSplit && (
