@@ -8,7 +8,8 @@ import { View, DeviceEventEmitter, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { hasSideTabStrip } from '@/utils/tabBarLayout';
 import { StripTabBarHost } from '@/components/StripTabBarHost';
-import { observeSchedulePushes } from '@/services/push';
+import { observeCommunityPushes, observeSchedulePushes } from '@/services/push';
+import { communityNoticeDestination } from '@/features/community/notices';
 import { api } from '@/services/api';
 import { StatusBar } from 'expo-status-bar';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
@@ -51,7 +52,7 @@ function RootLayoutNav() {
       router.replace('/onboarding');
     } else if (hasSeenOnboarding && !isLoggedIn && !inLogin && !inRegister) {
       router.replace('/login');
-    } else if (isLoggedIn && !inApp && !['notices','notice-detail','notice-edit','profile','profile-edit','profile-view','cert-upload','cert-manage','schedule-daily','schedule-detail','schedule-add','achievement','debriefing','blocked-users','inquiry','inquiry-write','inquiry-detail','inquiry-manage','inquiry-answer','withdraw','schedule-settings','organization-register','organization-manage','organization-members'].includes(segments[0] as string)) {
+    } else if (isLoggedIn && !inApp && !['notices','notice-detail','notice-edit','profile','profile-edit','profile-view','cert-upload','cert-manage','schedule-daily','schedule-detail','schedule-add','achievement','debriefing','blocked-users','inquiry','inquiry-write','inquiry-detail','inquiry-manage','inquiry-answer','withdraw','schedule-settings','organization-register','organization-manage','organization-members','community-posts','community-post','community-essay-write','community-free-write','community-promo-edit','community-greetings','community-reports'].includes(segments[0] as string)) {
       router.replace('/(tabs)');
     }
 
@@ -67,6 +68,16 @@ function RootLayoutNav() {
       if (notificationId) void api.readNotification(notificationId).then(() => DeviceEventEmitter.emit('notificationsChanged')).catch(() => {});
       routerRef.current.push({ pathname: '/schedule-detail', params: { id: String(scheduleId), filter: 'notification' } });
     }, () => DeviceEventEmitter.emit('notificationsChanged'));
+  }, [isLoggedIn, isLoading, ready, splashDone]);
+
+  // 커뮤니티 알림 푸시: 그 글로 (admin 신고 알림은 신고 처리로)
+  useEffect(() => {
+    if (!isLoggedIn || isLoading || !ready || !splashDone) return;
+    return observeCommunityPushes((code, postId, notificationId) => {
+      if (notificationId) void api.readNotification(notificationId).then(() => DeviceEventEmitter.emit('notificationsChanged')).catch(() => {});
+      const destination = communityNoticeDestination(code, postId);
+      if (destination) routerRef.current.push(destination);
+    });
   }, [isLoggedIn, isLoading, ready, splashDone]);
 
   if (!ready || !splashDone) {
@@ -111,6 +122,14 @@ function RootLayoutNav() {
           <Stack.Screen name="organization-register" options={{ gestureEnabled: true, contentStyle: { ...side, backgroundColor: '#144A84' } }} />
           <Stack.Screen name="organization-manage" options={{ gestureEnabled: true, contentStyle: { ...side, backgroundColor: '#144A84' } }} />
           <Stack.Screen name="organization-members" options={{ gestureEnabled: true, contentStyle: { ...side, backgroundColor: '#144A84' } }} />
+          <Stack.Screen name="community-posts" options={{ gestureEnabled: true }} />
+          <Stack.Screen name="community-post" options={{ gestureEnabled: true }} />
+          {/* 밀어서 닫으면 작성 중인 내용이 사라지므로 뒤로가기 버튼(확인 창)으로만 나감 */}
+          <Stack.Screen name="community-essay-write" options={{ contentStyle: { ...side, backgroundColor: '#144A84' } }} />
+          <Stack.Screen name="community-free-write" options={{ contentStyle: { ...side, backgroundColor: '#144A84' } }} />
+          <Stack.Screen name="community-promo-edit" options={{ contentStyle: { ...side, backgroundColor: '#144A84' } }} />
+          <Stack.Screen name="community-greetings" options={{ gestureEnabled: true }} />
+          <Stack.Screen name="community-reports" options={{ gestureEnabled: true, contentStyle: { ...side, backgroundColor: '#144A84' } }} />
         </Stack>
       </StripTabBarHost>
     </View>

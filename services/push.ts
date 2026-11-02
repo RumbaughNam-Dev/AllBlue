@@ -101,3 +101,24 @@ export function observeSchedulePushes(onOpen: (scheduleId: number, notificationI
   Notifications.getLastNotificationResponseAsync().then(handle).catch(() => {});
   return () => { active = false; response.remove(); received.remove(); };
 }
+
+// 커뮤니티 알림 푸시(태그 · 댓글 · 답글 · 내림 · 신고)를 누르면 알림 코드로 갈 화면을 정함 (일정 푸시와 같은 방식)
+const handledCommunityResponses = new Set<string>();
+export function observeCommunityPushes(onOpen: (code: string, postId: number | null, notificationId?: number) => void) {
+  if (!Notifications) return () => {};
+  let active = true;
+  const handle = (response: any) => {
+    if (!active || !response?.notification) return;
+    const request = response.notification.request;
+    const data = request.content?.data;
+    if (data?.type !== 'community' || typeof data.notification !== 'string' || handledCommunityResponses.has(request.identifier)) return;
+    handledCommunityResponses.add(request.identifier);
+    if (handledCommunityResponses.size > 100) handledCommunityResponses.delete(handledCommunityResponses.values().next().value!);
+    const postId = Number(data.postId), notificationId = Number(data.notificationId);
+    onOpen(data.notification, Number.isSafeInteger(postId) && postId > 0 ? postId : null,
+      Number.isSafeInteger(notificationId) && notificationId > 0 ? notificationId : undefined);
+  };
+  const response = Notifications.addNotificationResponseReceivedListener(handle);
+  Notifications.getLastNotificationResponseAsync().then(handle).catch(() => {});
+  return () => { active = false; response.remove(); };
+}

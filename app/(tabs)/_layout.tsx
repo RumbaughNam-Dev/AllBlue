@@ -112,6 +112,10 @@ function DuoTabsBody() {
         <NativeTabs.Trigger.Icon sf="person.2" />
         <NativeTabs.Trigger.Label>친구</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="community">
+        <NativeTabs.Trigger.Icon sf="bubble.left.and.bubble.right" />
+        <NativeTabs.Trigger.Label>커뮤니티</NativeTabs.Trigger.Label>
+      </NativeTabs.Trigger>
       {createDate !== null && (
         <NativeTabs.BottomAccessory>
           <CreateDiveAccessory date={createDate} />
@@ -155,6 +159,7 @@ function TabsBody() {
           <Tabs.Screen name="index" />
           <Tabs.Screen name="b" />
           <Tabs.Screen name="c" />
+          <Tabs.Screen name="community" />
         </Tabs>
       </View>
       {isSplit && (

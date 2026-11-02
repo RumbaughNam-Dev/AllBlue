@@ -128,7 +128,8 @@ export type ScheduleParticipantSummary = {
 };
 
 export type InvitationStatus = 'pending' | 'accepted' | 'rejected' | 'removed';
-export type AppNotification = { id: number; senderId: string; receiverId: string; scheduleId: number; title: string; body: string; readAt: string | null; createdAt: string };
+// notificationType: SCHEDULE_INVITE(일정 초대) 또는 커뮤니티 알림 COMMUNITY_* (communityPostId와 함께)
+export type AppNotification = { id: number; senderId: string; receiverId: string; notificationType?: string; scheduleId: number | null; communityPostId?: number | null; title: string; body: string; readAt: string | null; createdAt: string };
 
 export type Schedule = {
   invitationStatus?: InvitationStatus | null;
@@ -368,7 +369,94 @@ export type TemporaryLinkPreview = {
   duplicates: { schedules: number; courses: number; achievements: number; contacts: number };
   confirmationToken: string;
 };
+
+// ── 커뮤니티 (설계서 'AllBlue-커뮤니티-설계') ──
+export type CommunityBoard = 'ESSAY' | 'FREE' | 'PROMO';
+export type CommunityAuthor = { userId: string; nickname: string; profileImage: string | null; badgeLevel: string };
+export type CommunityMention = { userId: string; nickname: string };
+// 에세이 본문: 서식 있는 글자 조각(b 굵게 · i 기울임 · u 밑줄 · s 크기 S/L · c 글자 색)과 문단 사이 사진
+export type EssaySpan = { t: string; b?: boolean; i?: boolean; u?: boolean; s?: 'S' | 'L'; c?: string };
+export type EssayBlock = { type: 'p'; spans: EssaySpan[] } | { type: 'img'; url: string; w?: number; h?: number };
+export type CommunityCard = {
+  id: number; board: CommunityBoard; title: string; excerpt: string; imageUrl: string | null;
+  likeCount: number; commentCount: number; tags: string[];
+  author: CommunityAuthor; organization: { id: number; name: string; logo: string | null } | null;
+  createdAt: string; updatedAt: string;
+};
+export type CommunityPost = Omit<CommunityCard, 'organization'> & {
+  content: string | null; body: EssayBlock[] | null; images: string[]; mentions: CommunityMention[];
+  organization: { id: number; name: string; logo: string | null; address: string | null; phone: string | null } | null;
+  liked: boolean; canEdit: boolean; canDelete: boolean; canComment: boolean;
+};
+export type CommunityGreeting = { id: number; content: string; date: string; createdAt: string; author: CommunityAuthor; mine: boolean; canDelete: boolean };
+export type CommunityHome = {
+  essays: CommunityCard[]; banner: CommunityCard | null;
+  greetings: { todayCount: number; items: CommunityGreeting[] };
+  free: CommunityCard[]; canWriteEssay: boolean; canWritePromo: boolean;
+};
+// removed: 지운 댓글(DELETED) · 차단한 사람의 댓글(BLOCKED)은 대댓글이 남아 있을 때만 자리 표시로
+export type CommunityComment = {
+  id: number; parentId: number | null; removed: null | 'DELETED' | 'BLOCKED'; createdAt: string;
+  author?: CommunityAuthor; content?: string; mentions?: CommunityMention[]; likeCount?: number; liked?: boolean; mine?: boolean; canDelete?: boolean;
+};
+export type CommunityThread = CommunityComment & { replies: CommunityComment[] };
+export type MentionUser = CommunityAuthor & { isFriend: boolean };
+export type CommunityReportTarget = 'POST' | 'COMMENT' | 'GREETING';
+export type CommunityReportItem = {
+  targetType: CommunityReportTarget; targetId: number; exists: boolean; board: CommunityBoard | null; postId: number | null;
+  preview: string | null; author: { userId: string; nickname: string | null }; count: number;
+  reasons: { code: string; count: number }[]; memo: string | null; moreMemos: number; latestAt: string;
+};
+export type EssayInput = { board: 'ESSAY'; title: string; body: EssayBlock[] };
+export type FreeInput = { board: 'FREE'; title: string; content: string; imageUrl: string | null; tags: string[]; mentions: string[] };
+
 export const api = {
+  // ── 커뮤니티 ──
+  getCommunityHome() { return request<CommunityHome>('/community/home'); },
+  getCommunityPosts(board: CommunityBoard, options: { before?: number; tag?: string; q?: string } = {}) {
+    const params = new URLSearchParams({ board });
+    for (const [key, value] of Object.entries(options)) if (value) params.set(key, String(value));
+    return request<{ items: CommunityCard[]; hasMore: boolean }>(`/community/posts?${params}`);
+  },
+  getCommunityPost(id: number) { return request<{ post: CommunityPost }>(`/community/posts/${id}`); },
+  createCommunityPost(input: EssayInput | FreeInput) { return request<{ id: number }>('/community/posts', { method: 'POST', body: JSON.stringify(input) }); },
+  updateCommunityPost(id: number, input: EssayInput | FreeInput) { return request<{ id: number }>(`/community/posts/${id}`, { method: 'PUT', body: JSON.stringify(input) }); },
+  deleteCommunityPost(id: number) { return request<{ success: boolean }>(`/community/posts/${id}`, { method: 'DELETE' }); },
+  likeCommunity(target: 'posts' | 'comments', id: number, on: boolean) {
+    return request<{ liked: boolean; likeCount: number }>(`/community/${target}/${id}/like`, { method: on ? 'POST' : 'DELETE' });
+  },
+  getCommunityComments(postId: number) { return request<{ count: number; comments: CommunityThread[] }>(`/community/posts/${postId}/comments`); },
+  addCommunityComment(postId: number, input: { content: string; parentId?: number; mentions: string[] }) {
+    return request<{ id: number }>(`/community/posts/${postId}/comments`, { method: 'POST', body: JSON.stringify(input) });
+  },
+  deleteCommunityComment(id: number) { return request<{ success: boolean }>(`/community/comments/${id}`, { method: 'DELETE' }); },
+  getMyPromo() { return request<{ organization: { id: number; name: string; logo: string | null } | null; post: { id: number; title: string; images: string[] } | null }>('/community/promo/mine'); },
+  saveMyPromo(input: { title: string; images: string[] }) { return request<{ id: number }>('/community/promo/mine', { method: 'PUT', body: JSON.stringify(input) }); },
+  getGreetings(date?: string) {
+    return request<{ date: string; today: string; count: number; greetedToday: boolean; items: CommunityGreeting[] }>(`/community/greetings${date ? `?date=${date}` : ''}`);
+  },
+  getGreetingCalendar(month: string) { return request<{ month: string; days: Record<string, number> }>(`/community/greetings/calendar?month=${month}`); },
+  greet(content: string) { return request<{ id: number }>('/community/greetings', { method: 'POST', body: JSON.stringify({ content }) }); },
+  deleteGreeting(id: number) { return request<{ success: boolean }>(`/community/greetings/${id}`, { method: 'DELETE' }); },
+  getMentionUsers(q: string) { return request<{ users: MentionUser[] }>(`/community/mention-users?q=${encodeURIComponent(q)}`); },
+  async uploadCommunityImage(uri: string, mimeType = 'image/jpeg') {
+    const token = await AsyncStorage.getItem('authToken');
+    const result = await new File(uri).upload(`${BASE_URL}/community/images`, {
+      uploadType: UploadType.MULTIPART,
+      fieldName: 'file',
+      mimeType,
+      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    });
+    return parseResponse<{ url: string }>(result.status, result.body, token);
+  },
+  reportCommunity(input: { targetType: CommunityReportTarget; targetId: number; reason: string; memo: string }) {
+    return request<{ success: boolean }>('/community/reports', { method: 'POST', body: JSON.stringify(input) });
+  },
+  getCommunityReports() { return request<{ items: CommunityReportItem[] }>('/community/reports'); },
+  getCommunityReportCount() { return request<{ count: number }>('/community/reports/count'); },
+  processCommunityReport(targetType: CommunityReportTarget, targetId: number, decision: 'dismiss' | 'take-down') {
+    return request<{ success: boolean }>(`/community/reports/${targetType}/${targetId}/${decision}`, { method: 'POST' });
+  },
   getNotices(offset = 0) { return request<{ notices: Notice[]; hasMore: boolean; canManage: boolean }>(`/notices?offset=${offset}`); },
   getNotice(id: number) { return request<{ notice: Notice; canManage: boolean }>(`/notices/${id}`); },
   getNoticePopups() { return request<{ items: PopupSlide[] }>('/notices/popups'); },
@@ -467,6 +555,7 @@ export const api = {
   getNotifications(options: { all?: boolean; before?: number; after?: number; ceiling?: number } = {}) {
     const params = new URLSearchParams();
     for (const [key, value] of Object.entries(options)) if (value !== undefined) params.set(key, String(value));
+    params.set('withCommunity', 'true'); // 커뮤니티 알림도 받음 (옛 앱은 일정 초대만 받음)
     return request<{ items: AppNotification[]; hasMore: boolean; unreadCount: number }>(`/notifications?${params}`);
   },
   readNotification(id: number) { return request(`/notifications/${id}/read`, { method: 'PATCH' }); },

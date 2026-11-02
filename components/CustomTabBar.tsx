@@ -19,6 +19,7 @@ const TAB_ICONS: TabIconConfig[] = [
   { pack: 'ionicons', icon: 'calendar', iconOutline: 'calendar-outline' },
   { pack: 'image', icon: '', iconOutline: '', image: require('@/assets/images/icon-snorkel-tab.png') },
   { pack: 'ionicons', icon: 'people', iconOutline: 'people-outline' },
+  { pack: 'ionicons', icon: 'chatbubbles', iconOutline: 'chatbubbles-outline' },
 ];
 
 function TabIcon({ focused, tab }: { focused: boolean; tab: TabIconConfig }) {
