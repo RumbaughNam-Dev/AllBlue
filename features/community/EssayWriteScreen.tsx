@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { memo, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { TextInputInstance } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -7,7 +7,7 @@ import * as ImagePicker from 'expo-image-picker';
 import Colors from '@/constants/Colors';
 import { useLeaveConfirm } from '@/hooks/useLeaveConfirm';
 import { useAppRouter, useScreenParams } from '@/features/split/SplitPane';
-import { api } from '@/services/api';
+import { api, type EssaySpan } from '@/services/api';
 import {
   allHave, applyStyle, EditorBlock, ESSAY_COLORS, essayHasContent, fromBody, insertImage, removeImage, spansText,
   spliceSpans, SpanStyle, StylePatch, styleAt, textChange, toBody,
@@ -28,7 +28,21 @@ export default function EssayWriteScreen() {
   const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(!!editId);
   const [title, setTitle] = useState('');
-  const [blocks, setBlocks] = useState<EditorBlock[]>(() => fromBody([]));
+  const [blocks, setBlocksState] = useState<EditorBlock[]>(() => fromBody([]));
+  // 입력칸에 그려 둔 글자 (shown). 글자를 칠 때마다 다시 그리면 한글 조합이 끊겨 자음이 두 번 찍힘 —
+  // 그래서 치는 동안은 입력칸이 스스로 그리게 두고, 서식을 바꿀 때 · 사진을 넣을 때 · 조합이 끝난 뒤
+  // (띄어쓰기 · 문장부호 · 줄바꿈) · 입력칸을 떠날 때만 서식까지 다시 그림
+  const [shown, setShown] = useState<Record<string, EssaySpan[]>>({});
+  const blocksRef = useRef(blocks);
+  blocksRef.current = blocks;
+  const styledWhileTyping = useRef(new Set<string>());
+  const show = (next: EditorBlock[], keys?: string[]) => setShown(prev => {
+    const updated = { ...prev };
+    for (const b of next) if (b.type === 'p' && (!keys || keys.includes(b.key))) updated[b.key] = b.spans;
+    return updated;
+  });
+  // 문단을 통째로 바꾸는 경우(불러오기 · 사진 넣기 · 빼기)는 새로 그림
+  const setBlocks = (next: EditorBlock[]) => { setBlocksState(next); show(next); };
   const [focusKey, setFocusKey] = useState<string | null>(null);
   const [selection, setSelection] = useState<Selection>({ start: 0, end: 0 });
   // 커서만 둔 채 바꾼 서식: 다음에 치는 글자에 입힘 (커서를 옮기면 풀림)
@@ -62,8 +76,11 @@ export default function EssayWriteScreen() {
   const current: SpanStyle = focused ? (pending ?? styleAt(focused.spans, selection.start)) : {};
   const isOn = (flag: 'b' | 'i' | 'u') => focused && ranged ? allHave(focused.spans, selection.start, selection.end, flag) : !!current[flag];
 
-  const updateSpans = (key: string, update: (spans: Extract<EditorBlock, { type: 'p' }>['spans']) => Extract<EditorBlock, { type: 'p' }>['spans']) => {
-    setBlocks(prev => prev.map(b => (b.key === key && b.type === 'p' ? { ...b, spans: update(b.spans) } : b)));
+  const updateSpans = (key: string, update: (spans: EssaySpan[]) => EssaySpan[], redraw: boolean) => {
+    const next = blocksRef.current.map(b => (b.key === key && b.type === 'p' ? { ...b, spans: update(b.spans) } : b));
+    blocksRef.current = next;
+    setBlocksState(next);
+    if (redraw) show(next, [key]);
     setDirty(true);
   };
 
@@ -73,7 +90,11 @@ export default function EssayWriteScreen() {
     const { start, end, inserted } = textChange(spansText(block.spans), text);
     const style = pending ?? styleAt(block.spans, start);
     expectedCaret.current = start + inserted.length;
-    updateSpans(key, spans => spliceSpans(spans, start, end, inserted, style));
+    // 커서만 두고 바꾼 서식으로 친 글자는 조합이 끝난 뒤 다시 그려야 서식이 보임
+    if (pending) styledWhileTyping.current.add(key);
+    const composed = /[\s.,!?~…)\]'"]$/.test(inserted);
+    const redraw = composed && styledWhileTyping.current.delete(key);
+    updateSpans(key, spans => spliceSpans(spans, start, end, inserted, style), redraw);
   };
 
   const onSelectionChange = (key: string, next: Selection) => {
@@ -86,7 +107,7 @@ export default function EssayWriteScreen() {
 
   const applyPatch = (patch: StylePatch) => {
     if (!focused) return;
-    if (ranged) updateSpans(focused.key, spans => applyStyle(spans, selection.start, selection.end, patch));
+    if (ranged) updateSpans(focused.key, spans => applyStyle(spans, selection.start, selection.end, patch), true);
     else setPending({ ...current, ...patch } as SpanStyle);
   };
   const toggle = (flag: 'b' | 'i' | 'u') => applyPatch({ [flag]: !isOn(flag) });
@@ -169,11 +190,12 @@ export default function EssayWriteScreen() {
                   onChangeText={text => onChangeText(block.key, text)}
                   onSelectionChange={e => onSelectionChange(block.key, e.nativeEvent.selection)}
                   onFocus={() => setFocusKey(block.key)}
+                  onBlur={() => { if (styledWhileTyping.current.delete(block.key)) show(blocksRef.current, [block.key]); }}
                   placeholder={block.key === paragraphs[0]?.key ? '본문을 입력하세요' : paragraphs.length > 1 && block.key === paragraphs[paragraphs.length - 1].key ? '이어서 쓰기' : undefined}
                   placeholderTextColor="rgba(255,255,255,0.35)"
                   style={[styles.paragraph, spanStyle({})]}
                 >
-                  <Spans spans={block.spans} />
+                  <ShownSpans spans={shown[block.key] ?? NO_SPANS} />
                 </TextInput>
               ))}
             </View>
@@ -220,6 +242,12 @@ export default function EssayWriteScreen() {
     </KeyboardAvoidingView>
   );
 }
+
+const NO_SPANS: EssaySpan[] = [];
+// Same spans object → no re-render → the input keeps what it is composing.
+const ShownSpans = memo(function ShownSpans({ spans }: { spans: EssaySpan[] }) {
+  return <Spans spans={spans} />;
+});
 
 function ToolButton({ label, textStyle, active, onPress, a11y, disabled, dot }: {
   label: string; textStyle?: object; active: boolean; onPress: () => void; a11y: string; disabled?: boolean; dot?: string;
