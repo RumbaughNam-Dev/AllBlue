@@ -1,5 +1,7 @@
 const assert = require('node:assert/strict');
 const { test } = require('node:test');
+// Stable like the real hook: the profile's focus effect depends on reload.
+const NO_ADMIN_COUNTS = { counts: { inquiry: 0, cert: 0, org: 0, tourRequests: 0 }, total: 0, reload: async () => {} };
 const { loadModule } = require('./helpers.cjs');
 const flush = () => new Promise(setImmediate);
 
@@ -163,7 +165,7 @@ test('profile remains dismissible during loading and after a failed request', as
     '@/services/api': { api: { getUserProfile: () => pending.promise } },
     '@/components/Spinner': {}, '@/components/LevelBadge': {},
         '@/components/CertificateImageViewer': 'CertificateImageViewer', '@expo/vector-icons': {},
-        '@/components/BottomSheet': 'BottomSheet',
+        '@/components/BottomSheet': 'BottomSheet', '@/components/LinkChips': 'LinkChips', '@/features/tour/ProfileTours': 'ProfileTours', '@/hooks/useAdminPendingCounts': { useAdminPendingCounts: () => NO_ADMIN_COUNTS },
         '@/assets/images/certificate-badge.png': 1,
     '@/contexts/AuthContext': { useAuth: () => ({ user: { id: 1 } }) },
     '@/utils/userRole': loadModule('utils/userRole.ts', {}),
@@ -498,7 +500,7 @@ for (const file of ['app/profile.tsx', 'components/UserProfileView.tsx']) {
         '@/contexts/AuthContext': { useAuth: () => ({ user: result.user, updateUser() {} }) },
         '@/components/Spinner': {}, '@/components/LevelBadge': {},
         '@/components/CertificateImageViewer': 'CertificateImageViewer', '@expo/vector-icons': {},
-        '@/components/BottomSheet': 'BottomSheet',
+        '@/components/BottomSheet': 'BottomSheet', '@/components/LinkChips': 'LinkChips', '@/features/tour/ProfileTours': 'ProfileTours', '@/hooks/useAdminPendingCounts': { useAdminPendingCounts: () => NO_ADMIN_COUNTS },
         '@/assets/images/certificate-badge.png': 1,
         '@/utils/profileCertifications': loadModule('utils/profileCertifications.ts', {}),
         '@/utils/userRole': loadModule('utils/userRole.ts', {}),
@@ -765,6 +767,18 @@ test('schedule link survives onboarding and login and resumes once after login n
   h.render({ route: 'profile', isLoggedIn: true });
   h.render({ route: '(tabs)', isLoggedIn: true });
   assert.equal(h.destinations.length, 1);
+});
+
+test('slide 24: a tour share link opened while signed out opens that tour after login', () => {
+  const h = scheduleLinkResumeHarness();
+  h.render({ route: 'tour-detail', id: '7' });
+  h.render({ route: 'login' });
+  h.render({ route: 'login', isLoggedIn: true });
+  h.render({ route: '(tabs)', isLoggedIn: true });
+  assert.equal(h.destinations.length, 1);
+  assert.equal(h.destinations[0].pathname, '/tour-detail');
+  assert.equal(h.destinations[0].params.id, '7');
+  assert.equal(h.destinations[0].params.filter, undefined);
 });
 
 test('restored session opening schedule directly does not reopen it after leaving', () => {

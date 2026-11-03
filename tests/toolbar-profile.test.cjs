@@ -1,6 +1,8 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { loadModule } = require('./helpers.cjs');
+// Stable reference: the toolbar's focus effect depends on reload.
+const ADMIN_COUNTS = { total: 0, reload: async () => {} };
 const { hookDriver } = require('./notice-test-helpers.cjs');
 
 test('toolbar refreshes cached levels on focus and foreground, ignoring old responses and account changes', async () => {
@@ -23,6 +25,7 @@ test('toolbar refreshes cached levels on focus and foreground, ignoring old resp
   modules['@expo/vector-icons'] = { Ionicons: 'Ionicons' };
   modules['@/utils/tabBarLayout'] = { hasSideTabStrip: () => false };
   modules['@/components/StripTabBarHost'] = { StripTabBarRelay: () => null, useStripTabBarSetter: () => null };
+  modules['@/hooks/useAdminPendingCounts'] = { useAdminPendingCounts: () => ADMIN_COUNTS, adminBadgeText: () => null };
   const Screen = loadModule('app/(tabs)/_layout.tsx', modules).default;
   const render = () => h.render(Screen);
   const flush = () => new Promise(setImmediate);

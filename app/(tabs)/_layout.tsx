@@ -12,6 +12,7 @@ import Colors from '@/constants/Colors';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/services/api';
 import ProfileAvatar from '@/components/ProfileAvatar';
+import { adminBadgeText, useAdminPendingCounts } from '@/hooks/useAdminPendingCounts';
 import GlassCircle from '@/components/GlassCircle';
 import { SplitProvider, PaneHost, useIsSplit, useActivePane } from '@/features/split/SplitPane';
 import { NativeTabs } from 'expo-router/native-tabs';
@@ -22,11 +23,14 @@ export default function TabLayout() {
   const insets = useSafeAreaInsets();
   const [sheetVisible, setSheetVisible] = useState(false);
   const { user, updateUser } = useAuth();
-  // 커뮤니티 탭은 지금 admin에게만 보임 (다른 사용자는 탭 3개 그대로)
+  // 투어 · 커뮤니티 탭은 만드는 동안 admin에게만 보임 (다른 사용자는 탭 3개 그대로)
+  const showTour = user?.level === 'A';
   const showCommunity = user?.level === 'A';
   const router = useRouter();
   const updateUserRef = useRef(updateUser);
   updateUserRef.current = updateUser;
+  // 16장: admin이면 프로필 사진에 관리자 기능의 처리할 건수 합계 (프로필 '관리자 기능' 버튼과 같은 숫자)
+  const { total: adminTotal, reload: reloadAdminCounts } = useAdminPendingCounts(user?.level === 'A');
 
   useFocusEffect(useCallback(() => {
     if (!user?.id) return;
@@ -43,11 +47,12 @@ export default function TabLayout() {
       }
     };
     void refresh();
+    void reloadAdminCounts();
     const subscription = AppState.addEventListener('change', state => {
-      if (state === 'active') void refresh();
+      if (state === 'active') { void refresh(); void reloadAdminCounts(); }
     });
     return () => { active = false; subscription.remove(); };
-  }, [user?.id]));
+  }, [user?.id, reloadAdminCounts]));
 
   return (
     <SplitProvider paneInScenes={DUO_SYSTEM_TABS}>
@@ -58,7 +63,7 @@ export default function TabLayout() {
           style={({ pressed }) => [styles.profileButton, pressed && { opacity: 0.6 }]}
           onPress={() => router.push('/profile')}
         >
-          <ProfileAvatar profileImage={user?.profileImage} nickname={user?.nickname} level={user?.badgeLevel ?? user?.level} />
+          <ProfileAvatar profileImage={user?.profileImage} nickname={user?.nickname} level={user?.badgeLevel ?? user?.level} count={adminBadgeText(adminTotal)} />
         </Pressable>
 
         <View pointerEvents="none" style={styles.toolbarLogo}>
@@ -82,7 +87,7 @@ export default function TabLayout() {
         </View>
       </View>
 
-      {DUO_SYSTEM_TABS ? <DuoTabsBody showCommunity={showCommunity} /> : <TabsBody showCommunity={showCommunity} />}
+      {DUO_SYSTEM_TABS ? <DuoTabsBody showTour={showTour} showCommunity={showCommunity} /> : <TabsBody showTour={showTour} showCommunity={showCommunity} />}
 
       {user && <StartupPopups key={user.id} userId={user.id} />}
 
@@ -95,7 +100,7 @@ export default function TabLayout() {
 
 // iPhone Duo: the system tab bar and its bottom accessory, which iOS moves to the spare strip on the
 // right when unfolded. Each tab screen holds its own right pane (SplitScene).
-function DuoTabsBody({ showCommunity }: { showCommunity: boolean }) {
+function DuoTabsBody({ showTour, showCommunity }: { showTour: boolean; showCommunity: boolean }) {
   const { activeTab, route } = useActivePane();
   // Where the in-screen '다이빙 만들기' buttons were: the dive list, and the day shown on the right.
   const createDate = activeTab === 'b' ? '' : activeTab === 'index' && route?.pathname === '/schedule-daily' ? route.params.date : null;
@@ -117,6 +122,10 @@ function DuoTabsBody({ showCommunity }: { showCommunity: boolean }) {
       <NativeTabs.Trigger name="community" hidden={!showCommunity}>
         <NativeTabs.Trigger.Icon sf="bubble.left.and.bubble.right" />
         <NativeTabs.Trigger.Label>커뮤니티</NativeTabs.Trigger.Label>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="tour" hidden={!showTour}>
+        <NativeTabs.Trigger.Icon sf="airplane" />
+        <NativeTabs.Trigger.Label>투어</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
       {createDate !== null && (
         <NativeTabs.BottomAccessory>
@@ -145,7 +154,7 @@ function CreateDiveAccessory({ date }: { date: string }) {
 }
 
 // Unfolded, the tab screen takes the left half and screens opened from it the right half.
-function TabsBody({ showCommunity }: { showCommunity: boolean }) {
+function TabsBody({ showTour, showCommunity }: { showTour: boolean; showCommunity: boolean }) {
   const isSplit = useIsSplit();
   const insets = useSafeAreaInsets();
   // With a side strip the bar is drawn by StripTabBarHost above every screen, not inside the left half.
@@ -164,6 +173,9 @@ function TabsBody({ showCommunity }: { showCommunity: boolean }) {
           {/* 막히면 탭 바에서 빠지고, 주소로 열어도 첫 탭으로 돌아감 */}
           <Tabs.Protected guard={showCommunity}>
             <Tabs.Screen name="community" />
+          </Tabs.Protected>
+          <Tabs.Protected guard={showTour}>
+            <Tabs.Screen name="tour" />
           </Tabs.Protected>
         </Tabs>
       </View>

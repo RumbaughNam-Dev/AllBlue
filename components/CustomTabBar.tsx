@@ -1,5 +1,5 @@
 import { getTabBarBottomPadding, getSideStripBottomGap, SIDE_STRIP_CENTER_SHIFT, TAB_BAR_HEIGHT } from '@/utils/tabBarLayout';
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Image, Pressable, StyleSheet, Platform, Animated, Easing, LayoutChangeEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
@@ -15,12 +15,14 @@ type TabIconConfig = {
   image?: any;
 };
 
-const TAB_ICONS: TabIconConfig[] = [
-  { pack: 'ionicons', icon: 'calendar', iconOutline: 'calendar-outline' },
-  { pack: 'image', icon: '', iconOutline: '', image: require('@/assets/images/icon-snorkel-tab.png') },
-  { pack: 'ionicons', icon: 'people', iconOutline: 'people-outline' },
-  { pack: 'ionicons', icon: 'chatbubbles', iconOutline: 'chatbubbles-outline' },
-];
+// By route name, so a tab that is shown only to some users (투어: admin) doesn't shift the others' icons.
+const TAB_ICONS: Record<string, TabIconConfig> = {
+  index: { pack: 'ionicons', icon: 'calendar', iconOutline: 'calendar-outline' },
+  b: { pack: 'image', icon: '', iconOutline: '', image: require('@/assets/images/icon-snorkel-tab.png') },
+  c: { pack: 'ionicons', icon: 'people', iconOutline: 'people-outline' },
+  community: { pack: 'ionicons', icon: 'chatbubbles', iconOutline: 'chatbubbles-outline' },
+  tour: { pack: 'ionicons', icon: 'airplane', iconOutline: 'airplane-outline' },
+};
 
 function TabIcon({ focused, tab }: { focused: boolean; tab: TabIconConfig }) {
   const { pack, icon, iconOutline } = tab;
@@ -72,50 +74,57 @@ type Props = BottomTabBarProps & {
   leaveStack?: () => boolean;
 };
 
-export default function CustomTabBar({ state, emitter, navigateToTab, stripWidth, leaveStack }: Props) {
+export default function CustomTabBar({ state, descriptors, emitter, navigateToTab, stripWidth, leaveStack }: Props) {
   const insets = useSafeAreaInsets();
   const vertical = stripWidth !== undefined;
   // Vertical: as wide as the strip allows, up to the usual bar height.
   const barSize = vertical ? Math.min(TAB_BAR_HEIGHT, stripWidth - 4) : TAB_BAR_HEIGHT;
   const tabSize = barSize - 8;
-  const tabCount = state.routes.length;
+  // Only shown tabs with an icon get a slot; the highlight and slot sizes follow them, not state.routes.
+  const routes = state.routes.filter((route) => !descriptors[route.key]?.options.hidden && TAB_ICONS[route.name]);
+  const focusedKey = state.routes[state.index]?.key;
+  const focusedIndex = routes.findIndex((route) => route.key === focusedKey);
+  const tabCount = routes.length;
   const slideX = useRef(new Animated.Value(0)).current;
-  const innerWidthRef = useRef(0);
+  // Length of the tab row along the bar, inside its padding; 0 until laid out.
+  const [rowLength, setRowLength] = useState(0);
+  // Vertical tabs are fixed squares; horizontal ones share the row, so a tab shown or hidden resizes them.
+  const tabLength = rowLength > 0 && tabCount > 0 ? (vertical ? tabSize : rowLength / tabCount) : 0;
 
   useEffect(() => {
-    if (innerWidthRef.current > 0) {
-      const tabWidth = innerWidthRef.current / tabCount;
+    if (tabLength > 0) {
       Animated.spring(slideX, {
-        toValue: state.index * tabWidth,
+        toValue: focusedIndex * tabLength,
         damping: 18,
         stiffness: 180,
         useNativeDriver: true,
       }).start();
     }
-  }, [state.index]);
+  }, [focusedIndex, tabLength]);
 
   const onTabRowLayout = (e: LayoutChangeEvent) => {
-    const totalWidth = vertical ? e.nativeEvent.layout.height : e.nativeEvent.layout.width;
+    const totalLength = vertical ? e.nativeEvent.layout.height : e.nativeEvent.layout.width;
     const padding = 8; // 4px each side
-    innerWidthRef.current = totalWidth - padding;
-    const tabWidth = innerWidthRef.current / tabCount;
-    slideX.setValue(state.index * tabWidth);
+    const length = totalLength - padding;
+    // Put the highlight on the focused tab without sliding there.
+    if (focusedIndex >= 0) slideX.setValue(focusedIndex * (vertical ? tabSize : length / tabCount));
+    setRowLength(length);
   };
 
   const content = (
     <View style={[styles.tabRow, vertical && { flexDirection: 'column', width: barSize, height: undefined, borderRadius: STRIP_RADIUS - 4 }]} onLayout={onTabRowLayout}>
       {/* Sliding highlight */}
-      {innerWidthRef.current > 0 && (
+      {tabLength > 0 && focusedIndex >= 0 && (
         <Animated.View
           style={[
             styles.highlight,
             vertical ? {
               width: tabSize,
-              height: innerWidthRef.current / tabCount,
+              height: tabLength,
               borderRadius: STRIP_RADIUS - 6,
               transform: [{ translateY: slideX }],
             } : {
-              width: innerWidthRef.current / tabCount,
+              width: tabLength,
               transform: [{ translateX: slideX }],
             },
           ]}
@@ -123,9 +132,9 @@ export default function CustomTabBar({ state, emitter, navigateToTab, stripWidth
       )}
 
       {/* Tab buttons */}
-      {state.routes.map((route, index) => {
-        const isFocused = state.index === index;
-        const tab = TAB_ICONS[index];
+      {routes.map((route, index) => {
+        const isFocused = focusedIndex === index;
+        const tab = TAB_ICONS[route.name];
 
         const onPress = () => {
           const leftStack = leaveStack?.() ?? false;

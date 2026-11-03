@@ -4,7 +4,7 @@ import { View, Text, StyleSheet, Pressable, Image, ScrollView, Platform } from '
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import Colors from '@/constants/Colors';
-import { api, Profile, Organization, Certification } from '@/services/api';
+import { api, Profile, Organization, Certification, ProfileTour } from '@/services/api';
 import Spinner from '@/components/Spinner';
 import LevelBadge from '@/components/LevelBadge';
 import { useAuth } from '@/contexts/AuthContext';
@@ -12,6 +12,8 @@ import { hasInstructorAccess } from '@/utils/userRole';
 import { groupProfileCertifications } from '@/utils/profileCertifications';
 import GlassBackground, { glassClear } from '@/components/GlassBackground';
 import GlassCircle from '@/components/GlassCircle';
+import LinkChips from '@/components/LinkChips';
+import ProfileTours from '@/features/tour/ProfileTours';
 
 // Main actions stay white (prominent glass) so the navy label keeps its contrast.
 const PROMINENT_TINT = 'rgba(255,255,255,0.85)';
@@ -38,18 +40,22 @@ export default function UserProfileView({ userId, onClose, onOpenLog }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [retry, setRetry] = useState(0);
+  const [links, setLinks] = useState<{ name: string; url: string }[]>([]);
+  const [tours, setTours] = useState<ProfileTour[]>([]);
 
   useEffect(() => {
     let active = true;
     setIsMyStudent(false);
     setUserInfo(null);
-    setLoading(true); setError(false); setProfile(null); setCertifications([]); setOrganization(null);
+    setLoading(true); setError(false); setProfile(null); setCertifications([]); setOrganization(null); setLinks([]); setTours([]);
     if (!userId) { setLoading(false); setError(true); return; }
     api.getUserProfile(userId)
       .then((res) => {
         if (!active) return;
         setProfile(res.profile);
         setCertifications(res.certifications ?? []);
+        setLinks(res.links ?? []);
+        setTours(res.completedTours ?? []);
         setUserInfo(res.user);
         setIsMyStudent(res.isMyStudent ?? false);
         if (res.user.organization && res.user.organization.status !== 'rejected') {
@@ -127,6 +133,8 @@ export default function UserProfileView({ userId, onClose, onOpenLog }: Props) {
             </View>
           ) : null}
 
+          <LinkChips links={links} />
+
           <View style={styles.divider} />
 
           {/* Info */}
@@ -187,6 +195,7 @@ export default function UserProfileView({ userId, onClose, onOpenLog }: Props) {
           </View>
 
           <View style={styles.divider} />
+          <ProfileTours tours={tours} />
         </ScrollView>
 
         {onOpenLog && hasInstructorAccess(me?.level) && isMyStudent && userInfo && (

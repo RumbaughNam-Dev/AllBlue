@@ -14,6 +14,8 @@ type Props = {
   onClose: () => void;
   selectedDate: string; // YYYY-MM-DD
   onSelect: (date: string) => void;
+  // Earliest selectable day (YYYY-MM-DD); earlier days are dimmed and can't be picked.
+  minDate?: string;
 };
 
 function getDaysInMonth(year: number, month: number): number {
@@ -28,7 +30,7 @@ function formatDate(year: number, month: number, day: number): string {
   return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
 
-export default function DatePickerSheet({ visible, onClose, selectedDate, onSelect }: Props) {
+export default function DatePickerSheet({ visible, onClose, selectedDate, onSelect, minDate }: Props) {
   const insets = useSafeAreaInsets();
   const { height: screenHeight } = useWindowDimensions();
   const backdropAnim = useRef(new Animated.Value(0)).current;
@@ -143,9 +145,10 @@ export default function DatePickerSheet({ visible, onClose, selectedDate, onSele
                 const isSelected = dateStr === selectedDate;
                 const isToday = dateStr === todayStr;
                 const isSunday = di === 0;
+                const isDisabled = !!minDate && dateStr < minDate;
 
                 return (
-                  <Pressable key={di} style={styles.dayCell} onPress={() => handleDayPress(day)}>
+                  <Pressable key={di} style={[styles.dayCell, isDisabled && styles.dayDisabled]} disabled={isDisabled} onPress={() => handleDayPress(day)}>
                     <View style={[styles.dayInner, isSelected && styles.daySelected, isToday && !isSelected && styles.dayToday]}>
                       <Text style={[
                         styles.dayText,
@@ -168,6 +171,7 @@ export default function DatePickerSheet({ visible, onClose, selectedDate, onSele
 }
 
 const styles = StyleSheet.create({
+  dayDisabled: { opacity: 0.25 },
   sheet: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
   },

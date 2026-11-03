@@ -128,8 +128,8 @@ export type ScheduleParticipantSummary = {
 };
 
 export type InvitationStatus = 'pending' | 'accepted' | 'rejected' | 'removed';
-// notificationType: SCHEDULE_INVITE(일정 초대) 또는 커뮤니티 알림 COMMUNITY_* (communityPostId와 함께)
-export type AppNotification = { id: number; senderId: string; receiverId: string; notificationType?: string; scheduleId: number | null; communityPostId?: number | null; title: string; body: string; readAt: string | null; createdAt: string };
+// notificationType: SCHEDULE_INVITE(일정 초대), 투어 알림 코드 (21장, tourId와 함께) 또는 커뮤니티 알림 COMMUNITY_* (communityPostId와 함께)
+export type AppNotification = { id: number; senderId: string; receiverId: string; notificationType?: string; scheduleId: number | null; tourId?: number | null; communityPostId?: number | null; title: string; body: string; readAt: string | null; createdAt: string };
 
 export type Schedule = {
   invitationStatus?: InvitationStatus | null;
@@ -353,8 +353,11 @@ export type ProfileResponse = {
   certifications?: Certification[];
   user: { id: number; isTemporary?: boolean; name?: string; nickname: string; profileImage?: string; organization?: Organization | null };
   profile: Profile | null;
+  links?: TourLink[]; // 프로필 링크 (13장)
+  completedTours?: ProfileTour[]; // 진행한 투어 (13장)
   isMyStudent?: boolean;
 };
+export type ProfileTour = { id: number; title: string; countryName: string; startDate: string; endDate: string; capacity: number; recruitedCount: number };
 
 export type TemporaryLinkTarget = { id: number; userId: string; nickname: string; name?: string | null; profileImage?: string | null; level?: string; badgeLevel?: string | number | null; phoneHint?: string | null };
 export type TemporaryUnlinkPreview = {
@@ -369,6 +372,71 @@ export type TemporaryLinkPreview = {
   duplicates: { schedules: number; courses: number; achievements: number; contacts: number };
   confirmationToken: string;
 };
+// common_code TOUR_STATUS
+export type TourStatus = 'PENDING' | 'REJECTED' | 'PREPARING' | 'RECRUITING' | 'CLOSED' | 'CANCELED' | 'COMPLETED' | 'UNPROCESSED';
+export type TourCard = {
+  id: number; title: string; status: TourStatus;
+  continentCode: string; countryCode: string; countryName: string;
+  startDate: string; endDate: string; // YYYY-MM-DD
+  capacity: number; recruitedCount: number;
+  imageUrl: string | null;
+  instructor: { userId: string; nickname: string };
+};
+export type TourBanner = { id: number; imageUrl: string; tourId: number };
+export type TourHome = { canCreate: boolean; banners: TourBanner[]; recent: TourCard[]; popular: TourCard[] };
+
+export type CommonCode = { code: string; name: string; nameKo: string | null; extraValue: string | null; sortOrder: number };
+// 4장 투어 만들기 → 등록 요청 (승인 대기로 저장)
+export type TourRequestInput = {
+  images: string[]; title: string; continentCode: string; countryCode: string;
+  startDate: string; endDate: string; capacity: number; fee: number | null; included: string[]; excluded: string[];
+  links: TourLink[];
+};
+export type TourLink = { name: string; url: string };
+// 19장 투어 신고 처리 (admin): 투어별로 묶음
+export type TourReportGroup = {
+  tourId: number; title: string; status: TourStatus; imageUrl: string | null; count: number;
+  reasons: { code: string; name: string; count: number }[]; memo: string | null; moreMemos: number; latestAt: string;
+  instructor: { userId: string; nickname: string; name: string | null };
+};
+// 22장 광고 배너 (admin). HIDDEN: 기간 안이지만 연결 투어가 비공개 · 출발해서 안 보임
+export type TourBannerItem = {
+  id: number; imageUrl: string; tourId: number; tourTitle: string; startDate: string; endDate: string; isEnabled: boolean;
+  state: 'LIVE' | 'SCHEDULED' | 'ENDED' | 'OFF' | 'HIDDEN';
+};
+export type TourBannerInput = { imageUrl: string; tourId: number; startDate: string; endDate: string; isEnabled: boolean };
+// 15장 투어 등록요청 (admin)
+export type TourRequestItem = {
+  id: number; type: 'CREATE' | 'UPDATE'; requestedAt: string; changedFields: string[];
+  tour: { id: number; title: string; countryName: string; startDate: string; endDate: string; fee: number | null; imageUrl: string | null };
+  instructor: { userId: string; nickname: string; name: string | null };
+};
+
+// 6장 정렬 (RECENT · POPULAR는 홈 '전체보기'용)
+export type TourSort = 'DEADLINE' | 'START_ASC' | 'START_DESC' | 'CAPACITY_ASC' | 'CAPACITY_DESC' | 'RECENT' | 'POPULAR';
+export type TourSearchConditions = { title: string; instructor: string; continent: string; country: string; from: string; to: string };
+export type TourSearchResult = { total: number; sort: TourSort; tours: TourCard[]; hasMore: boolean };
+
+// 11장 투어 상세
+export type TourDetail = {
+  tour: {
+    id: number; title: string; status: TourStatus; isMine: boolean; isPublic: boolean;
+    pendingRequest: { id: number; type: 'CREATE' | 'UPDATE' } | null; // admin이 심사 중일 때만
+    shareUrl: string | null; // 24장 공유 링크, 공개 중일 때만
+    reviewNote: string | null; // 보완 요청 내용 (만든 강사 · admin)
+    editRequest: import('@/features/tour/edit').EditRequest | null; // 18장 공개 중인 투어의 수정본 (만든 강사 · admin)
+    continentCode: string; continentName: string; countryCode: string; countryName: string;
+    startDate: string; endDate: string; capacity: number; recruitedCount: number; fee: number | null;
+    images: string[]; included: string[]; excluded: string[];
+  };
+  instructor: { userId: string; nickname: string; name: string | null; profileImage: string | null; badgeLevel: string; licenses: string[]; completedCount: number };
+  links: { name: string; url: string }[];
+};
+
+// 8~10장 투어 관리 (내가 만든 투어)
+// reviewNote: 보완 요청 내용, editRequest: 공개 중인 투어의 수정본 상태 (18장)
+export type MyTour = TourCard & { fee: number | null; reviewNote: string | null; editRequest: { status: 'PENDING' | 'REJECTED'; reviewNote: string | null } | null };
+export type Recruitment = { recruitedCount: number; capacity: number; status: TourStatus };
 
 // ── 커뮤니티 (설계서 'AllBlue-커뮤니티-설계') ──
 export type CommunityBoard = 'ESSAY' | 'FREE' | 'PROMO';
@@ -409,6 +477,7 @@ export type CommunityReportItem = {
 };
 export type EssayInput = { board: 'ESSAY'; title: string; body: EssayBlock[] };
 export type FreeInput = { board: 'FREE'; title: string; content: string; imageUrl: string | null; tags: string[]; mentions: string[] };
+
 
 export const api = {
   // ── 커뮤니티 ──
@@ -456,6 +525,59 @@ export const api = {
   getCommunityReportCount() { return request<{ count: number }>('/community/reports/count'); },
   processCommunityReport(targetType: CommunityReportTarget, targetId: number, decision: 'dismiss' | 'take-down') {
     return request<{ success: boolean }>(`/community/reports/${targetType}/${targetId}/${decision}`, { method: 'POST' });
+  },
+  getMyTours(tab: 'ongoing' | 'past', sort: TourSort) { return request<{ tours: MyTour[] }>(`/tours/mine?tab=${tab}&sort=${sort}`); },
+  stepRecruited(id: number, delta: 1 | -1) {
+    return request<Recruitment & { previous: Recruitment }>(`/tours/${id}/recruited`, { method: 'PATCH', body: JSON.stringify({ delta }) });
+  },
+  setRecruitment(id: number, value: { recruitedCount: number; capacity: number; status?: TourStatus }) {
+    return request<Recruitment>(`/tours/${id}/recruitment`, { method: 'PATCH', body: JSON.stringify(value) });
+  },
+  setTourStatus(id: number, status: TourStatus) {
+    return request<{ status: TourStatus }>(`/tours/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
+  },
+  // 18장 수정 취소: 대기 중이거나 보완 요청을 받은 수정본을 버림
+  cancelTourEdit(id: number) { return request<{ tourId: number }>(`/tours/${id}/edit-request`, { method: 'DELETE' }); },
+  deleteTour(id: number) { return request<{ success: boolean }>(`/tours/${id}`, { method: 'DELETE' }); },
+  updateTour(id: number, input: TourRequestInput) {
+    return request<{ tourId: number; status: TourStatus }>(`/tours/${id}`, { method: 'PUT', body: JSON.stringify(input) });
+  },
+  getTour(id: number) { return request<TourDetail>(`/tours/${id}`); },
+  // 새 투어의 문의 링크를 미리 채울 내 프로필 링크
+  getProfileLinks() { return request<{ links: TourLink[] }>('/tours/profile-links'); },
+  reportTour(id: number, reason: string, memo: string) { return request<{ success: boolean }>(`/tours/${id}/report`, { method: 'POST', body: JSON.stringify({ reason, memo }) }); },
+  getTourReports() { return request<{ tours: TourReportGroup[] }>('/tours/reports'); },
+  dismissTourReports(tourId: number) { return request<{ tourId: number; status: TourStatus }>(`/tours/reports/${tourId}/dismiss`, { method: 'POST' }); },
+  takeDownTour(tourId: number, note: string) { return request<{ tourId: number; status: TourStatus }>(`/tours/reports/${tourId}/take-down`, { method: 'POST', body: JSON.stringify({ note }) }); },
+  getTourBanners() { return request<{ liveCount: number; max: number; banners: TourBannerItem[]; ended: TourBannerItem[] }>('/tours/banners'); },
+  getBannerTourOptions() { return request<{ tours: { id: number; title: string; startDate: string; endDate: string }[] }>('/tours/banners/tours'); },
+  saveTourBanner(id: number | null, input: TourBannerInput) {
+    return request<{ id: number }>(id ? `/tours/banners/${id}` : '/tours/banners', { method: id ? 'PUT' : 'POST', body: JSON.stringify(input) });
+  },
+  deleteTourBanner(id: number) { return request<{ success: boolean }>(`/tours/banners/${id}`, { method: 'DELETE' }); },
+  getTourRequests() { return request<{ requests: TourRequestItem[] }>('/tours/requests'); },
+  approveTourRequest(id: number) { return request<{ requestId: number; tourId: number; status: TourStatus }>(`/tours/requests/${id}/approve`, { method: 'POST' }); },
+  // 보완 요청: 보완할 점(note)과 함께
+  reviseTourRequest(id: number, note: string) { return request<{ requestId: number; tourId: number; status: TourStatus }>(`/tours/requests/${id}/revise`, { method: 'POST', body: JSON.stringify({ note }) }); },
+  searchTours(conditions: TourSearchConditions, sort: TourSort, offset = 0) {
+    const params = new URLSearchParams({ sort, offset: String(offset) });
+    for (const [key, value] of Object.entries(conditions)) if (value) params.set(key, value);
+    return request<TourSearchResult>(`/tours/search?${params}`);
+  },
+  getCodes(group: string) { return request<{ success: boolean; data?: CommonCode[]; message?: string }>(`/codes?group=${encodeURIComponent(group)}`); },
+  getTourHome() { return request<TourHome>('/tours/home'); },
+  async uploadTourImage(uri: string, mimeType = 'image/jpeg') {
+    const token = await AsyncStorage.getItem('authToken');
+    const result = await new File(uri).upload(`${BASE_URL}/tours/images`, {
+      uploadType: UploadType.MULTIPART,
+      fieldName: 'file',
+      mimeType,
+      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    });
+    return parseResponse<{ url: string }>(result.status, result.body, token);
+  },
+  createTourRequest(input: TourRequestInput) {
+    return request<{ tourId: number; status: TourStatus }>('/tours', { method: 'POST', body: JSON.stringify(input) });
   },
   getNotices(offset = 0) { return request<{ notices: Notice[]; hasMore: boolean; canManage: boolean }>(`/notices?offset=${offset}`); },
   getNotice(id: number) { return request<{ notice: Notice; canManage: boolean }>(`/notices/${id}`); },
@@ -555,7 +677,8 @@ export const api = {
   getNotifications(options: { all?: boolean; before?: number; after?: number; ceiling?: number } = {}) {
     const params = new URLSearchParams();
     for (const [key, value] of Object.entries(options)) if (value !== undefined) params.set(key, String(value));
-    params.set('withCommunity', 'true'); // 커뮤니티 알림도 받음 (옛 앱은 일정 초대만 받음)
+    params.set('withTours', 'true'); // 투어 알림도 받음 (옛 앱은 일정 초대만 받음)
+    params.set('withCommunity', 'true'); // 커뮤니티 알림도 받음
     return request<{ items: AppNotification[]; hasMore: boolean; unreadCount: number }>(`/notifications?${params}`);
   },
   readNotification(id: number) { return request(`/notifications/${id}/read`, { method: 'PATCH' }); },
@@ -693,7 +816,7 @@ export const api = {
     return parseResponse<{ success: boolean }>(result.status, result.body, token);
   },
 
-  updateProfile(data: Partial<Profile> & { organizationId?: number | null }) {
+  updateProfile(data: Partial<Profile> & { organizationId?: number | null; links?: TourLink[] }) {
     return request<{ success: boolean; profile: Profile }>('/profile', {
       method: 'PUT',
       body: JSON.stringify(data),
