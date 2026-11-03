@@ -4,7 +4,8 @@ import { useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/Colors';
 import BottomSheet from '@/components/BottomSheet';
-import FloatingActionButton from '@/components/FloatingActionButton';
+import { Ionicons } from '@expo/vector-icons';
+import { LiquidGlassView as GlassView } from '@/utils/liquidGlass';
 import { useAppRouter, usePaneDefault } from '@/features/split/SplitPane';
 import { DUO_SYSTEM_TABS } from '@/utils/foldable';
 import { getSideStripBottomGap, getTabBarContentClearance, hasSideTabStrip } from '@/utils/tabBarLayout';
@@ -100,8 +101,7 @@ export default function CommunityHomeScreen() {
 
       {home && (
         <View style={[styles.fab, { bottom: bottomSpace + 12 }]}>
-          <FloatingActionButton label="글쓰기" onPress={() => setWriting(true)}
-            fallbackStyle={styles.fabButton} fallbackPressedStyle={{ opacity: 0.85 }} fallbackTextStyle={styles.fabText} />
+          <WriteButton onPress={() => setWriting(true)} />
         </View>
       )}
       <BottomSheet
@@ -114,6 +114,24 @@ export default function CommunityHomeScreen() {
         onSelect={(target: WriteTarget) => setTimeout(() => write(target), 260)}
       />
     </View>
+  );
+}
+
+// 오른쪽 아래 동그란 글쓰기 버튼 (연필). 리퀴드 글래스가 되면 유리, 아니면 흰 원
+function WriteButton({ onPress }: { onPress: () => void }) {
+  if (GlassView) {
+    return (
+      <GlassView isInteractive glassEffectStyle="regular" colorScheme="dark" style={styles.fabGlass}>
+        <Pressable accessibilityRole="button" accessibilityLabel="글쓰기" onPress={onPress} style={styles.fabInner}>
+          <Ionicons name="pencil" size={24} color={Colors.brand.white} />
+        </Pressable>
+      </GlassView>
+    );
+  }
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel="글쓰기" onPress={onPress} style={({ pressed }) => [styles.fabButton, pressed && { opacity: 0.85 }]}>
+      <Ionicons name="pencil" size={24} color={Colors.brand.primary} />
+    </Pressable>
   );
 }
 
@@ -142,9 +160,10 @@ const styles = StyleSheet.create({
   todayCount: { fontFamily: 'SUIT-SemiBold', fontSize: 13, color: Colors.brand.accent },
   empty: { fontFamily: 'SUIT-Regular', fontSize: 14, color: 'rgba(255,255,255,0.4)', paddingVertical: 8 },
   fab: { position: 'absolute', right: 20 },
+  fabGlass: { width: 58, height: 58, borderRadius: 29, overflow: 'hidden' },
+  fabInner: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   fabButton: {
-    height: 50, borderRadius: 25, paddingHorizontal: 22, backgroundColor: Colors.brand.white, alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 12, shadowOffset: { width: 0, height: 4 },
+    width: 58, height: 58, borderRadius: 29, backgroundColor: Colors.brand.white, alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 6,
   },
-  fabText: { fontFamily: 'SUIT-Bold', fontSize: 16, color: Colors.brand.primary },
 });
