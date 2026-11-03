@@ -2,7 +2,7 @@ import React, { memo, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { TextInputInstance } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import Colors from '@/constants/Colors';
 import { useLeaveConfirm } from '@/hooks/useLeaveConfirm';
@@ -41,6 +41,26 @@ export default function EssayWriteScreen() {
     for (const b of next) if (b.type === 'p' && (!keys || keys.includes(b.key))) updated[b.key] = b.spans;
     return updated;
   });
+  // 한국어 키보드에서는 글자가 같으면 서식만 바뀐 건 입력칸이 무시함 (React Native가 한글 조합을 지키려고).
+  // 그래서 서식을 바꾸면 그 문단의 입력칸을 새로 만들고, 커서 · 선택 범위를 되살림
+  const [versions, setVersions] = useState<Record<string, number>>({});
+  const restore = useRef<{ key: string; start: number; end: number } | null>(null);
+  const restyle = (next: EditorBlock[], key: string, keep: { start: number; end: number } | null) => {
+    show(next, [key]);
+    restore.current = keep ? { key, ...keep } : null;
+    setVersions(prev => ({ ...prev, [key]: (prev[key] ?? 0) + 1 }));
+  };
+  useEffect(() => {
+    const target = restore.current;
+    if (!target) return;
+    restore.current = null;
+    const timer = setTimeout(() => {
+      const input = inputs.current.get(target.key) as (TextInputInstance & { setSelection?: (s: number, e: number) => void }) | undefined;
+      input?.focus();
+      input?.setSelection?.(target.start, target.end);
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [versions]);
   // 문단을 통째로 바꾸는 경우(불러오기 · 사진 넣기 · 빼기)는 새로 그림
   const setBlocks = (next: EditorBlock[]) => { setBlocksState(next); show(next); };
   const [focusKey, setFocusKey] = useState<string | null>(null);
@@ -76,11 +96,11 @@ export default function EssayWriteScreen() {
   const current: SpanStyle = focused ? (pending ?? styleAt(focused.spans, selection.start)) : {};
   const isOn = (flag: 'b' | 'i' | 'u') => focused && ranged ? allHave(focused.spans, selection.start, selection.end, flag) : !!current[flag];
 
-  const updateSpans = (key: string, update: (spans: EssaySpan[]) => EssaySpan[], redraw: boolean) => {
+  const updateSpans = (key: string, update: (spans: EssaySpan[]) => EssaySpan[], redraw: { start: number; end: number } | null | false) => {
     const next = blocksRef.current.map(b => (b.key === key && b.type === 'p' ? { ...b, spans: update(b.spans) } : b));
     blocksRef.current = next;
     setBlocksState(next);
-    if (redraw) show(next, [key]);
+    if (redraw !== false) restyle(next, key, redraw);
     setDirty(true);
   };
 
@@ -93,7 +113,8 @@ export default function EssayWriteScreen() {
     // 커서만 두고 바꾼 서식으로 친 글자는 조합이 끝난 뒤 다시 그려야 서식이 보임
     if (pending) styledWhileTyping.current.add(key);
     const composed = /[\s.,!?~…)\]'"]$/.test(inserted);
-    const redraw = composed && styledWhileTyping.current.delete(key);
+    const caret = start + inserted.length;
+    const redraw = composed && styledWhileTyping.current.delete(key) ? { start: caret, end: caret } : false;
     updateSpans(key, spans => spliceSpans(spans, start, end, inserted, style), redraw);
   };
 
@@ -107,7 +128,7 @@ export default function EssayWriteScreen() {
 
   const applyPatch = (patch: StylePatch) => {
     if (!focused) return;
-    if (ranged) updateSpans(focused.key, spans => applyStyle(spans, selection.start, selection.end, patch), true);
+    if (ranged) updateSpans(focused.key, spans => applyStyle(spans, selection.start, selection.end, patch), { ...selection });
     else setPending({ ...current, ...patch } as SpanStyle);
   };
   const toggle = (flag: 'b' | 'i' | 'u') => applyPatch({ [flag]: !isOn(flag) });
@@ -183,14 +204,14 @@ export default function EssayWriteScreen() {
                 </View>
               ) : (
                 <TextInput
-                  key={block.key}
+                  key={`${block.key}:${versions[block.key] ?? 0}`}
                   ref={ref => { if (ref) inputs.current.set(block.key, ref); else inputs.current.delete(block.key); }}
                   multiline
                   scrollEnabled={false}
                   onChangeText={text => onChangeText(block.key, text)}
                   onSelectionChange={e => onSelectionChange(block.key, e.nativeEvent.selection)}
                   onFocus={() => setFocusKey(block.key)}
-                  onBlur={() => { if (styledWhileTyping.current.delete(block.key)) show(blocksRef.current, [block.key]); }}
+                  onBlur={() => { if (styledWhileTyping.current.delete(block.key)) restyle(blocksRef.current, block.key, null); }}
                   placeholder={block.key === paragraphs[0]?.key ? '본문을 입력하세요' : paragraphs.length > 1 && block.key === paragraphs[paragraphs.length - 1].key ? '이어서 쓰기' : undefined}
                   placeholderTextColor="rgba(255,255,255,0.35)"
                   style={[styles.paragraph, spanStyle({})]}
@@ -200,7 +221,7 @@ export default function EssayWriteScreen() {
               ))}
             </View>
             {bodyError && <Text style={ui.error}>{bodyError}</Text>}
-            <Text style={styles.hint}>글자를 고르거나 커서를 둔 채 아래 버튼으로 서식을 입혀요. 사진은 커서 자리에 들어가요 ({imageCount}/{LIMITS.essayImageMax}장).</Text>
+            <Text style={styles.hint}>글자를 길게 눌러 고른 뒤 아래 버튼으로 굵게 · 밑줄 · 크기 · 색을 입혀요. 사진은 커서 자리에 들어가요 ({imageCount}/{LIMITS.essayImageMax}장).</Text>
           </ScrollView>
 
           {panel === 'size' && (
@@ -227,14 +248,14 @@ export default function EssayWriteScreen() {
             </View>
           )}
           <View style={[styles.toolbar, { paddingBottom: Math.max(insets.bottom, 8) }]}>
-            <ToolButton label="가" textStyle={{ fontFamily: 'SUIT-Bold' }} active={isOn('b')} onPress={() => toggle('b')} a11y="굵게" disabled={!focused} />
-            <ToolButton label="가" textStyle={{ fontStyle: 'italic' }} active={isOn('i')} onPress={() => toggle('i')} a11y="기울임" disabled={!focused} />
-            <ToolButton label="가" textStyle={{ textDecorationLine: 'underline' }} active={isOn('u')} onPress={() => toggle('u')} a11y="밑줄" disabled={!focused} />
-            <ToolButton label="크기" active={panel === 'size'} onPress={() => setPanel(panel === 'size' ? null : 'size')} a11y="글자 크기" disabled={!focused} />
-            <ToolButton label="색" active={panel === 'color'} onPress={() => setPanel(panel === 'color' ? null : 'color')} a11y="글자 색" disabled={!focused}
+            {/* 기울임은 앱 글꼴(SUIT)에 기울어진 글자가 없어 한글이 그대로 보여서 뺌 (예전 글의 기울임 표시는 그대로 둠) */}
+            <ToolButton icon="format-bold" active={isOn('b')} onPress={() => toggle('b')} a11y="굵게" disabled={!focused} />
+            <ToolButton icon="format-underline" active={isOn('u')} onPress={() => toggle('u')} a11y="밑줄" disabled={!focused} />
+            <ToolButton icon="format-size" active={panel === 'size'} onPress={() => setPanel(panel === 'size' ? null : 'size')} a11y="글자 크기" disabled={!focused} />
+            <ToolButton icon="format-color-text" active={panel === 'color'} onPress={() => setPanel(panel === 'color' ? null : 'color')} a11y="글자 색" disabled={!focused}
               dot={current.c ?? ESSAY_COLORS[0]} />
             <Pressable accessibilityRole="button" accessibilityLabel="사진 넣기" onPress={addImage} disabled={uploading} style={({ pressed }) => [styles.tool, pressed && { opacity: 0.6 }]}>
-              {uploading ? <ActivityIndicator color="white" /> : <Ionicons name="image-outline" size={20} color="white" />}
+              {uploading ? <ActivityIndicator color="white" /> : <Ionicons name="image-outline" size={22} color="white" />}
             </Pressable>
           </View>
         </>
@@ -249,13 +270,13 @@ const ShownSpans = memo(function ShownSpans({ spans }: { spans: EssaySpan[] }) {
   return <Spans spans={spans} />;
 });
 
-function ToolButton({ label, textStyle, active, onPress, a11y, disabled, dot }: {
-  label: string; textStyle?: object; active: boolean; onPress: () => void; a11y: string; disabled?: boolean; dot?: string;
+function ToolButton({ icon, active, onPress, a11y, disabled, dot }: {
+  icon: 'format-bold' | 'format-underline' | 'format-size' | 'format-color-text'; active: boolean; onPress: () => void; a11y: string; disabled?: boolean; dot?: string;
 }) {
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={a11y} accessibilityState={{ selected: active, disabled }} disabled={disabled} onPress={onPress}
       style={({ pressed }) => [styles.tool, active && styles.toolActive, (pressed || disabled) && { opacity: 0.45 }]}>
-      <Text style={[styles.toolText, textStyle, active && { color: '#032A36' }]}>{label}</Text>
+      <MaterialCommunityIcons name={icon} size={22} color={active ? '#032A36' : 'white'} />
       {dot && <View style={[styles.dot, { backgroundColor: dot }]} />}
     </Pressable>
   );
@@ -280,7 +301,6 @@ const styles = StyleSheet.create({
   },
   tool: { minWidth: 44, height: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
   toolActive: { backgroundColor: Colors.brand.accent },
-  toolText: { fontFamily: 'SUIT-Regular', fontSize: 16, color: 'white' },
   dot: { position: 'absolute', bottom: 4, width: 14, height: 3, borderRadius: 2 },
   panel: {
     flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 12, padding: 12,
