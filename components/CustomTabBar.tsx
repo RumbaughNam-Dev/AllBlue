@@ -6,10 +6,10 @@ import { BlurView } from 'expo-blur';
 import { LiquidGlassView } from '@/utils/liquidGlass';
 import type { BottomTabBarProps } from 'expo-router/tabs';
 import Colors from '@/constants/Colors';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
 type TabIconConfig = {
-  pack: 'ionicons' | 'image';
+  pack: 'ionicons' | 'material' | 'image';
   icon: string;
   iconOutline: string;
   image?: any;
@@ -21,7 +21,8 @@ const TAB_ICONS: Record<string, TabIconConfig> = {
   b: { pack: 'image', icon: '', iconOutline: '', image: require('@/assets/images/icon-snorkel-tab.png') },
   c: { pack: 'ionicons', icon: 'people', iconOutline: 'people-outline' },
   community: { pack: 'ionicons', icon: 'chatbubbles', iconOutline: 'chatbubbles-outline' },
-  tour: { pack: 'ionicons', icon: 'airplane', iconOutline: 'airplane-outline' },
+  // 캐리어 (Ionicons에 없어서 MaterialCommunityIcons)
+  tour: { pack: 'material', icon: 'bag-suitcase', iconOutline: 'bag-suitcase-outline' },
 };
 
 function TabIcon({ focused, tab }: { focused: boolean; tab: TabIconConfig }) {
@@ -52,6 +53,12 @@ function TabIcon({ focused, tab }: { focused: boolean; tab: TabIconConfig }) {
           source={tab.image}
           style={{ width: 24, height: 24, tintColor: Colors.brand.white }}
           resizeMode="contain"
+        />
+      ) : pack === 'material' ? (
+        <MaterialCommunityIcons
+          name={(focused ? icon : iconOutline) as any}
+          size={23}
+          color={Colors.brand.white}
         />
       ) : (
         <Ionicons

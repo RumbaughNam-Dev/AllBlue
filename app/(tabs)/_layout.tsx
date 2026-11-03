@@ -124,7 +124,7 @@ function DuoTabsBody({ showTour, showCommunity }: { showTour: boolean; showCommu
         <NativeTabs.Trigger.Label>커뮤니티</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="tour" hidden={!showTour}>
-        <NativeTabs.Trigger.Icon sf="airplane" />
+        <NativeTabs.Trigger.Icon sf="suitcase.rolling" />
         <NativeTabs.Trigger.Label>투어</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
       {createDate !== null && (
