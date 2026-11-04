@@ -112,12 +112,14 @@ export function observeTourPushes(onOpen: (code: string, tourId: number, notific
     const request = response.notification.request;
     const data = request.content?.data;
     const tourId = Number(data?.tourId);
-    if (data?.type !== 'tour' || typeof data.notification !== 'string' || !Number.isSafeInteger(tourId) || tourId < 1) return;
+    // 투어 역제안(TOUR_WISH)은 가리키는 투어가 없음 (0으로 넘겨 읽음 처리만)
+    const wish = data?.notification === 'TOUR_WISH';
+    if (data?.type !== 'tour' || typeof data.notification !== 'string' || (!wish && (!Number.isSafeInteger(tourId) || tourId < 1))) return;
     if (handledTourResponses.has(request.identifier)) return;
     handledTourResponses.add(request.identifier);
     if (handledTourResponses.size > 100) handledTourResponses.delete(handledTourResponses.values().next().value!);
     const notificationId = Number(data.notificationId);
-    onOpen(data.notification, tourId, Number.isSafeInteger(notificationId) && notificationId > 0 ? notificationId : undefined);
+    onOpen(data.notification, wish ? 0 : tourId, Number.isSafeInteger(notificationId) && notificationId > 0 ? notificationId : undefined);
   };
   const response = Notifications.addNotificationResponseReceivedListener(handle);
   Notifications.getLastNotificationResponseAsync().then(handle).catch(() => {});

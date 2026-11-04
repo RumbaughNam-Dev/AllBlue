@@ -86,10 +86,14 @@ function screen(state) {
 }
 const named = (all, name) => all.filter(n => n.type?.name === name);
 
-test('tour home shows create and manage only to instructors, search to everyone', () => {
+test('tour home: + and gear only for instructors, wish and search for everyone, in one row', () => {
   const home = { canCreate: true, banners: [], recent: [card(1)], popular: [] };
-  assert.deepEqual(named(screen({ home }), 'ActionChip').map(n => n.props.label), ['투어 만들기', '투어 관리', '투어 검색']);
-  assert.deepEqual(named(screen({ home: { ...home, canCreate: false } }), 'ActionChip').map(n => n.props.label), ['투어 검색']);
+  const all = screen({ home });
+  assert.deepEqual(named(all, 'IconChip').map(n => n.props.label), ['투어 만들기', '투어 관리']);
+  assert.deepEqual(named(all, 'ActionChip').map(n => n.props.label), ['투어 가고 싶어요', '투어 검색']);
+  const viewer = screen({ home: { ...home, canCreate: false } });
+  assert.deepEqual(named(viewer, 'IconChip'), []);
+  assert.deepEqual(named(viewer, 'ActionChip').map(n => n.props.label), ['투어 가고 싶어요', '투어 검색']);
 });
 
 test('tour home sections appear only with content; 16:9 banner capped at a third of the screen', () => {

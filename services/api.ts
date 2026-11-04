@@ -576,6 +576,11 @@ export const api = {
     });
     return parseResponse<{ url: string }>(result.status, result.body, token);
   },
+  // 투어 역제안 ('투어 가고 싶어요'): 하루에 한 번
+  getTourWishStatus() { return request<{ sentToday: boolean }>('/tours/wishes/today'); },
+  createTourWish(input: { continentCode: string; countryCode: string; startDate: string; endDate: string }) {
+    return request<{ success: boolean; recipientCount: number }>('/tours/wishes', { method: 'POST', body: JSON.stringify(input) });
+  },
   createTourRequest(input: TourRequestInput) {
     return request<{ tourId: number; status: TourStatus }>('/tours', { method: 'POST', body: JSON.stringify(input) });
   },
@@ -1073,7 +1078,8 @@ export const api = {
 
   // 사용자 설정
   getUserSettings() {
-    return request<{ settings: { schedulePublic: string } }>('/user/settings');
+    // tourWishNotify: 투어 관리의 '투어 역제안 알림 허용' (Y/N, 없으면 꺼짐)
+    return request<{ settings: { schedulePublic: string; tourWishNotify?: string } }>('/user/settings');
   },
 
   updateUserSetting(key: string, value: string) {

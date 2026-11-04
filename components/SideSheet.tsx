@@ -28,7 +28,7 @@ const MENU_ITEMS = [
   { key: 'notices', label: '공지사항' },
   { key: 'inquiry', label: '문의하기' },
   { key: 'blocked', label: '차단 사용자 관리' },
-  { key: 'schedule-settings', label: '일정 설정' },
+  { key: 'schedule-settings', label: '설정' },
 ];
 
 export default function SideSheet({ visible, onClose }: Props) {

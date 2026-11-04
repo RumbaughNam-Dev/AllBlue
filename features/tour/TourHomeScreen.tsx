@@ -48,12 +48,14 @@ export default function TourHomeScreen() {
         <View style={styles.actionGroup}>
           {home?.canCreate && (
             <>
-              <ActionChip icon="add" label="투어 만들기" onPress={() => router.push('/tour-create')} />
-              <ActionChip label="투어 관리" onPress={() => router.push('/tour-manage')} />
+              <IconChip icon="add" label="투어 만들기" onPress={() => router.push('/tour-create')} />
+              <IconChip icon="settings-sharp" label="투어 관리" onPress={() => router.push('/tour-manage')} />
             </>
           )}
+          {/* 누구나: 가고 싶은 투어를 강사님들께 거꾸로 제안 (투어 역제안) */}
+          <ActionChip icon="hand-left" label="투어 가고 싶어요" onPress={() => router.push('/tour-wish')} />
+          <ActionChip icon="search" label="투어 검색" onPress={() => setSearching(true)} />
         </View>
-        <ActionChip icon="search" label="투어 검색" onPress={() => setSearching(true)} />
       </View>
 
       {loading && !home ? (
@@ -112,7 +114,18 @@ export default function TourHomeScreen() {
   );
 }
 
-function ActionChip({ icon, label, onPress = showTourComingSoon }: { icon?: 'add' | 'search'; label: string; onPress?: () => void }) {
+// 글자 없이 아이콘만 있는 동그란 칩 (읽어주기용 이름은 label)
+function IconChip({ icon, label, onPress }: { icon: 'add' | 'settings-sharp'; label: string; onPress: () => void }) {
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} hitSlop={4} style={({ pressed }) => pressed && { opacity: 0.6 }}>
+      <GlassChip fallbackStyle={[styles.chipFallback, styles.iconChip]} style={styles.iconChip}>
+        <Ionicons name={icon} size={icon === 'add' ? 18 : 16} color={Colors.brand.white} />
+      </GlassChip>
+    </Pressable>
+  );
+}
+
+function ActionChip({ icon, label, onPress = showTourComingSoon }: { icon?: 'search' | 'hand-left'; label: string; onPress?: () => void }) {
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={({ pressed }) => pressed && { opacity: 0.6 }}>
       <GlassChip fallbackStyle={styles.chipFallback}>
@@ -144,7 +157,6 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: SIDE,
     paddingTop: 4,
     paddingBottom: 12,
@@ -158,6 +170,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 17,
     backgroundColor: 'rgba(255,255,255,0.12)',
+  },
+  // 글자 칩과 같은 높이의 동그라미
+  iconChip: {
+    width: 34,
+    height: 34,
+    paddingVertical: 0,
+    paddingHorizontal: 0,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   chipContent: {
     flexDirection: 'row',
