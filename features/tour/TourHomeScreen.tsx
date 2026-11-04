@@ -54,8 +54,8 @@ export default function TourHomeScreen() {
           )}
           {/* 누구나: 가고 싶은 투어를 강사에게 거꾸로 제안 (역 제안, 상세 명세 전이라 아직 준비 중 안내) */}
           <ActionChip icon="hand-left" label="투어 가고 싶어요" />
+          <ActionChip icon="search" label="투어 검색" onPress={() => setSearching(true)} />
         </View>
-        <ActionChip icon="search" label="투어 검색" onPress={() => setSearching(true)} />
       </View>
 
       {loading && !home ? (
@@ -157,7 +157,6 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: SIDE,
     paddingTop: 4,
     paddingBottom: 12,
