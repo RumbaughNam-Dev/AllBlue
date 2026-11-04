@@ -37,9 +37,16 @@ export default function GreetingsScreen() {
   const refresh = () => setVersion(v => v + 1);
   const data = day ? cache.current.get(day) ?? null : null;
 
+  // 같은 날을 미리 받기 · 새로 받기가 동시에 할 때, 늦게 도착한 옛 응답이 새 응답을 덮지 않도록 요청 순서를 날짜별로 기억
+  const fetchSeq = useRef(0);
+  const cachedSeq = useRef(new Map<string, number>());
   const fetchDay = useCallback(async (target: string | null) => {
+    const seq = ++fetchSeq.current;
     const result = await api.getGreetings(target ?? undefined);
-    cache.current.set(result.date, { count: result.count, greetedToday: result.greetedToday, items: result.items });
+    if ((cachedSeq.current.get(result.date) ?? 0) < seq) {
+      cachedSeq.current.set(result.date, seq);
+      cache.current.set(result.date, { count: result.count, greetedToday: result.greetedToday, items: result.items });
+    }
     return result;
   }, []);
 
@@ -47,7 +54,7 @@ export default function GreetingsScreen() {
     const id = ++request.current;
     try {
       const result = await fetchDay(target);
-      if (id !== request.current) return;
+      if (id !== request.current) { refresh(); return; } // 다른 날로 넘어갔어도 받아 둔 목록은 화면에 반영
       setDay(result.date); setToday(result.today); setError(false);
       refresh();
     } catch {
@@ -87,7 +94,7 @@ export default function GreetingsScreen() {
     type: 'GREETING', id: g.id, author: g.author, mine: g.mine, canDelete: g.canDelete,
     onDeleted: () => void load(),
     // 차단하면 다른 날 목록에서도 빠져야 하므로 받아 둔 날을 비움
-    onBlocked: () => { cache.current.clear(); void load(); },
+    onBlocked: () => { cache.current.clear(); cachedSeq.current.clear(); void load(); },
   });
 
   const isToday = !!day && day === today;
@@ -166,6 +173,8 @@ export default function GreetingsScreen() {
               <View style={{ width }}>
                 {data ? (
                   <FlatList
+                    // 날마다 새 목록 (전날 목록에서 내려 둔 스크롤 위치가 남아 짧은 목록이 빈 화면처럼 보이지 않게)
+                    key={day}
                     data={data.items}
                     keyExtractor={g => String(g.id)}
                     contentContainerStyle={[styles.list, !data.items.length && { flexGrow: 1 }]}
