@@ -31,7 +31,7 @@ const HEADCOUNT_MIN = 1, HEADCOUNT_MAX = 20;
 const EMPTY: Draft = { continent: '', country: '', from: '', to: '', headcount: HEADCOUNT_MIN, tourStyle: null };
 const dot = (day: string) => day.replace(/-/g, '.');
 
-// 투어 역제안 ('투어 가고 싶어요'): 누구나 기간 · 지역 · 참여 인원 · 투어 형태만 정해 강사님들께 알림. 하루에 한 번
+// 투어 역제안 ('투어 만들어 주세요'): 누구나 기간 · 지역 · 참여 인원 · 투어 형태만 정해 강사님들께 알림. 하루에 한 번
 export default function TourWishScreen() {
   const router = useAppRouter();
   const insets = useSafeAreaInsets();
@@ -90,7 +90,7 @@ export default function TourWishScreen() {
             </GlassCircle>
           </Pressable>
         </StripBackSlot>
-        <Text style={styles.headerTitle}>투어 가고 싶어요</Text>
+        <Text style={styles.headerTitle}>투어 만들어 주세요</Text>
         <View style={{ width: 36 }} />
       </View>
 
@@ -195,14 +195,14 @@ export default function TourWishScreen() {
           {sentToday == null ? <ActivityIndicator color={Colors.brand.primary} /> : (
             <View style={styles.submitContent}>
               <Ionicons name="hand-left" size={18} color={Colors.brand.primary} />
-              <Text style={styles.submitText}>투어 가고 싶어요!</Text>
+              <Text style={styles.submitText}>투어 만들어 주세요!</Text>
             </View>
           )}
         </Pressable>
       </View>
 
       {/* 보내기 전 확인: 취소는 아무것도 안 함, 확인은 보내고 투어 홈으로 */}
-      <Popup visible={confirming} title="투어 가고 싶어요!" onClose={() => { if (!sending) setConfirming(false); }}>
+      <Popup visible={confirming} title="투어 만들어 주세요!" onClose={() => { if (!sending) setConfirming(false); }}>
         <View style={styles.summary}>
           <SummaryRow icon="calendar-outline" text={period} />
           <SummaryRow icon="location-outline" text={place} />

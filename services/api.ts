@@ -591,7 +591,7 @@ export const api = {
     });
     return parseResponse<{ url: string }>(result.status, result.body, token);
   },
-  // 투어 역제안 ('투어 가고 싶어요'): 하루에 한 번
+  // 투어 역제안 ('투어 만들어 주세요'): 하루에 한 번
   getTourWishes(query: TourWishQuery) {
     const params = Object.entries(query).filter(([, v]) => v).map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join('&');
     return request<{ seenAt: string | null; loadedAt: string; from: string; to: string; wishes: TourWish[] }>(`/tours/wishes?${params}`);

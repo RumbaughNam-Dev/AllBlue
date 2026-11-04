@@ -89,15 +89,15 @@ function screen(state) {
 }
 const named = (all, name) => all.filter(n => n.type?.name === name);
 
-test('tour home: + and gear and received wishes only for instructors, wish and search for everyone, in one row', () => {
+test('tour home: everyone gets the white wish button on the left and search on the right; instructors also get received wishes, create and manage icons', () => {
   const home = { canCreate: true, wishNew: 3, banners: [], recent: [card(1)], popular: [] };
   const all = screen({ home });
-  assert.deepEqual(named(all, 'IconChip').map(n => n.props.label), ['투어 만들기', '투어 관리']);
-  assert.deepEqual(named(all, 'ActionChip').map(n => n.props.label), ['투어 가고 싶다고 제안이 왔어요!', '투어 가고 싶은 사람 여기 주목!', '투어 검색']);
-  assert.equal(named(all, 'ActionChip')[0].props.count, 3);
+  assert.deepEqual(named(all, 'ActionChip').map(n => [n.props.label, n.props.prominent]), [['투어 만들어 주세요', true]]);
+  assert.deepEqual(named(all, 'IconChip').map(n => n.props.label), ['받은 제안', '투어 만들기', '투어 관리', '투어 검색']);
+  assert.equal(named(all, 'IconChip')[0].props.count, 3);
   const viewer = screen({ home: { ...home, canCreate: false } });
-  assert.deepEqual(named(viewer, 'IconChip'), []);
-  assert.deepEqual(named(viewer, 'ActionChip').map(n => n.props.label), ['투어 가고 싶은 사람 여기 주목!', '투어 검색']);
+  assert.deepEqual(named(viewer, 'ActionChip').map(n => n.props.label), ['투어 만들어 주세요']);
+  assert.deepEqual(named(viewer, 'IconChip').map(n => n.props.label), ['투어 검색']);
 });
 
 test('tour home sections appear only with content; 16:9 banner capped at a third of the screen', () => {
