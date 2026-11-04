@@ -11,6 +11,8 @@ export const TOUR_STATUS: Record<TourStatus, { label: string; color: string; tex
   CANCELED: { label: '모집 취소', color: '#FF6B4A', text: '#3D0F04' },
   COMPLETED: { label: '투어 완료', color: '#2DC48D', text: '#03301F' },
   UNPROCESSED: { label: '미처리', color: '#9AA5B1', text: '#1B232B' },
+  WISH_WAITING: { label: '응답 대기', color: '#5EC8E5', text: '#032A36' },
+  WISH_DECLINED: { label: '제안 거부', color: '#7A8794', text: '#13191F' },
 };
 
 // '2026-11-14', '2026-11-17' → '11.14 - 11.17'; a one-day tour shows one date.

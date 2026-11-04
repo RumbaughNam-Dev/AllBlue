@@ -44,3 +44,18 @@ test('editing a saved tour: form round trip, dirty check and recruited minimum',
   assert.equal(errors.capacity, '이미 모집된 5명보다 적게 못 줄여요');
   assert.equal(form.tourFormErrors({ ...initial, capacity: '5' }, '2026-11-02', 5).capacity, undefined);
 });
+
+test('tours made from a wish explain where the diver\'s answer stands', () => {
+  const deadline = new Date(2026, 10, 5, 1, 0).toISOString(); // 11월 5일 01:00 (기기 시간대)
+  assert.equal(manage.wishNotice('PENDING', { status: 'WAITING', deadline }), '역제안으로 만든 투어예요. 제안자가 11월 5일 01:00까지 응하면 정식 투어가 돼요.');
+  assert.equal(manage.wishNotice('WISH_WAITING', { status: 'WAITING', deadline }), "승인됐어요. 제안자가 11월 5일 01:00까지 응하면 '준비중'으로 공개돼요.");
+  assert.equal(manage.wishNotice('PENDING', { status: 'ACCEPTED', deadline }), '제안자가 응했어요. 관리자 승인이 끝나면 공개돼요.');
+  assert.equal(manage.wishNotice('WISH_DECLINED', { status: 'DECLINED', deadline }), '제안자가 응하지 않아 투어가 열리지 않았어요.');
+  assert.equal(manage.wishNotice('PREPARING', { status: 'ACCEPTED', deadline }), null);
+  assert.equal(manage.wishNotice('PENDING', null), null);
+  // 응답 대기 · 제안 거부: 수정 · 처리 · 인원 조정 없이 삭제만
+  for (const status of ['WISH_WAITING', 'WISH_DECLINED']) {
+    const a = manage.manageActions(status);
+    assert.deepEqual([a.adjust, a.process, a.edit, a.remove], [false, false, false, true]);
+  }
+});

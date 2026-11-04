@@ -22,6 +22,27 @@ export function processDaysLeft(status: TourStatus, endDate: string, today: stri
 }
 
 // 카드 안내 문구 (8 · 10장). 보완 요청이면 관리자가 적은 내용을 함께 보여줌
+// 역제안 응답 기한 'M월 D일 HH:mm' (기기 시간대)
+export function wishDeadlineText(iso: string | null | undefined) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return `${d.getMonth() + 1}월 ${d.getDate()}일 ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+// 역제안으로 만든 투어: 제안자 응답 안내 (다른 안내보다 먼저)
+export function wishNotice(status: TourStatus, offer?: { status: 'WAITING' | 'ACCEPTED' | 'DECLINED'; deadline: string | null } | null) {
+  if (!offer) return null;
+  if (offer.status === 'WAITING') {
+    const by = wishDeadlineText(offer.deadline);
+    return status === 'WISH_WAITING'
+      ? `승인됐어요. 제안자가 ${by}까지 응하면 '준비중'으로 공개돼요.`
+      : `역제안으로 만든 투어예요. 제안자가 ${by}까지 응하면 정식 투어가 돼요.`;
+  }
+  if (offer.status === 'ACCEPTED' && status === 'PENDING') return '제안자가 응했어요. 관리자 승인이 끝나면 공개돼요.';
+  if (offer.status === 'DECLINED') return '제안자가 응하지 않아 투어가 열리지 않았어요.';
+  return null;
+}
+
 export function manageNotice(status: TourStatus, endDate: string, today: string, reviewNote?: string | null) {
   if (status === 'PENDING') return '관리자 승인을 기다리고 있어요. 승인되면 알림으로 알려드려요.';
   if (status === 'REJECTED') return reviewNote ? `관리자가 보완을 요청했어요\n“${reviewNote}”` : '관리자가 보완을 요청했어요. 보완해서 다시 요청해 주세요.';
@@ -36,6 +57,7 @@ export function manageActions(status: TourStatus) {
   return {
     adjust: isPublic,
     process: isPublic,
+    // 응답 대기(역제안)는 제안자가 응해 공개된 뒤에 수정
     edit: status === 'PENDING' || status === 'REJECTED' || isPublic,
     editLabel: status === 'REJECTED' ? '보완 후 재요청' : '수정',
     remove: true,

@@ -36,8 +36,9 @@ export default function TourCreateScreen() {
   const { width } = useWindowDimensions();
   // 10장 '수정' · '수정 후 재요청'은 같은 화면 (승인 대기 · 불허 투어)
   // 역제안 목록의 '이 제안으로 투어 만들기': 지역 · 기간 · 모집 인원을 미리 채움
-  const { editId, wishContinent, wishCountry, wishStart, wishEnd, wishCapacity } = useLocalSearchParams<{
-    editId?: string; wishContinent?: string; wishCountry?: string; wishStart?: string; wishEnd?: string; wishCapacity?: string;
+  // wishId가 있으면 등록 요청이 그 역제안과 묶이고 제안자에게 바로 알림
+  const { editId, wishId, wishContinent, wishCountry, wishStart, wishEnd, wishCapacity } = useLocalSearchParams<{
+    editId?: string; wishId?: string; wishContinent?: string; wishCountry?: string; wishStart?: string; wishEnd?: string; wishCapacity?: string;
   }>();
   const editing = !!editId;
   const fromWish = useMemo<TourForm>(() => (editId || !wishCountry ? EMPTY_TOUR_FORM : {
@@ -141,13 +142,15 @@ export default function TourCreateScreen() {
       // 이미 올린 사진은 그대로, 새로 고른 사진만 올림
       for (const image of form.images) urls.push(image.remote ? image.uri : (await api.uploadTourImage(image.uri, image.mimeType)).url);
       if (editing) await api.updateTour(Number(editId), toTourRequest(form, urls));
-      else await api.createTourRequest(toTourRequest(form, urls));
+      else await api.createTourRequest(toTourRequest(form, urls), wishId ? Number(wishId) : undefined);
       disablePrevention();
       const [title, message] = editState?.isPublic
         ? ['수정 요청을 보냈어요', '관리자가 확인하면 반영돼요. 그 전까지는 이전 내용이 보여요.']
         : editing && !resubmit
           ? ['수정했어요', '승인을 기다리는 요청에 바로 반영했어요.']
-          : ['등록 요청을 보냈어요', '관리자가 확인한 뒤 공개돼요. 승인되면 알림으로 알려드려요.'];
+          : wishId
+            ? ['등록 요청을 보냈어요', '제안자에게 바로 알렸어요. 제안자가 응하고 관리자가 승인하면 정식 투어로 공개돼요.']
+            : ['등록 요청을 보냈어요', '관리자가 확인한 뒤 공개돼요. 승인되면 알림으로 알려드려요.'];
       Alert.alert(title, message, [
         { text: '확인', onPress: () => router.back() },
       ]);

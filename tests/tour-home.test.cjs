@@ -22,7 +22,9 @@ test('tour period, recruitment and status labels', () => {
   assert.equal(ui.formatStay('2026-12-31', '2027-01-01'), '1박 2일');
   assert.equal(ui.formatFee(1500000), '1,500,000원');
   assert.equal(ui.formatFee(0), '0원');
-  assert.deepEqual(Object.keys(ui.TOUR_STATUS), ['PENDING', 'REJECTED', 'PREPARING', 'RECRUITING', 'CLOSED', 'CANCELED', 'COMPLETED', 'UNPROCESSED']);
+  assert.deepEqual(Object.keys(ui.TOUR_STATUS), ['PENDING', 'REJECTED', 'PREPARING', 'RECRUITING', 'CLOSED', 'CANCELED', 'COMPLETED', 'UNPROCESSED', 'WISH_WAITING', 'WISH_DECLINED']);
+  assert.equal(ui.TOUR_STATUS.WISH_WAITING.label, '응답 대기');
+  assert.equal(ui.TOUR_STATUS.WISH_DECLINED.label, '제안 거부');
   assert.equal(ui.TOUR_STATUS.CLOSED.label, '모집 마감');
   ui.showTourComingSoon();
   assert.equal(alerts[0][0], '준비 중이에요');

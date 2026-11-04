@@ -17,6 +17,7 @@ import { formatFee, formatStay, formatTourPeriod, shareContent } from './ui';
 import { changedLabels, withEdit } from './edit';
 import { regionName, useTourRegions } from './useTourRegions';
 import { confirmApprove, sendRevision } from './requests';
+import { wishDeadlineText, wishNotice } from './manage';
 import ReviewNotePopup from './ReviewNotePopup';
 import TourReportPopup, { ReportReason } from './TourReportPopup';
 import { Ionicons } from '@expo/vector-icons';
@@ -110,6 +111,30 @@ export default function TourDetailScreen() {
     if (await sendRevision(pending.id, note)) { setRevising(false); router.back(); }
   };
 
+  // 역제안으로 만든 투어에 제안자가 응함: 확인 → 응하기 → 다시 불러옴
+  const [accepting, setAccepting] = useState(false);
+  const acceptWish = () => {
+    if (!detail || accepting) return;
+    Alert.alert('이 투어에 응할까요?', '응하면 강사님께 알려드려요. 같은 제안으로 받은 다른 투어는 거부돼요.', [
+      { text: '취소', style: 'cancel' },
+      {
+        text: '응하기', onPress: async () => {
+          setAccepting(true);
+          try {
+            const result = await api.acceptTourWish(detail.tour.id);
+            Alert.alert('투어에 응했어요', result.status === 'PREPARING' ? '정식 투어로 공개됐어요. 자세한 일정은 문의하기로 강사님과 이야기해 보세요.' : '관리자 승인이 끝나면 정식 투어로 공개돼요.');
+            void load();
+          } catch (e: any) {
+            if (!e?._handled) Alert.alert('알림', e?.message ?? '응하지 못했어요. 잠시 후 다시 시도해 주세요.');
+            void load();
+          } finally {
+            setAccepting(false);
+          }
+        },
+      },
+    ]);
+  };
+
   const header = (
     <View style={styles.header}>
       {isPaneRoot ? <View style={styles.backButton} /> : (
@@ -168,7 +193,8 @@ export default function TourDetailScreen() {
             <Text style={styles.previewText}>강사가 보낸 수정본이에요. 승인 전까지는 이전 내용이 공개돼요.{'\n'}바뀐 항목: {changedLabels(reviewingEdit.changedFields)}</Text>
           </View>
         )}
-        {!tour.isPublic && (
+        {tour.wishOffer && <WishOfferBox offer={tour.wishOffer} status={tour.status} />}
+        {!tour.isPublic && !tour.wishOffer?.isWisher && (
           <View style={styles.preview}>
             <Text style={styles.previewText}>{tour.isMine ? '공개 전 미리보기예요. 다른 사람에게는 아직 보이지 않아요.' : '공개 전 투어예요 (관리자 확인용).'}</Text>
           </View>
@@ -224,15 +250,31 @@ export default function TourDetailScreen() {
       </View>
       ) : (
       <View style={[styles.bottomArea, { paddingBottom: insets.bottom + 12 }]}>
+        {/* 역제안 투어: 제안자에게 '이 투어에 응하기' (기한 전까지) */}
+        {tour.wishOffer?.canAccept && (
+          <Pressable
+            accessibilityRole="button"
+            disabled={accepting}
+            onPress={acceptWish}
+            style={({ pressed }) => [styles.accept, pressed && { opacity: 0.85 }, accepting && { opacity: 0.5 }]}
+          >
+            {accepting ? <ActivityIndicator color={Colors.brand.primary} /> : (
+              <>
+                <Ionicons name="hand-right" size={18} color={Colors.brand.primary} />
+                <Text style={styles.acceptText}>이 투어에 응하기</Text>
+              </>
+            )}
+          </Pressable>
+        )}
         <Pressable
           accessibilityRole="button"
           accessibilityState={{ disabled: !links.length }}
           disabled={!links.length}
           onPress={inquire}
-          style={({ pressed }) => [styles.inquire, glassClear, pressed && { opacity: 0.85 }, !links.length && { opacity: 0.45 }]}
+          style={({ pressed }) => [tour.wishOffer?.canAccept ? styles.inquireSub : styles.inquire, !tour.wishOffer?.canAccept && glassClear, pressed && { opacity: 0.85 }, !links.length && { opacity: 0.45 }]}
         >
-          <GlassBackground radius={14} interactive tintColor={PROMINENT_TINT} />
-          <Text style={styles.inquireText}>문의하기</Text>
+          {!tour.wishOffer?.canAccept && <GlassBackground radius={14} interactive tintColor={PROMINENT_TINT} />}
+          <Text style={tour.wishOffer?.canAccept ? styles.inquireSubText : styles.inquireText}>문의하기</Text>
         </Pressable>
         {!links.length && <Text style={styles.noLink}>강사가 아직 문의 링크를 등록하지 않았어요</Text>}
       </View>
@@ -312,6 +354,30 @@ function FittedImage({ uri }: { uri: string }) {
   );
 }
 
+// 역제안 투어 안내: 제안자에게는 응답 기한 · 상태, 강사 · admin에게는 제안자 응답 상태
+function WishOfferBox({ offer, status }: { offer: NonNullable<TourDetail['tour']['wishOffer']>; status: TourDetail['tour']['status'] }) {
+  let title: string;
+  let body: React.ReactNode;
+  if (offer.isWisher) {
+    title = '회원님의 투어 제안으로 만든 투어예요';
+    if (offer.status === 'ACCEPTED') body = status === 'PENDING' ? '이 투어에 응했어요. 관리자 승인이 끝나면 정식 투어로 공개돼요.' : '이 투어에 응했어요.';
+    else if (offer.canAccept) body = <><Text style={styles.wishBoxPoint}>{wishDeadlineText(offer.deadline)}</Text>까지 응하지 않으면 거부한 것으로 처리돼요.</>;
+    else body = '응답 기한이 지났어요.';
+  } else {
+    title = '역제안으로 만든 투어';
+    body = wishNotice(status, offer) ?? (offer.status === 'ACCEPTED' ? '제안자가 응했어요.' : '');
+  }
+  return (
+    <View style={styles.wishBox}>
+      <Ionicons name="mail-open-outline" size={20} color="#00E5FF" />
+      <View style={styles.wishBoxBody}>
+        <Text style={styles.wishBoxTitle}>{title}</Text>
+        {!!body && <Text style={styles.wishBoxText}>{body}</Text>}
+      </View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.brand.primary },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', height: 52, paddingHorizontal: SIDE },
@@ -365,5 +431,23 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.brand.white,
   },
   inquireText: { fontFamily: 'SUIT-Bold', fontSize: 16, color: Colors.brand.primary },
+  inquireSub: {
+    height: 46, borderRadius: 14, alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)',
+  },
+  inquireSubText: { fontFamily: 'SUIT-SemiBold', fontSize: 15, color: Colors.brand.white },
+  accept: {
+    height: 54, borderRadius: 14, flexDirection: 'row', gap: 8, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#00E5FF',
+  },
+  acceptText: { fontFamily: 'SUIT-Bold', fontSize: 16, color: Colors.brand.primary },
+  wishBox: {
+    flexDirection: 'row', gap: 10, padding: 14, borderRadius: 12, marginBottom: 12,
+    backgroundColor: 'rgba(0,229,255,0.1)', borderWidth: 1, borderColor: 'rgba(0,229,255,0.45)',
+  },
+  wishBoxBody: { flex: 1, gap: 4 },
+  wishBoxTitle: { fontFamily: 'SUIT-Bold', fontSize: 14, color: Colors.brand.white },
+  wishBoxText: { fontFamily: 'SUIT-Regular', fontSize: 13, lineHeight: 19, color: 'rgba(255,255,255,0.8)' },
+  wishBoxPoint: { fontFamily: 'SUIT-Bold', color: '#00E5FF' },
   noLink: { fontFamily: 'SUIT-Regular', fontSize: 12, color: 'rgba(255,255,255,0.45)', textAlign: 'center' },
 });
