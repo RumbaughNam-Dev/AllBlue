@@ -24,7 +24,7 @@ function carousel(count = 2) {
       Animated: { View: 'AnimatedView', Value, timing: (_, options) => ({ start: fn => { animations.push(options); animationDone = fn; }, stop() {} }) },
       PanResponder: { create: value => { handlers = value; return { panHandlers: value }; } },
     },
-    'react-native-safe-area-context': { useSafeAreaInsets: () => ({ top: 24, bottom: 34 }) },
+    'react-native-safe-area-context': { useSafeAreaInsets: () => ({ top: 24, bottom: 34, left: 0, right: 0 }) },
     '@/components/PopupBackdrop': 'Backdrop', './ui': { styles: {} },
   }, {
     setTimeout: (fn, delay) => { timers.set(++timerId, { fn, delay }); return timerId; }, clearTimeout: id => timers.delete(id),
@@ -91,7 +91,7 @@ function screenFixture(file, admin, params = {}, createdAt = '2026-10-09T01:00:0
     react: { ...h.react, createElement: (type, props, ...children) => ({ type, props: props || {}, children }) },
     'react-native': { ...native, Platform: { OS: 'ios' }, Alert: { alert: (...args) => alerts.push(args) } },
     'expo-router': { useRouter: () => router, useLocalSearchParams: () => params, useFocusEffect: fn => h.react.useEffect(fn, [fn]) },
-    'react-native-safe-area-context': { useSafeAreaInsets: () => ({ top: 20, bottom: 30 }) },
+    'react-native-safe-area-context': { useSafeAreaInsets: () => ({ top: 20, bottom: 30, left: 0, right: 0 }) },
     '@expo/vector-icons': { Ionicons: 'Icon' },
     '@/features/notices/types': types,
     '@/features/notices/ui': { NoticeHeader: 'Header', NoticeError: 'Error', styles: {} },

@@ -436,7 +436,7 @@ export default function ScheduleEditorScreen() {
       </KeyboardAvoidingView>
 
       <Modal visible={showTemporaryModal} transparent animationType="fade" onRequestClose={closeTemporaryModal}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.temporaryOverlay}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={[styles.temporaryOverlay, { paddingLeft: 24 + insets.left, paddingRight: 24 + insets.right }]}>
           <PopupBackdrop />
           <View style={styles.temporaryDialog} accessibilityViewIsModal>
             <Text style={styles.headerTitle}>앱 미사용자 임시 등록</Text>

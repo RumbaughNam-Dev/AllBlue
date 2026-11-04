@@ -203,7 +203,7 @@ export default function FriendsScreen() {
 
       {/* 컨텍스트 메뉴 */}
       <Modal visible={menuVisible} transparent animationType="fade" onRequestClose={closeMenu}>
-        <Pressable style={styles.menuBackdrop} onPress={closeMenu}>
+        <Pressable style={[styles.menuBackdrop, { paddingLeft: insets.left, paddingRight: insets.right }]} onPress={closeMenu}>
           <PopupBackdrop />
           <View style={styles.menuContainer}>
             <View style={[styles.menuCard, glassClear]}>
@@ -230,7 +230,7 @@ export default function FriendsScreen() {
 
       {/* 메모 수정 모달 */}
       <Modal visible={memoModalVisible} transparent animationType="fade" onRequestClose={() => setMemoModalVisible(false)}>
-        <Pressable style={styles.menuBackdrop} onPress={() => setMemoModalVisible(false)}>
+        <Pressable style={[styles.menuBackdrop, { paddingLeft: insets.left, paddingRight: insets.right }]} onPress={() => setMemoModalVisible(false)}>
           <PopupBackdrop />
           <View style={styles.memoModalContainer}>
             <Pressable style={styles.memoModalCard} onPress={() => {}}>
@@ -266,7 +266,7 @@ export default function FriendsScreen() {
 
       {/* 그룹 생성 모달 */}
       <Modal visible={groupModalVisible} transparent animationType="fade" onRequestClose={() => setGroupModalVisible(false)}>
-        <Pressable style={styles.menuBackdrop} onPress={() => setGroupModalVisible(false)}>
+        <Pressable style={[styles.menuBackdrop, { paddingLeft: insets.left, paddingRight: insets.right }]} onPress={() => setGroupModalVisible(false)}>
           <PopupBackdrop />
           <View style={styles.memoModalContainer}>
             <Pressable style={styles.memoModalCard} onPress={() => {}}>
@@ -306,7 +306,7 @@ export default function FriendsScreen() {
 
       {/* 그룹 선택 모달 */}
       <Modal visible={groupSelectVisible} transparent animationType="fade" onRequestClose={() => setGroupSelectVisible(false)}>
-        <Pressable style={styles.menuBackdrop} onPress={() => setGroupSelectVisible(false)}>
+        <Pressable style={[styles.menuBackdrop, { paddingLeft: insets.left, paddingRight: insets.right }]} onPress={() => setGroupSelectVisible(false)}>
           <PopupBackdrop />
           <View style={styles.menuContainer}>
             <View style={[styles.menuCard, glassClear]}>
