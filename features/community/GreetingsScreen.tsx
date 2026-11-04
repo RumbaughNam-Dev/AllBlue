@@ -66,7 +66,8 @@ export default function GreetingsScreen() {
   const prefetching = useRef(new Set<string>());
   useEffect(() => {
     if (!day || !today) return;
-    for (const target of [shiftDay(day, -1), shiftDay(day, 1)]) {
+    // 빠르게 여러 날 넘겨도 로딩이 덜 보이도록 앞뒤 이틀씩
+    for (const target of [shiftDay(day, -1), shiftDay(day, 1), shiftDay(day, -2), shiftDay(day, 2)]) {
       if (target > today || cache.current.has(target) || prefetching.current.has(target)) continue;
       prefetching.current.add(target);
       fetchDay(target).then(refresh, () => {}).finally(() => prefetching.current.delete(target));
@@ -106,12 +107,17 @@ export default function GreetingsScreen() {
   const [width, setWidth] = useState(0);
   const busy = useRef(false);
   const recenter = useRef(false);
+  // JS에서 움직임: 넘어간 뒤 가운데로 되돌리는 순간(setValue)이 새 날짜 화면과 같은 때 반영되도록.
+  // (네이티브로 돌리면 되돌리기가 늦거나 빠져 옆 칸 — 오늘이면 빈 다음 날 칸 — 이 그대로 보일 수 있음)
   const settle = (toValue: number) => new Promise<void>(resolve => {
-    Animated.timing(slide, { toValue, duration: 220, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start(() => resolve());
+    Animated.timing(slide, { toValue, duration: 220, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start(() => resolve());
   });
+  // 넘어가는 중에 또 밀면 몇 칸 더 갈지 모아 두었다가 한 칸씩 이어서 (전날 +, 다음 날 − 가 서로 상쇄)
+  const pending = useRef(0);
   const slideDay = useRef<(dir: -1 | 1) => void>(() => {});
   slideDay.current = async dir => {
-    if (!day || !width || busy.current || (dir === 1 && isToday)) { void settle(0); return; }
+    if (busy.current) { pending.current += dir; return; }
+    if (!day || !width || (dir === 1 && isToday)) { pending.current = 0; void settle(0); return; }
     busy.current = true;
     const target = shiftDay(day, dir);
     await settle(dir === -1 ? width : -width); // 전날은 왼쪽에서 들어옴
@@ -124,6 +130,11 @@ export default function GreetingsScreen() {
     recenter.current = false;
     slide.setValue(0);
     busy.current = false;
+    if (pending.current) {
+      const next = pending.current > 0 ? 1 : -1;
+      pending.current -= next;
+      slideDay.current(next); // 이 렌더의 slideDay (새 날짜 기준)
+    }
   }, [day, slide]);
 
   const fromEdge = (event: { absoluteX: number; translationX: number }) => event.absoluteX - event.translationX < EDGE_BACK_WIDTH;
@@ -137,7 +148,12 @@ export default function GreetingsScreen() {
       slide.setValue(dx < 0 && isTodayRef.current ? dx * EDGE_RESISTANCE : dx);
     },
     onDeactivate: event => {
-      if (busy.current || fromEdge(event)) return;
+      if (fromEdge(event)) return;
+      if (busy.current) {
+        // 넘어가는 중에 민 것: 방향만 기억 (끝나면 이어서 넘어감)
+        if (!event.canceled && Math.abs(event.translationX) > SWIPE_DISTANCE / 2) pending.current += event.translationX > 0 ? -1 : 1;
+        return;
+      }
       const dx = event.translationX, vx = event.velocityX;
       if (!event.canceled && (dx > SWIPE_DISTANCE || (dx > 10 && vx > FLICK_VELOCITY))) slideDay.current(-1);
       else if (!event.canceled && (dx < -SWIPE_DISTANCE || (dx < -10 && vx < -FLICK_VELOCITY))) slideDay.current(1);
