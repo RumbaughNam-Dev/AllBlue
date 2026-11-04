@@ -1,127 +1,110 @@
 import React, { useCallback, useRef, useState } from 'react';
-import { FlatList, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
 import { useAppRouter, useScreenParams } from '@/features/split/SplitPane';
 import { api, type CommunityBoard, type CommunityCard } from '@/services/api';
 import { EssayCard, FreeRow, PromoCard } from './Cards';
 import { ActionChip, BOARD_NAME, CenterMessage, CommunityHeader, HeaderButton, styles as ui } from './ui';
+import { useWindowedList } from './useWindowedList';
 
-const SIDE = 20;
+export const SIDE = 20;
+export const toBoard = (value: unknown) => (['ESSAY', 'FREE', 'PROMO'].includes(String(value)) ? value : 'FREE') as CommunityBoard;
 
-// 게시판 전체보기: 에세이(4장) · 자유게시판(7장, #태그 · 검색어로 좁힘) · 교육단체 홍보 목록
+// 게시판마다 카드 모양: 에세이는 두 줄 카드, 홍보는 큰 그림, 자유게시판은 한 줄
+export function PostItem({ board, post, inner, onPress }: { board: CommunityBoard; post: CommunityCard; inner: number; onPress: (post: CommunityCard) => void }) {
+  if (board === 'ESSAY') return <EssayCard post={post} width={(inner - 10) / 2} onPress={onPress} />;
+  if (board === 'PROMO') return <PromoCard post={post} height={Math.min(inner * 9 / 16, 220)} onPress={onPress} />;
+  return <FreeRow post={post} onPress={onPress} />;
+}
+
+// 게시판 전체보기: 에세이(4장) · 자유게시판(7장) · 교육단체 홍보 목록.
+// 목록 공통 패턴: 최근 순 10개씩, 최대 100개 (넘으면 반대쪽 10개를 덜어냄). 왼쪽 위 글쓰기, 오른쪽 위 돋보기 → 검색 화면.
+// tag: 글 상세의 #태그를 누르면 그 태그만
 export default function PostListScreen() {
   const params = useScreenParams<{ board?: string; tag?: string }>();
-  const board = (['ESSAY', 'FREE', 'PROMO'].includes(String(params.board)) ? params.board : 'FREE') as CommunityBoard;
+  const board = toBoard(params.board);
   const router = useAppRouter();
   const insets = useSafeAreaInsets();
-  const [items, setItems] = useState<CommunityCard[]>([]);
-  const [hasMore, setHasMore] = useState(false);
-  const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading');
-  const [refreshing, setRefreshing] = useState(false);
   const [tag, setTag] = useState(params.tag ?? '');
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [draft, setDraft] = useState('');
-  const [query, setQuery] = useState('');
   const [width, setWidth] = useState(0);
   const [canWriteEssay, setCanWriteEssay] = useState(false);
-  const epoch = useRef(0);
-  const busy = useRef(false);
+  const list = useWindowedList<CommunityCard>(cursor => api.getCommunityPosts(board, { ...cursor, tag }));
 
-  const load = useCallback(async (more = false) => {
-    if (more && (busy.current || !hasMore)) return;
-    const version = more ? epoch.current : ++epoch.current;
-    busy.current = true;
-    try {
-      const before = more ? items[items.length - 1]?.id : undefined;
-      const result = await api.getCommunityPosts(board, { before, tag, q: query });
-      if (version !== epoch.current) return;
-      setItems(prev => (more ? [...prev, ...result.items.filter(p => !prev.some(q => q.id === p.id))] : result.items));
-      setHasMore(result.hasMore);
-      setState('ready');
-    } catch {
-      if (version === epoch.current && !more) setState('error');
-    } finally {
-      if (version === epoch.current) busy.current = false;
-    }
-  }, [board, tag, query, items, hasMore]);
-
-  // 처음 열 때와 조건이 바뀔 때, 글을 보고 돌아올 때 새로
-  const loadRef = useRef(load);
-  loadRef.current = load;
-  useFocusEffect(useCallback(() => { void loadRef.current(); }, [board, tag, query]));
+  // 처음 열 때와 태그가 바뀔 때는 처음부터, 글을 보고 돌아오면 지금 목록을 둔 채 새로
+  const first = useRef(true);
+  const reloadRef = useRef(list.reload); reloadRef.current = list.reload;
+  useFocusEffect(useCallback(() => {
+    void reloadRef.current(first.current ? 'first' : 'quiet');
+    first.current = false;
+  }, [board, tag]));
   useFocusEffect(useCallback(() => {
     if (board !== 'ESSAY') return;
     api.getCommunityHome().then(home => setCanWriteEssay(home.canWriteEssay)).catch(() => {});
   }, [board]));
-  const refresh = async () => { setRefreshing(true); await load(); setRefreshing(false); };
 
   const openPost = (post: CommunityCard) => router.push({ pathname: '/community-post', params: { id: String(post.id) } });
-  const submitSearch = () => {
-    const text = draft.trim();
-    // '#태그'로 찾으면 태그 칩으로
-    if (text.startsWith('#') && !/\s/.test(text)) { setTag(text.replace(/^#+/, '')); setQuery(''); }
-    else setQuery(text);
-  };
+  const openSearch = () => router.push({ pathname: '/community-post-search', params: { board } });
 
   const inner = Math.max(0, width - SIDE * 2);
-  const right = board === 'FREE'
-    ? <View style={styles.headerButtons}>
-        <HeaderButton icon="search" label="검색" onPress={() => setSearchOpen(open => !open)} />
-        <HeaderButton icon="create-outline" label="글쓰기" onPress={() => router.push('/community-free-write')} />
-      </View>
+  const write = board === 'FREE'
+    ? <HeaderButton icon="create-outline" label="글쓰기" onPress={() => router.push('/community-free-write')} />
     : board === 'ESSAY' && canWriteEssay
       ? <HeaderButton icon="create-outline" label="에세이 쓰기" onPress={() => router.push('/community-essay-write')} />
       : undefined;
 
   return (
     <View style={[ui.screen, { paddingTop: insets.top }]} onLayout={e => setWidth(e.nativeEvent.layout.width)}>
-      <CommunityHeader title={BOARD_NAME[board]} right={right} />
-      {board === 'FREE' && searchOpen && (
-        <View style={styles.search}>
-          <Ionicons name="search" size={16} color="rgba(255,255,255,0.5)" />
-          <TextInput value={draft} onChangeText={setDraft} onSubmitEditing={submitSearch} returnKeyType="search" autoFocus
-            placeholder="제목 · 내용 · #태그" placeholderTextColor="rgba(255,255,255,0.4)" style={styles.searchInput} />
-          {!!draft && <Pressable onPress={() => { setDraft(''); setQuery(''); }} hitSlop={8}><Ionicons name="close-circle" size={18} color="rgba(255,255,255,0.5)" /></Pressable>}
-        </View>
-      )}
-      {(!!tag || !!query) && (
+      <CommunityHeader title={BOARD_NAME[board]} left={write} right={<HeaderButton icon="search" label={`${BOARD_NAME[board]} 검색`} onPress={openSearch} />} />
+      {!!tag && (
         <View style={styles.filters}>
-          {!!tag && <ActionChip icon="close" label={`#${tag}`} active onPress={() => setTag('')} />}
-          {!!query && <ActionChip icon="close" label={`'${query}' 검색`} active onPress={() => { setQuery(''); setDraft(''); }} />}
+          <ActionChip icon="close" label={`#${tag}`} active onPress={() => { first.current = true; setTag(''); }} />
         </View>
       )}
-      {state !== 'ready' ? <CenterMessage loading={state === 'loading'} message="글을 불러오지 못했어요." onRetry={() => void load()} /> : (
-        <FlatList
-          key={board === 'ESSAY' ? 'grid' : 'list'}
-          data={items}
-          keyExtractor={item => String(item.id)}
-          numColumns={board === 'ESSAY' ? 2 : 1}
-          columnWrapperStyle={board === 'ESSAY' ? { gap: 10 } : undefined}
-          contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 24 }, !items.length && { flexGrow: 1 }]}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor="rgba(255,255,255,0.6)" />}
-          onEndReached={() => void load(true)}
-          onEndReachedThreshold={0.4}
-          ListEmptyComponent={<CenterMessage message={tag || query ? '찾는 글이 없어요.' : '아직 글이 없어요.'} />}
-          renderItem={({ item }) => board === 'ESSAY'
-            ? <EssayCard post={item} width={(inner - 10) / 2} onPress={openPost} />
-            : board === 'PROMO'
-              ? <PromoCard post={item} height={Math.min(inner * 9 / 16, 220)} onPress={openPost} />
-              : <FreeRow post={item} onPress={openPost} />}
+      {list.state !== 'ready' ? <CenterMessage loading={list.state === 'loading'} message="글을 불러오지 못했어요." onRetry={() => void list.reload()} /> : (
+        <PostFlatList
+          board={board}
+          list={list}
+          inner={inner}
+          bottom={insets.bottom}
+          empty={tag ? '찾는 글이 없어요.' : '아직 글이 없어요.'}
+          onPress={openPost}
         />
       )}
     </View>
   );
 }
 
+// 목록 공통: 아래 끝 → 더 예전 10개, 위 끝(덜어낸 적이 있으면) → 더 최근 10개, 붙이거나 덜어도 보던 자리 유지
+export function PostFlatList({ board, list, inner, bottom, empty, onPress }: {
+  board: CommunityBoard; list: ReturnType<typeof useWindowedList<CommunityCard>>; inner: number; bottom: number; empty: string; onPress: (post: CommunityCard) => void;
+}) {
+  const spinner = <ActivityIndicator style={styles.more} color="rgba(255,255,255,0.6)" />;
+  return (
+    <FlatList
+      key={board === 'ESSAY' ? 'grid' : 'list'}
+      data={list.items}
+      keyExtractor={item => String(item.id)}
+      numColumns={board === 'ESSAY' ? 2 : 1}
+      columnWrapperStyle={board === 'ESSAY' ? { gap: 10 } : undefined}
+      contentContainerStyle={[styles.list, { paddingBottom: bottom + 24 }, !list.items.length && { flexGrow: 1 }]}
+      refreshControl={<RefreshControl refreshing={list.refreshing} onRefresh={() => void list.reload('refresh')} tintColor="rgba(255,255,255,0.6)" />}
+      onEndReached={() => void list.loadOlder()}
+      onEndReachedThreshold={0.5}
+      onStartReached={() => void list.loadNewer()}
+      onStartReachedThreshold={0.5}
+      maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
+      windowSize={7}
+      ListHeaderComponent={list.more === 'newer' ? spinner : undefined}
+      ListFooterComponent={list.more === 'older' ? spinner : undefined}
+      ListEmptyComponent={<CenterMessage message={empty} />}
+      renderItem={({ item }) => <PostItem board={board} post={item} inner={inner} onPress={onPress} />}
+    />
+  );
+}
+
 const styles = StyleSheet.create({
-  headerButtons: { flexDirection: 'row', gap: 6 },
-  search: {
-    flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: SIDE, marginBottom: 8, paddingHorizontal: 14, height: 42,
-    borderRadius: 21, backgroundColor: 'rgba(255,255,255,0.1)',
-  },
-  searchInput: { flex: 1, fontFamily: 'SUIT-Regular', fontSize: 15, color: 'white' },
   filters: { flexDirection: 'row', gap: 8, paddingHorizontal: SIDE, paddingBottom: 8 },
   list: { paddingHorizontal: SIDE, paddingTop: 4, gap: 10 },
+  more: { paddingVertical: 14 },
 });

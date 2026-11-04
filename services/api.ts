@@ -498,10 +498,16 @@ export type FreeInput = { board: 'FREE'; title: string; content: string; imageUr
 export const api = {
   // ── 커뮤니티 ──
   getCommunityHome() { return request<CommunityHome>('/community/home'); },
-  getCommunityPosts(board: CommunityBoard, options: { before?: number; tag?: string; q?: string } = {}) {
+  getCommunityPosts(board: CommunityBoard, options: { before?: number; after?: number; tag?: string; q?: string } = {}) {
     const params = new URLSearchParams({ board });
     for (const [key, value] of Object.entries(options)) if (value) params.set(key, String(value));
     return request<{ items: CommunityCard[]; hasMore: boolean }>(`/community/posts?${params}`);
+  },
+  // 게시판 검색: 작성일(YYYY-MM-DD) · 검색어(제목 · 내용 · 태그) · 작성자. 최근 순 10개씩 (before/after)
+  searchCommunityPosts(board: CommunityBoard, options: { from?: string; to?: string; q?: string; author?: string; before?: number; after?: number }) {
+    const params = new URLSearchParams({ board });
+    for (const [key, value] of Object.entries(options)) if (value) params.set(key, String(value));
+    return request<{ items: CommunityCard[]; hasMore: boolean }>(`/community/posts/search?${params}`);
   },
   getCommunityPost(id: number) { return request<{ post: CommunityPost }>(`/community/posts/${id}`); },
   createCommunityPost(input: EssayInput | FreeInput) { return request<{ id: number }>('/community/posts', { method: 'POST', body: JSON.stringify(input) }); },

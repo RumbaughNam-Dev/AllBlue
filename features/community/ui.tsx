@@ -45,18 +45,22 @@ export function timeAgo(iso: string, now = new Date()) {
 // 한국 시간 '09:12'
 export const clockTime = (iso: string) => new Date(new Date(iso).getTime() + 9 * 3600_000).toISOString().slice(11, 16);
 
-export function CommunityHeader({ title, right, onBack }: { title: string; right?: React.ReactNode; onBack?: () => void }) {
+// left: 뒤로가기 바로 오른쪽에 둘 버튼 (예: 글쓰기). right: 오른쪽 끝 (예: 돋보기)
+export function CommunityHeader({ title, left, right, onBack }: { title: string; left?: React.ReactNode; right?: React.ReactNode; onBack?: () => void }) {
   const router = useAppRouter();
   const paneRoot = useIsPaneRoot();
   return (
     <View style={styles.header}>
-      {paneRoot ? <View style={styles.headerSide} /> : (
-        <StripBackSlot size={44}>
-          <Pressable accessibilityLabel="뒤로가기" onPress={onBack ?? (() => router.back())} style={styles.headerSide} hitSlop={8}>
-            <GlassCircle><Ionicons name="chevron-back" size={LiquidGlassView ? 20 : 26} color="white" /></GlassCircle>
-          </Pressable>
-        </StripBackSlot>
-      )}
+      <View style={[styles.headerSide, styles.headerLeft]}>
+        {paneRoot ? <View style={styles.headerBack} /> : (
+          <StripBackSlot size={44}>
+            <Pressable accessibilityLabel="뒤로가기" onPress={onBack ?? (() => router.back())} style={styles.headerBack} hitSlop={8}>
+              <GlassCircle><Ionicons name="chevron-back" size={LiquidGlassView ? 20 : 26} color="white" /></GlassCircle>
+            </Pressable>
+          </StripBackSlot>
+        )}
+        {left}
+      </View>
       <Text style={styles.headerTitle} numberOfLines={1}>{title}</Text>
       <View style={[styles.headerSide, styles.headerRight]}>{right}</View>
     </View>
@@ -145,6 +149,8 @@ export const styles = StyleSheet.create({
   header: { height: 56, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16 },
   headerSide: { width: 84, height: 44, justifyContent: 'center' },
   headerRight: { alignItems: 'flex-end' },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  headerBack: { width: 44, height: 44, justifyContent: 'center' },
   headerTitle: { flex: 1, textAlign: 'center', fontFamily: 'SUIT-SemiBold', fontSize: 18, color: 'white' },
   headerAction: { fontFamily: 'SUIT-Bold', fontSize: 16, color: Colors.brand.accent },
   chipFallback: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 17, backgroundColor: 'rgba(255,255,255,0.12)' },
