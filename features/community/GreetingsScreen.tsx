@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, KeyboardAvoidingView, PanResponder, Platform, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+// 목록(스크롤)과 좌우 밀기가 서로 터치를 나눠 갖도록 제스처 핸들러의 목록 · 새로고침을 씀 (RN 기본 PanResponder는 iOS 스크롤이 터치를 가져가 취소됨)
+import { FlatList, GestureDetector, GestureHandlerRootView, RefreshControl, usePanGesture } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Colors from '@/constants/Colors';
@@ -69,13 +71,16 @@ export default function GreetingsScreen() {
     if (!day || (dir === 1 && isToday)) return;
     go(shiftDay(day, dir));
   };
-  const swipe = useRef(PanResponder.create({
-    onMoveShouldSetPanResponder: (_, g) => g.x0 > EDGE_BACK_WIDTH && Math.abs(g.dx) > 15 && Math.abs(g.dx) > Math.abs(g.dy) * 1.5,
-    onPanResponderRelease: (_, g) => {
-      if (g.dx > SWIPE_DISTANCE) swipeDay.current(-1);
-      else if (g.dx < -SWIPE_DISTANCE) swipeDay.current(1);
+  const swipe = usePanGesture({
+    runOnJS: true,
+    activeOffsetX: [-20, 20], // 옆으로 20pt 넘게 밀면 시작
+    failOffsetY: [-15, 15], // 위아래로 먼저 움직이면 목록 스크롤
+    onDeactivate: event => {
+      if (event.canceled || event.absoluteX - event.translationX < EDGE_BACK_WIDTH) return;
+      if (event.translationX > SWIPE_DISTANCE) swipeDay.current(-1);
+      else if (event.translationX < -SWIPE_DISTANCE) swipeDay.current(1);
     },
-  })).current;
+  });
 
   return (
     <KeyboardAvoidingView style={[ui.screen, { paddingTop: insets.top }]} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -83,7 +88,9 @@ export default function GreetingsScreen() {
       {!day || (!data && !calendar) ? <CenterMessage loading={!error} message="인사를 불러오지 못했어요." onRetry={error ? () => load() : undefined} /> : calendar ? (
         <GreetingCalendar day={day} today={today ?? day} onPick={go} />
       ) : (
-        <View style={{ flex: 1 }} {...swipe.panHandlers}>
+        <GestureHandlerRootView style={{ flex: 1 }}>
+        <GestureDetector gesture={swipe}>
+        <View style={{ flex: 1 }}>
           <View style={styles.dayBar}>
             <Pressable accessibilityLabel="전날" onPress={() => go(shiftDay(day, -1))} hitSlop={10}><Ionicons name="chevron-back" size={22} color="white" /></Pressable>
             <Pressable onPress={() => setCalendar(true)} style={styles.dayCenter}>
@@ -116,6 +123,8 @@ export default function GreetingsScreen() {
             </View>
           )}
         </View>
+        </GestureDetector>
+        </GestureHandlerRootView>
       )}
       {menu.element}
     </KeyboardAvoidingView>
