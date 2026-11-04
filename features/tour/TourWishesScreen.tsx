@@ -96,7 +96,8 @@ export default function TourWishesScreen() {
     }
   };
 
-  const isNew = (wish: TourWish) => seenBefore.current === null || (!!seenBefore.current && wish.createdAt > seenBefore.current);
+  // 내 제안은 NEW로 치지 않음
+  const isNew = (wish: TourWish) => !wish.mine && (seenBefore.current === null || (!!seenBefore.current && wish.createdAt > seenBefore.current));
   const newCount = wishes.filter(isNew).length;
   const openSearch = () => router.push({ pathname: '/tour-wish-search', params: { seenBefore: seenBefore.current ?? '' } });
 

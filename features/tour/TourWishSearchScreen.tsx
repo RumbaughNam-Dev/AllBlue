@@ -75,7 +75,8 @@ export default function TourWishSearchScreen() {
   useEffect(() => { void load('first'); }, [load]);
 
   const set = (patch: Partial<TourWishQuery>) => setQuery(prev => ({ ...prev, ...patch }));
-  const isNew = (wish: TourWish) => seenBefore.current === null || (!!seenBefore.current && wish.createdAt > seenBefore.current);
+  // 내 제안은 NEW로 치지 않음
+  const isNew = (wish: TourWish) => !wish.mine && (seenBefore.current === null || (!!seenBefore.current && wish.createdAt > seenBefore.current));
 
   const createFrom = (wish: TourWish) => router.push({ pathname: '/tour-create', params: wishCreateParams(wish) });
 
@@ -189,7 +190,9 @@ export function WishCard({ wish, isNew, place, canCreate, onCreate, onOpenMine }
   return (
     <View style={[styles.card, isNew ? styles.cardNew : styles.cardSeen]}>
       <View style={styles.cardTop}>
-        {isNew ? (
+        {wish.mine ? (
+          <View style={styles.mineBadge}><Text style={styles.mineBadgeText}>내가 보낸 제안</Text></View>
+        ) : isNew ? (
           <View style={styles.newBadge}><Text style={styles.newBadgeText}>NEW</Text></View>
         ) : (
           <View style={styles.seenBadge}>
@@ -201,7 +204,7 @@ export function WishCard({ wish, isNew, place, canCreate, onCreate, onOpenMine }
       </View>
 
       <Text style={[styles.cardTitle, !isNew && styles.dim]}>
-        <Text style={isNew ? styles.nickNew : undefined}>{wish.nickname}</Text>님이 투어를 원해요
+        {wish.mine ? '내가 원하는 투어' : <><Text style={isNew ? styles.nickNew : undefined}>{wish.nickname}</Text>님이 투어를 원해요</>}
       </Text>
 
       <View style={styles.infoGrid}>
@@ -211,7 +214,10 @@ export function WishCard({ wish, isNew, place, canCreate, onCreate, onOpenMine }
         {wish.tourStyle && <Info icon="options-outline" text={WISH_STYLE_LABELS[wish.tourStyle]} strong={isNew} />}
       </View>
 
-      {wish.myTourId ? (
+      {wish.mine ? (
+        // 내 제안으로는 투어를 만들 수 없음 (강사님들이 만들면 알림으로 알려드림)
+        <Text style={styles.departed}>강사님이 이 제안으로 투어를 만들면 알림으로 알려드려요</Text>
+      ) : wish.myTourId ? (
         // 이 제안으로 이미 만든 투어가 있으면 그 투어로 (제안당 강사 한 명에 투어 하나)
         <Pressable accessibilityRole="button" onPress={onOpenMine} style={({ pressed }) => [styles.createButton, pressed && { opacity: 0.7 }]}>
           <Ionicons name="checkmark-circle-outline" size={17} color={ACCENT} />
@@ -295,6 +301,8 @@ export const styles = StyleSheet.create({
   cardNew: { backgroundColor: 'rgba(0,229,255,0.09)', borderColor: 'rgba(0,229,255,0.55)' },
   cardSeen: { backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.08)' },
   cardTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  mineBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, backgroundColor: 'rgba(255,209,102,0.18)' },
+  mineBadgeText: { fontFamily: 'SUIT-Bold', fontSize: 11, color: '#FFD166' },
   newBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, backgroundColor: ACCENT },
   newBadgeText: { fontFamily: 'SUIT-Bold', fontSize: 11, color: Colors.brand.primary, letterSpacing: 0.5 },
   seenBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.08)' },
