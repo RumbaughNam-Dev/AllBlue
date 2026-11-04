@@ -152,7 +152,7 @@ export default function ScheduleEditorScreen() {
                 : '친한친구만 이 일정을 볼 수 있습니다.'}
             </Text>
             <Text style={styles.visibilityDesc}>
-              일정 공개여부 기본 설정은 홈 화면 우측 상단 메뉴 {'>'} 일정 설정에서 변경할 수 있습니다.
+              일정 공개여부 기본 설정은 홈 화면 우측 상단 메뉴 {'>'} 설정 {'>'} 일정에서 변경할 수 있습니다.
             </Text>
           </ScrollView>
         )}
