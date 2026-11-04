@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, KeyboardAvoidingView, Platform, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, KeyboardAvoidingView, PanResponder, Platform, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Colors from '@/constants/Colors';
@@ -10,6 +10,9 @@ import { useContentMenu } from './useContentMenu';
 import { dayLabel, monthCells, shiftDay, shiftMonth, WEEKDAYS } from './greetingDates';
 
 // 6장 출석인사: 하루 단위로 인사 건수와 한 줄 목록만 (상세 없음). 날짜를 누르면 달력, 오늘만 입력 · 하루 1번 · 삭제만
+const EDGE_BACK_WIDTH = 30; // 왼쪽 끝 (뒤로가기 밀기 영역)
+const SWIPE_DISTANCE = 50;
+
 export default function GreetingsScreen() {
   const insets = useSafeAreaInsets();
   const [day, setDay] = useState<string | null>(null);
@@ -59,13 +62,28 @@ export default function GreetingsScreen() {
   });
 
   const isToday = !!day && day === today;
+
+  // 화면 가운데에서 좌우로 밀면 전날 · 다음 날 (오른쪽으로 밀면 전날). 왼쪽 끝에서 밀면 화면 닫기(뒤로)는 그대로
+  const swipeDay = useRef<(dir: -1 | 1) => void>(() => {});
+  swipeDay.current = dir => {
+    if (!day || (dir === 1 && isToday)) return;
+    go(shiftDay(day, dir));
+  };
+  const swipe = useRef(PanResponder.create({
+    onMoveShouldSetPanResponder: (_, g) => g.x0 > EDGE_BACK_WIDTH && Math.abs(g.dx) > 15 && Math.abs(g.dx) > Math.abs(g.dy) * 1.5,
+    onPanResponderRelease: (_, g) => {
+      if (g.dx > SWIPE_DISTANCE) swipeDay.current(-1);
+      else if (g.dx < -SWIPE_DISTANCE) swipeDay.current(1);
+    },
+  })).current;
+
   return (
     <KeyboardAvoidingView style={[ui.screen, { paddingTop: insets.top }]} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <CommunityHeader title="출석인사" right={day && <HeaderButton icon={calendar ? 'list' : 'calendar-outline'} label={calendar ? '목록' : '달력'} onPress={() => setCalendar(c => !c)} />} />
       {!day || (!data && !calendar) ? <CenterMessage loading={!error} message="인사를 불러오지 못했어요." onRetry={error ? () => load() : undefined} /> : calendar ? (
         <GreetingCalendar day={day} today={today ?? day} onPick={go} />
       ) : (
-        <>
+        <View style={{ flex: 1 }} {...swipe.panHandlers}>
           <View style={styles.dayBar}>
             <Pressable accessibilityLabel="전날" onPress={() => go(shiftDay(day, -1))} hitSlop={10}><Ionicons name="chevron-back" size={22} color="white" /></Pressable>
             <Pressable onPress={() => setCalendar(true)} style={styles.dayCenter}>
@@ -97,7 +115,7 @@ export default function GreetingsScreen() {
               )}
             </View>
           )}
-        </>
+        </View>
       )}
       {menu.element}
     </KeyboardAvoidingView>

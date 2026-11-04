@@ -147,7 +147,8 @@ function RootLayoutNav() {
           <Stack.Screen name="community-essay-write" options={{ contentStyle: { ...side, backgroundColor: '#144A84' } }} />
           <Stack.Screen name="community-free-write" options={{ contentStyle: { ...side, backgroundColor: '#144A84' } }} />
           <Stack.Screen name="community-promo-edit" options={{ contentStyle: { ...side, backgroundColor: '#144A84' } }} />
-          <Stack.Screen name="community-greetings" options={{ gestureEnabled: true }} />
+          {/* 가운데 좌우 밀기는 날짜 이동: iOS 26의 화면 전체 밀어서 닫기를 끄고 왼쪽 끝 밀기로만 닫음 */}
+          <Stack.Screen name="community-greetings" options={{ gestureEnabled: true, fullScreenGestureEnabled: false }} />
           <Stack.Screen name="community-reports" options={{ gestureEnabled: true, contentStyle: { ...side, backgroundColor: '#144A84' } }} />
           <Stack.Screen name="tour-wish" options={{ gestureEnabled: true, contentStyle: { ...side, backgroundColor: '#144A84' } }} />
           <Stack.Screen name="tour-wishes" options={{ gestureEnabled: true }} />
