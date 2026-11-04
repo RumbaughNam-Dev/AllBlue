@@ -393,6 +393,7 @@ export type TourWishStyle = 'DIVING_ONLY' | 'DIVING_SIGHTSEEING';
 export type TourWish = {
   id: number; nickname: string; continentCode: string; countryCode: string; startDate: string; endDate: string;
   headcount: number | null; tourStyle: TourWishStyle | null; createdAt: string;
+  mine?: boolean; // 내가 보낸 제안 (투어를 만들 수 없음)
   myTourId: number | null; // 이 제안으로 내가 만든 투어
   taken: boolean; // 제안자가 이미 다른 투어에 응함
 };
