@@ -10,7 +10,8 @@ type Props = { items: PopupSlide[]; onClose: () => void; onHideToday: () => void
 export default function PopupCarousel({ items, onClose, onHideToday }: Props) {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const cardWidth = Math.min(width - 40, 480);
+  // 아이폰 듀오: 오른쪽 여백(카메라 · 상태 표시)을 빼고 그림 (일반 폰은 좌우 안전 영역이 0)
+  const cardWidth = Math.min(width - insets.left - insets.right - 40, 480);
   const cardHeight = Math.max(160, Math.min(430, height - insets.top - insets.bottom - 160));
   const [index, setIndex] = useState(0);
   const [transition, setTransition] = useState<{ next: number; direction: number } | null>(null);
@@ -57,7 +58,7 @@ export default function PopupCarousel({ items, onClose, onHideToday }: Props) {
   if (!items.length) return null;
   return <Modal transparent visible animationType="fade" statusBarTranslucent onRequestClose={onClose}>
     <PopupBackdrop />
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: insets.top, paddingBottom: insets.bottom, backgroundColor: 'rgba(0,15,35,0.4)' }}>
+    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: insets.top, paddingBottom: insets.bottom, paddingLeft: insets.left, paddingRight: insets.right, backgroundColor: 'rgba(0,15,35,0.4)' }}>
       <View accessibilityViewIsModal style={[{ width: cardWidth, backgroundColor: '#144A84', borderRadius: 24, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.16)' }, glassClear]}>
         <GlassBackground radius={24} tintColor={PANEL_TINT} />
         <View {...pan.panHandlers} onTouchStart={() => setTouching(true)} onTouchEnd={() => setTouching(false)} onTouchCancel={() => setTouching(false)} style={{ height: cardHeight, overflow: 'hidden' }}>

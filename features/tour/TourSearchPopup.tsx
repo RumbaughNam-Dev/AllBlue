@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Modal, View, Text, TextInput, StyleSheet, Pressable, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/Colors';
 import type { TourSearchConditions } from '@/services/api';
 import PopupBackdrop from '@/components/PopupBackdrop';
@@ -24,6 +25,7 @@ type Sheet = 'continent' | 'country' | 'from' | 'to' | null;
 export default function TourSearchPopup({ visible, initial, onClose, onSearch }: Props) {
   const [draft, setDraft] = useState(initial);
   const [sheet, setSheet] = useState<Sheet>(null);
+  const insets = useSafeAreaInsets();
   const { continents, countries, failed, reload, countriesOf } = useTourRegions();
   // '조건 변경'은 입력값 그대로 다시 엶
   useEffect(() => { if (visible) setDraft(initial); }, [visible]);
@@ -36,7 +38,8 @@ export default function TourSearchPopup({ visible, initial, onClose, onSearch }:
     <Modal transparent visible={visible} animationType="fade" statusBarTranslucent onRequestClose={onClose}>
       <PopupBackdrop />
       <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="닫기" />
-      <KeyboardAvoidingView style={styles.center} behavior={Platform.OS === 'ios' ? 'padding' : undefined} pointerEvents="box-none">
+      {/* 아이폰 듀오: 오른쪽 여백(카메라 · 상태 표시)을 빼고 그림 (일반 폰은 좌우 안전 영역이 0) */}
+      <KeyboardAvoidingView style={[styles.center, { paddingLeft: 20 + insets.left, paddingRight: 20 + insets.right }]} behavior={Platform.OS === 'ios' ? 'padding' : undefined} pointerEvents="box-none">
         <View style={[styles.panel, glassClear]}>
           <GlassBackground radius={20} tintColor={PANEL_TINT} />
           <View style={styles.header}>

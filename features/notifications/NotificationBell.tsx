@@ -5,6 +5,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, AppState, DeviceEventEmitter, FlatList, Modal, Pressable, StyleSheet, Text, useWindowDimensions, View, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { mergeNotificationWindow } from './window';
 import { formatNotificationDate } from './date';
 import Colors from '@/constants/Colors';
@@ -38,7 +39,11 @@ export default function NotificationBell() {
   const offset = useRef(0);
   const adjust = useRef<number | null>(null);
   const progress = useRef(new Animated.Value(0)).current;
-  const panelWidth = Math.min(width - 32, 420), panelHeight = Math.min(height * 0.76, 660);
+  // 아이폰 듀오: 오른쪽 여백(카메라 · 상태 표시)을 빼고 그림 (일반 폰은 좌우 안전 영역이 0)
+  const insets = useSafeAreaInsets();
+  const usableWidth = width - insets.left - insets.right;
+  const centerX = insets.left + usableWidth / 2;
+  const panelWidth = Math.min(usableWidth - 32, 420), panelHeight = Math.min(height * 0.76, 660);
   const commit = (next: AppNotification[]) => { rows.current = next; setItems(next); };
 
   const refreshCount = useCallback(async () => {
@@ -145,9 +150,9 @@ export default function NotificationBell() {
         <Animated.View style={[StyleSheet.absoluteFill, { opacity: progress }]}>
           <Pressable style={[StyleSheet.absoluteFill, styles.backdrop]} onPress={close} accessibilityRole="button" accessibilityLabel="알림 닫기" />
         </Animated.View>
-        <Animated.View style={[styles.panel, glassClear, { width: panelWidth, height: panelHeight, left: (width - panelWidth) / 2, top: (height - panelHeight) / 2,
+        <Animated.View style={[styles.panel, glassClear, { width: panelWidth, height: panelHeight, left: centerX - panelWidth / 2, top: (height - panelHeight) / 2,
           opacity: progress, transform: [
-            { translateX: progress.interpolate({ inputRange: [0, 1], outputRange: [origin.x + 22 - width / 2, 0] }) },
+            { translateX: progress.interpolate({ inputRange: [0, 1], outputRange: [origin.x + 22 - centerX, 0] }) },
             { translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [origin.y + 22 - height / 2, 0] }) },
             { scale: progress.interpolate({ inputRange: [0, 1], outputRange: [0.05, 1] }) },
           ] }]}>
