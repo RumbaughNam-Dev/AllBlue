@@ -49,19 +49,19 @@ export default function TourHomeScreen() {
 
   return (
     <View style={styles.container} onLayout={e => setWidth(e.nativeEvent.layout.width)}>
+      {/* 왼쪽: 누구나 쓰는 주요 버튼 하나(투어 역제안), 오른쪽: 도구 아이콘 (강사 · admin은 받은 제안 · 만들기 · 관리 + 검색) */}
       <View style={styles.actions}>
+        <ActionChip icon="hand-left" label="투어 만들어 주세요" prominent onPress={() => router.push('/tour-wish')} />
         <View style={styles.actionGroup}>
           {home?.canCreate && (
             <>
+              {/* 들어온 역제안 목록, 빨간 숫자는 아직 안 본 제안 */}
+              <IconChip icon="mail-unread-outline" label="받은 제안" count={home.wishNew ?? 0} onPress={() => router.push('/tour-wishes')} />
               <IconChip icon="add" label="투어 만들기" onPress={() => router.push('/tour-create')} />
               <IconChip icon="settings-sharp" label="투어 관리" onPress={() => router.push('/tour-manage')} />
-              {/* 강사 · admin: 들어온 역제안 목록, 오른쪽 숫자는 아직 안 본 제안 */}
-              <ActionChip icon="mail-unread" label="투어 가고 싶다고 제안이 왔어요!" count={home.wishNew ?? 0} onPress={() => router.push('/tour-wishes')} />
             </>
           )}
-          {/* 누구나: 가고 싶은 투어를 강사님들께 거꾸로 제안 (투어 역제안) */}
-          <ActionChip icon="megaphone" label="투어 가고 싶은 사람 여기 주목!" onPress={() => router.push('/tour-wish')} />
-          <ActionChip icon="search" label="투어 검색" onPress={() => setSearching(true)} />
+          <IconChip icon="search" label="투어 검색" onPress={() => setSearching(true)} />
         </View>
       </View>
 
@@ -121,25 +121,29 @@ export default function TourHomeScreen() {
   );
 }
 
-// 글자 없이 아이콘만 있는 동그란 칩 (읽어주기용 이름은 label)
-function IconChip({ icon, label, onPress }: { icon: 'add' | 'settings-sharp'; label: string; onPress: () => void }) {
+// 글자 없이 아이콘만 있는 동그란 칩 (읽어주기용 이름은 label). count가 있으면 오른쪽 위에 빨간 숫자
+function IconChip({ icon, label, count = 0, onPress }: {
+  icon: 'add' | 'settings-sharp' | 'search' | 'mail-unread-outline'; label: string; count?: number; onPress: () => void;
+}) {
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} hitSlop={4} style={({ pressed }) => pressed && { opacity: 0.6 }}>
+    <Pressable accessibilityRole="button" accessibilityLabel={count > 0 ? `${label} ${count}건` : label} onPress={onPress} hitSlop={4} style={({ pressed }) => pressed && { opacity: 0.6 }}>
       <GlassChip fallbackStyle={[styles.chipFallback, styles.iconChip]} style={styles.iconChip}>
         <Ionicons name={icon} size={icon === 'add' ? 18 : 16} color={Colors.brand.white} />
       </GlassChip>
+      {count > 0 && <View style={styles.count} pointerEvents="none"><Text style={styles.countText}>{count > 99 ? '99+' : count}</Text></View>}
     </Pressable>
   );
 }
 
-function ActionChip({ icon, label, count = 0, onPress = showTourComingSoon }: { icon?: 'search' | 'megaphone' | 'mail-unread'; label: string; count?: number; onPress?: () => void }) {
+// 글자 칩. prominent면 흰 바탕 · 남색 글자 (화면의 주요 버튼)
+function ActionChip({ icon, label, prominent = false, onPress = showTourComingSoon }: { icon?: 'hand-left'; label: string; prominent?: boolean; onPress?: () => void }) {
+  const color = prominent ? Colors.brand.primary : Colors.brand.white;
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={count > 0 ? `${label}, 새 제안 ${count}건` : label} onPress={onPress} style={({ pressed }) => pressed && { opacity: 0.6 }}>
-      <GlassChip fallbackStyle={styles.chipFallback}>
+    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={({ pressed }) => pressed && { opacity: 0.6 }}>
+      <GlassChip prominent={prominent} fallbackStyle={[styles.chipFallback, prominent && styles.chipProminent]}>
         <View style={styles.chipContent}>
-          {icon && <Ionicons name={icon} size={15} color={Colors.brand.white} />}
-          <Text style={styles.chipText}>{label}</Text>
-          {count > 0 && <View style={styles.count}><Text style={styles.countText}>{count > 99 ? '99+' : count}</Text></View>}
+          {icon && <Ionicons name={icon} size={15} color={color} />}
+          <Text style={[styles.chipText, { color }]}>{label}</Text>
         </View>
       </GlassChip>
     </Pressable>
@@ -165,17 +169,18 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
     paddingHorizontal: SIDE,
     paddingTop: 4,
     paddingBottom: 12,
   },
-  // 폭이 모자라면 다음 줄로 (좁은 폰에서 '투어 검색'이 밀려나지 않게)
+  // 오른쪽 아이콘 묶음 (강사 · admin 4개도 360pt 폰에서 한 줄)
   actionGroup: {
-    flex: 1,
     flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: 8,
   },
+  chipProminent: { backgroundColor: Colors.brand.white },
   chipFallback: {
     paddingVertical: 8,
     paddingHorizontal: 14,
@@ -198,7 +203,8 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   count: {
-    minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 5, marginLeft: 2,
+    position: 'absolute', top: -4, right: -4,
+    minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 5,
     alignItems: 'center', justifyContent: 'center', backgroundColor: '#FF4D4F',
   },
   countText: { fontFamily: 'SUIT-Bold', fontSize: 11, color: Colors.brand.white },
