@@ -12,7 +12,7 @@ export const SPLIT_MIN_WIDTH = 600;
 
 export type PaneTab = 'index' | 'b' | 'c' | 'community' | 'tour';
 type Params = Record<string, string>;
-const PANE_PATHS = ['/schedule-daily', '/schedule-detail', '/profile-view', '/achievement', '/debriefing', '/community-post', '/tour-search', '/tour-detail', '/tour-manage', '/tour-requests', '/tour-reports', '/tour-banners', '/tour-banner-edit', '/tour-wishes', '/tour-wish-search'] as const;
+const PANE_PATHS = ['/schedule-daily', '/schedule-detail', '/profile-view', '/achievement', '/debriefing', '/community-posts', '/community-post', '/community-post-search', '/tour-search', '/tour-detail', '/tour-manage', '/tour-requests', '/tour-reports', '/tour-banners', '/tour-banner-edit', '/tour-wishes', '/tour-wish-search'] as const;
 type PanePath = typeof PANE_PATHS[number];
 type PaneRoute = { key: number; pathname: PanePath; params: Params };
 type Href = string | { pathname: string; params?: Record<string, unknown> };
@@ -27,7 +27,9 @@ const getPaneScreen = (pathname: PanePath): React.ComponentType => {
     case '/profile-view': return require('@/app/profile-view').default;
     case '/achievement': return require('@/app/achievement').default;
     case '/debriefing': return require('@/app/debriefing').default;
+    case '/community-posts': return require('@/app/community-posts').default;
     case '/community-post': return require('@/app/community-post').default;
+    case '/community-post-search': return require('@/app/community-post-search').default;
     case '/tour-search': return require('@/app/tour-search').default;
     case '/tour-detail': return require('@/app/tour-detail').default;
     case '/tour-manage': return require('@/app/tour-manage').default;
