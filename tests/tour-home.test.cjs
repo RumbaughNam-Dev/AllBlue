@@ -66,6 +66,7 @@ function screen(state) {
     'react-native': {
       ...Object.fromEntries(['View', 'Text', 'ScrollView', 'FlatList', 'Pressable', 'Image', 'ActivityIndicator', 'RefreshControl'].map(n => [n, n])),
       StyleSheet: { create: x => x }, Platform: { OS: 'ios' }, useWindowDimensions: () => ({ width: 390, height: 844 }),
+      DeviceEventEmitter: { addListener: () => ({ remove() {} }) },
     },
     'react-native-safe-area-context': { useSafeAreaInsets: () => ({ top: 0, bottom: 34, right: 0 }) },
     '@expo/vector-icons': { Ionicons: 'Ionicons' },
@@ -76,7 +77,7 @@ function screen(state) {
     './ui': ui,
     './TourCards': { TourCardItem: function TourCardItem() {}, TourRow: function TourRow() {}, TourEmpty: function TourEmpty() {} },
     './TourSearchPopup': { __esModule: true, default: 'TourSearchPopup', EMPTY_SEARCH: {} },
-    './useTourHome': { useTourHome: () => ({ refreshing: false, error: false, retry() {}, refresh() {}, loading: false, ...state }) },
+    './useTourHome': { useTourHome: () => ({ refreshing: false, error: false, retry() {}, refresh() {}, reload() {}, loading: false, ...state }) },
   }).default;
   // First render measures nothing; lay the screen out at phone width like onLayout would.
   let tree = h.render(Screen);
@@ -86,11 +87,12 @@ function screen(state) {
 }
 const named = (all, name) => all.filter(n => n.type?.name === name);
 
-test('tour home: + and gear only for instructors, wish and search for everyone, in one row', () => {
-  const home = { canCreate: true, banners: [], recent: [card(1)], popular: [] };
+test('tour home: + and gear and received wishes only for instructors, wish and search for everyone, in one row', () => {
+  const home = { canCreate: true, wishNew: 3, banners: [], recent: [card(1)], popular: [] };
   const all = screen({ home });
   assert.deepEqual(named(all, 'IconChip').map(n => n.props.label), ['투어 만들기', '투어 관리']);
-  assert.deepEqual(named(all, 'ActionChip').map(n => n.props.label), ['투어 가고 싶은 사람 여기 주목!', '투어 검색']);
+  assert.deepEqual(named(all, 'ActionChip').map(n => n.props.label), ['투어 가고 싶다고 제안이 왔어요!', '투어 가고 싶은 사람 여기 주목!', '투어 검색']);
+  assert.equal(named(all, 'ActionChip')[0].props.count, 3);
   const viewer = screen({ home: { ...home, canCreate: false } });
   assert.deepEqual(named(viewer, 'IconChip'), []);
   assert.deepEqual(named(viewer, 'ActionChip').map(n => n.props.label), ['투어 가고 싶은 사람 여기 주목!', '투어 검색']);

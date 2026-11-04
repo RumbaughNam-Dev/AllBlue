@@ -16,6 +16,7 @@ test('slide 21: each tour notice opens its screen', () => {
 });
 
 test('schedule invites and malformed data are not tour notices', () => {
+  assert.deepEqual(go('TOUR_WISH', 0), { pathname: '/tour-wishes', params: {} }, 'tour wishes have no tour and open the wish list');
   assert.equal(tourNoticeDestination('SCHEDULE_INVITE', 9), null);
   assert.equal(tourNoticeDestination(undefined, 9), null);
   assert.equal(tourNoticeDestination('CREATE_APPROVED', null), null);

@@ -35,10 +35,17 @@ export default function TourCreateScreen() {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   // 10장 '수정' · '수정 후 재요청'은 같은 화면 (승인 대기 · 불허 투어)
-  const { editId } = useLocalSearchParams<{ editId?: string }>();
+  // 역제안 목록의 '이 제안으로 투어 만들기': 지역 · 기간 · 모집 인원을 미리 채움
+  const { editId, wishContinent, wishCountry, wishStart, wishEnd, wishCapacity } = useLocalSearchParams<{
+    editId?: string; wishContinent?: string; wishCountry?: string; wishStart?: string; wishEnd?: string; wishCapacity?: string;
+  }>();
   const editing = !!editId;
-  const [form, setForm] = useState<TourForm>(EMPTY_TOUR_FORM);
-  const [initial, setInitial] = useState<TourForm>(EMPTY_TOUR_FORM);
+  const fromWish = useMemo<TourForm>(() => (editId || !wishCountry ? EMPTY_TOUR_FORM : {
+    ...EMPTY_TOUR_FORM,
+    continentCode: wishContinent ?? '', countryCode: wishCountry, startDate: wishStart ?? '', endDate: wishEnd ?? '', capacity: wishCapacity ?? '',
+  }), []); // eslint-disable-line react-hooks/exhaustive-deps
+  const [form, setForm] = useState<TourForm>(fromWish);
+  const [initial, setInitial] = useState<TourForm>(fromWish);
   const [editState, setEditState] = useState<{ status: TourStatus; recruitedCount: number; reviewNote: string | null; isPublic: boolean } | null>(null);
   const [loadingEdit, setLoadingEdit] = useState(editing);
   const [touched, setTouched] = useState<Partial<Record<TourField, boolean>>>({});

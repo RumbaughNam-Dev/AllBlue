@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, FlatList, Pressable, ActivityIndicator, RefreshControl, Platform, useWindowDimensions,
+  DeviceEventEmitter, View, Text, StyleSheet, ScrollView, FlatList, Pressable, ActivityIndicator, RefreshControl, Platform, useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,7 +20,12 @@ const SIDE = 20;
 
 // 투어 홈: 위에 버튼 줄(고정), 아래로 광고 배너 · 최근 등록된 투어 · 최근 관심이 많은 투어.
 export default function TourHomeScreen() {
-  const { home, loading, refreshing, error, retry, refresh } = useTourHome();
+  const { home, loading, refreshing, error, retry, refresh, reload } = useTourHome();
+  // 역제안 목록을 보고 나면 숫자를 다시 받아옴 (펼친 화면에서는 홈이 계속 보이고 있어서)
+  useEffect(() => {
+    const sub = DeviceEventEmitter.addListener('tourWishesSeen', () => { void reload(); });
+    return () => sub.remove();
+  }, [reload]);
   const router = useAppRouter();
   const [searching, setSearching] = useState(false);
   // 카드 · 배너를 누르면 투어 상세 (펼친 화면이면 오른쪽 칸)
@@ -50,6 +55,8 @@ export default function TourHomeScreen() {
             <>
               <IconChip icon="add" label="투어 만들기" onPress={() => router.push('/tour-create')} />
               <IconChip icon="settings-sharp" label="투어 관리" onPress={() => router.push('/tour-manage')} />
+              {/* 강사 · admin: 들어온 역제안 목록, 오른쪽 숫자는 아직 안 본 제안 */}
+              <ActionChip icon="mail-unread" label="투어 가고 싶다고 제안이 왔어요!" count={home.wishNew ?? 0} onPress={() => router.push('/tour-wishes')} />
             </>
           )}
           {/* 누구나: 가고 싶은 투어를 강사님들께 거꾸로 제안 (투어 역제안) */}
@@ -125,13 +132,14 @@ function IconChip({ icon, label, onPress }: { icon: 'add' | 'settings-sharp'; la
   );
 }
 
-function ActionChip({ icon, label, onPress = showTourComingSoon }: { icon?: 'search' | 'megaphone'; label: string; onPress?: () => void }) {
+function ActionChip({ icon, label, count = 0, onPress = showTourComingSoon }: { icon?: 'search' | 'megaphone' | 'mail-unread'; label: string; count?: number; onPress?: () => void }) {
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={({ pressed }) => pressed && { opacity: 0.6 }}>
+    <Pressable accessibilityRole="button" accessibilityLabel={count > 0 ? `${label}, 새 제안 ${count}건` : label} onPress={onPress} style={({ pressed }) => pressed && { opacity: 0.6 }}>
       <GlassChip fallbackStyle={styles.chipFallback}>
         <View style={styles.chipContent}>
           {icon && <Ionicons name={icon} size={15} color={Colors.brand.white} />}
           <Text style={styles.chipText}>{label}</Text>
+          {count > 0 && <View style={styles.count}><Text style={styles.countText}>{count > 99 ? '99+' : count}</Text></View>}
         </View>
       </GlassChip>
     </Pressable>
@@ -189,6 +197,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
   },
+  count: {
+    minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 5, marginLeft: 2,
+    alignItems: 'center', justifyContent: 'center', backgroundColor: '#FF4D4F',
+  },
+  countText: { fontFamily: 'SUIT-Bold', fontSize: 11, color: Colors.brand.white },
   chipText: {
     fontFamily: 'SUIT-SemiBold',
     fontSize: 13,

@@ -31,5 +31,6 @@ export function useTourHome() {
 
   const retry = useCallback(() => { setLoading(true); void load(); }, [load]);
   const refresh = useCallback(() => load(true), [load]);
-  return { home, loading, refreshing, error, retry, refresh };
+  const reload = useCallback(() => load(), [load]); // 당겨서 새로고침 표시 없이 조용히
+  return { home, loading, refreshing, error, retry, refresh, reload };
 }
