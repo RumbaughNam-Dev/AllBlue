@@ -578,7 +578,7 @@ export const api = {
   },
   // 투어 역제안 ('투어 가고 싶어요'): 하루에 한 번
   getTourWishStatus() { return request<{ sentToday: boolean }>('/tours/wishes/today'); },
-  createTourWish(input: { continentCode: string; countryCode: string; startDate: string; endDate: string; headcount: number }) {
+  createTourWish(input: { continentCode: string; countryCode: string; startDate: string; endDate: string; headcount: number; tourStyle: 'DIVING_ONLY' | 'DIVING_SIGHTSEEING' }) {
     return request<{ success: boolean; recipientCount: number }>('/tours/wishes', { method: 'POST', body: JSON.stringify(input) });
   },
   createTourRequest(input: TourRequestInput) {
