@@ -19,13 +19,19 @@ const ACCENT = '#00E5FF';
 const FREE = '#FFD166';
 const PROMINENT_TINT = 'rgba(255,255,255,0.85)';
 type Sheet = 'continent' | 'country' | 'from' | 'to' | null;
-type Draft = { continent: string; country: string; from: string; to: string; headcount: number };
+type TourStyle = 'DIVING_ONLY' | 'DIVING_SIGHTSEEING';
+type Draft = { continent: string; country: string; from: string; to: string; headcount: number; tourStyle: TourStyle | null };
+// 투어 형태: 둘 중 하나는 꼭 고름
+const STYLES: { value: TourStyle; label: string; icon: React.ComponentProps<typeof Ionicons>['name'] }[] = [
+  { value: 'DIVING_ONLY', label: '오직 다이빙만', icon: 'water-outline' },
+  { value: 'DIVING_SIGHTSEEING', label: '다이빙 + 관광', icon: 'camera-outline' },
+];
 // 참여 인원: 나를 포함해 1~20명, 처음엔 나 혼자(1명)
 const HEADCOUNT_MIN = 1, HEADCOUNT_MAX = 20;
-const EMPTY: Draft = { continent: '', country: '', from: '', to: '', headcount: HEADCOUNT_MIN };
+const EMPTY: Draft = { continent: '', country: '', from: '', to: '', headcount: HEADCOUNT_MIN, tourStyle: null };
 const dot = (day: string) => day.replace(/-/g, '.');
 
-// 투어 역제안 ('투어 가고 싶어요'): 누구나 기간 · 지역 · 참여 인원만 정해 강사님들께 알림. 하루에 한 번
+// 투어 역제안 ('투어 가고 싶어요'): 누구나 기간 · 지역 · 참여 인원 · 투어 형태만 정해 강사님들께 알림. 하루에 한 번
 export default function TourWishScreen() {
   const router = useAppRouter();
   const insets = useSafeAreaInsets();
@@ -48,7 +54,7 @@ export default function TourWishScreen() {
   }, []);
 
   const set = (patch: Partial<Draft>) => setDraft(prev => ({ ...prev, ...patch }));
-  const filled = !!(draft.continent && draft.country && draft.from && draft.to);
+  const filled = !!(draft.continent && draft.country && draft.from && draft.to && draft.tourStyle);
   const canSend = filled && sentToday === false;
   const place = draft.country ? `${regionName(continents, draft.continent)} · ${regionName(countries, draft.country)}` : '';
   const period = draft.from && draft.to ? (draft.from === draft.to ? dot(draft.from) : `${dot(draft.from)} ~ ${dot(draft.to)}`) : '';
@@ -61,7 +67,7 @@ export default function TourWishScreen() {
     sendingRef.current = true; // 두 번 눌러도 한 번만
     setSending(true);
     try {
-      await api.createTourWish({ continentCode: draft.continent, countryCode: draft.country, startDate: draft.from, endDate: draft.to, headcount: draft.headcount });
+      await api.createTourWish({ continentCode: draft.continent, countryCode: draft.country, startDate: draft.from, endDate: draft.to, headcount: draft.headcount, tourStyle: draft.tourStyle! });
       setConfirming(false);
       router.back(); // 투어 홈으로
     } catch (e: any) {
@@ -109,7 +115,7 @@ export default function TourWishScreen() {
           <View style={styles.divider} />
 
           <IntroLine icon="paper-plane-outline">
-            <Text style={styles.point}>전문 투어 강사님</Text>들께 <Text style={styles.point}>기간 · 지역 · 인원</Text>만 정해서 투어를 제안해 보세요!
+            <Text style={styles.point}>전문 투어 강사님</Text>들께 <Text style={styles.point}>기간 · 지역 · 인원 · 형태</Text>만 정해서 투어를 제안해 보세요!
           </IntroLine>
           <IntroLine icon="notifications-outline">
             제안하면 강사님들께 <Text style={styles.point}>투어 제안 알림</Text>이 바로 가요.
@@ -146,6 +152,26 @@ export default function TourWishScreen() {
         </View>
         <Text style={styles.headcountHint}>나를 포함한 인원이에요 (최대 {HEADCOUNT_MAX}명)</Text>
 
+        <Text style={styles.label}><Ionicons name="options-outline" size={14} color={ACCENT} />  투어 형태</Text>
+        <View style={styles.row} accessibilityRole="radiogroup">
+          {STYLES.map(option => {
+            const selected = draft.tourStyle === option.value;
+            return (
+              <Pressable
+                key={option.value}
+                accessibilityRole="radio"
+                accessibilityState={{ selected }}
+                onPress={() => set({ tourStyle: option.value })}
+                style={({ pressed }) => [styles.styleOption, selected && styles.styleOptionSelected, pressed && { opacity: 0.7 }]}
+              >
+                <Ionicons name={option.icon} size={22} color={selected ? ACCENT : 'rgba(255,255,255,0.55)'} />
+                <Text style={[styles.styleText, selected && styles.styleTextSelected]}>{option.label}</Text>
+                {selected && <Ionicons name="checkmark-circle" size={16} color={ACCENT} style={styles.styleCheck} />}
+              </Pressable>
+            );
+          })}
+        </View>
+
         {sentToday ? (
           <View style={styles.sentNotice}>
             <Ionicons name="time-outline" size={16} color={FREE} />
@@ -181,6 +207,7 @@ export default function TourWishScreen() {
           <SummaryRow icon="calendar-outline" text={period} />
           <SummaryRow icon="location-outline" text={place} />
           <SummaryRow icon="people-outline" text={`${draft.headcount}명 (나 포함)`} />
+          <SummaryRow icon="options-outline" text={STYLES.find(option => option.value === draft.tourStyle)?.label ?? ''} />
         </View>
         <Text style={styles.confirmText}>
           <Text style={styles.point}>확인</Text>을 누르면 <Text style={styles.point}>강사님들께 알림</Text>이 전송됩니다!
@@ -335,6 +362,15 @@ const styles = StyleSheet.create({
   stepCircle: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.15)' },
   headcountValue: { fontFamily: 'SUIT-SemiBold', fontSize: 15, color: Colors.brand.white },
   headcountNumber: { fontFamily: 'SUIT-Bold', fontSize: 20, color: ACCENT },
+  styleOption: {
+    flex: 1, alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 14,
+    backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+  },
+  styleOptionSelected: { backgroundColor: 'rgba(0,229,255,0.12)', borderColor: ACCENT },
+  styleText: { fontFamily: 'SUIT-SemiBold', fontSize: 14, color: 'rgba(255,255,255,0.7)' },
+  styleTextSelected: { fontFamily: 'SUIT-Bold', color: Colors.brand.white },
+  styleCheck: { position: 'absolute', top: 8, right: 8 },
   headcountHint: { fontFamily: 'SUIT-Regular', fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 6 },
   hint: { fontFamily: 'SUIT-Regular', fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 14 },
   sentNotice: {
