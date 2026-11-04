@@ -43,6 +43,30 @@ export default function TourManageScreen() {
   const busy = useRef(new Set<number>());
   const request = useLatestRequest();
   const today = localToday();
+  // 투어 역제안 알림 허용: 사용자별 설정(user_setting 'tourWishNotify'), 불러오기 전엔 null
+  const [wishNotify, setWishNotify] = useState<boolean | null>(null);
+  const savingWish = useRef(false);
+  useEffect(() => {
+    let active = true;
+    api.getUserSettings()
+      .then(res => { if (active) setWishNotify(res.settings.tourWishNotify === 'Y'); })
+      .catch(() => { if (active) setWishNotify(false); });
+    return () => { active = false; };
+  }, []);
+  const toggleWishNotify = async () => {
+    if (wishNotify == null || savingWish.current) return;
+    const next = !wishNotify;
+    savingWish.current = true;
+    setWishNotify(next);
+    try {
+      await api.updateUserSetting('tourWishNotify', next ? 'Y' : 'N');
+    } catch (e) {
+      setWishNotify(!next);
+      showError(e);
+    } finally {
+      savingWish.current = false;
+    }
+  };
 
   const load = useCallback(async (mode: 'first' | 'quiet' | 'refresh' = 'first') => {
     const isCurrent = request.start();
@@ -175,6 +199,17 @@ export default function TourManageScreen() {
         <Text style={styles.headerTitle}>투어 관리</Text>
         <View style={styles.backButton} />
       </View>
+
+      <Pressable
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: !!wishNotify, disabled: wishNotify == null }}
+        disabled={wishNotify == null}
+        onPress={toggleWishNotify}
+        style={({ pressed }) => [styles.wishNotify, wishNotify == null && { opacity: 0.4 }, pressed && { opacity: 0.6 }]}
+      >
+        <Ionicons name={wishNotify ? 'checkbox' : 'square-outline'} size={22} color={Colors.brand.white} />
+        <Text style={styles.wishNotifyText}>투어 역제안 알림 허용</Text>
+      </Pressable>
 
       <View style={styles.tabs}>
         {(['ongoing', 'past'] as Tab[]).map(value => (
@@ -331,6 +366,8 @@ const styles = StyleSheet.create({
   },
   backArrow: { fontFamily: 'SUIT-Bold', fontSize: 16, color: Colors.brand.white, marginRight: 1 },
   headerTitle: { fontFamily: 'SUIT-Bold', fontSize: 18, color: Colors.brand.white },
+  wishNotify: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start', minHeight: 44, paddingHorizontal: SIDE },
+  wishNotifyText: { fontFamily: 'SUIT-SemiBold', fontSize: 14, color: Colors.brand.white },
   tabs: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: SIDE, paddingTop: 4, paddingBottom: 12 },
   tabFallback: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 17, backgroundColor: 'rgba(255,255,255,0.08)' },
   tabActive: { backgroundColor: 'rgba(255,255,255,0.22)' },

@@ -985,7 +985,8 @@ export const api = {
 
   // 사용자 설정
   getUserSettings() {
-    return request<{ settings: { schedulePublic: string } }>('/user/settings');
+    // tourWishNotify: 투어 관리의 '투어 역제안 알림 허용' (Y/N, 없으면 꺼짐)
+    return request<{ settings: { schedulePublic: string; tourWishNotify?: string } }>('/user/settings');
   },
 
   updateUserSetting(key: string, value: string) {
