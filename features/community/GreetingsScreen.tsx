@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, Animated, Easing, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 // 목록(스크롤)과 좌우 밀기가 서로 터치를 나눠 갖도록 제스처 핸들러의 목록 · 새로고침을 씀 (RN 기본 PanResponder는 iOS 스크롤이 터치를 가져가 취소됨)
 import { FlatList, GestureDetector, GestureHandlerRootView, RefreshControl, usePanGesture } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -13,13 +13,16 @@ import { dayLabel, monthCells, shiftDay, shiftMonth, WEEKDAYS } from './greeting
 
 // 6장 출석인사: 하루 단위로 인사 건수와 한 줄 목록만 (상세 없음). 날짜를 누르면 달력, 오늘만 입력 · 하루 1번 · 삭제만
 const EDGE_BACK_WIDTH = 30; // 왼쪽 끝 (뒤로가기 밀기 영역)
-const SWIPE_DISTANCE = 50;
+const SWIPE_DISTANCE = 50; // 이만큼 밀면 넘어감 (아니면 제자리로)
+const FLICK_VELOCITY = 500; // 짧게 휙 밀어도 넘어감
+const EDGE_RESISTANCE = 0.25; // 더 갈 수 없는 쪽(오늘의 다음 날)은 살짝만 따라옴
+
+type DayData = { count: number; greetedToday: boolean; items: CommunityGreeting[] };
 
 export default function GreetingsScreen() {
   const insets = useSafeAreaInsets();
   const [day, setDay] = useState<string | null>(null);
   const [today, setToday] = useState<string | null>(null);
-  const [data, setData] = useState<{ count: number; greetedToday: boolean; items: CommunityGreeting[] } | null>(null);
   const [error, setError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [calendar, setCalendar] = useState(false);
@@ -28,21 +31,43 @@ export default function GreetingsScreen() {
   const request = useRef(0);
   const menu = useContentMenu();
 
+  // 날짜별로 받아 둔 인사. 보고 있는 날의 앞뒤 날짜도 미리 받아 두어 밀거나 ‹ › 를 눌러도 로딩 없이 바로 보임
+  const cache = useRef(new Map<string, DayData>());
+  const [, setVersion] = useState(0);
+  const refresh = () => setVersion(v => v + 1);
+  const data = day ? cache.current.get(day) ?? null : null;
+
+  const fetchDay = useCallback(async (target: string | null) => {
+    const result = await api.getGreetings(target ?? undefined);
+    cache.current.set(result.date, { count: result.count, greetedToday: result.greetedToday, items: result.items });
+    return result;
+  }, []);
+
   const load = useCallback(async (target = day) => {
     const id = ++request.current;
     try {
-      const result = await api.getGreetings(target ?? undefined);
+      const result = await fetchDay(target);
       if (id !== request.current) return;
-      setDay(result.date); setToday(result.today);
-      setData({ count: result.count, greetedToday: result.greetedToday, items: result.items });
-      setError(false);
+      setDay(result.date); setToday(result.today); setError(false);
+      refresh();
     } catch {
       if (id === request.current) setError(true);
     }
-  }, [day]);
+  }, [day, fetchDay]);
   useEffect(() => { void load(null); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const go = (target: string) => { setDay(target); setData(null); setCalendar(false); void load(target); };
+  const prefetching = useRef(new Set<string>());
+  useEffect(() => {
+    if (!day || !today) return;
+    for (const target of [shiftDay(day, -1), shiftDay(day, 1)]) {
+      if (target > today || cache.current.has(target) || prefetching.current.has(target)) continue;
+      prefetching.current.add(target);
+      fetchDay(target).then(refresh, () => {}).finally(() => prefetching.current.delete(target));
+    }
+  }, [day, today, fetchDay]);
+
+  // 달력에서 고른 날: 받아 둔 날이면 바로 보이고 뒤에서 새로 받음
+  const go = (target: string) => { setDay(target); setCalendar(false); void load(target); };
   const send = async () => {
     const content = text.replace(/\s+/g, ' ').trim();
     if (!content || sending) return;
@@ -60,55 +85,99 @@ export default function GreetingsScreen() {
   };
   const openMenu = (g: CommunityGreeting) => menu.open({
     type: 'GREETING', id: g.id, author: g.author, mine: g.mine, canDelete: g.canDelete,
-    onDeleted: () => void load(), onBlocked: () => void load(),
+    onDeleted: () => void load(),
+    // 차단하면 다른 날 목록에서도 빠져야 하므로 받아 둔 날을 비움
+    onBlocked: () => { cache.current.clear(); void load(); },
   });
 
   const isToday = !!day && day === today;
+  const isTodayRef = useRef(isToday); isTodayRef.current = isToday;
 
-  // 화면 가운데에서 좌우로 밀면 전날 · 다음 날 (오른쪽으로 밀면 전날). 왼쪽 끝에서 밀면 화면 닫기(뒤로)는 그대로
-  const swipeDay = useRef<(dir: -1 | 1) => void>(() => {});
-  swipeDay.current = dir => {
-    if (!day || (dir === 1 && isToday)) return;
-    go(shiftDay(day, dir));
+  // 화면 가운데에서 좌우로 밀면 [전날 | 이 날 | 다음 날] 목록이 손가락을 따라 움직이다 옆 날로 미끄러져 넘어감
+  // (오른쪽으로 밀면 전날). ‹ › 버튼도 같은 모양. 왼쪽 끝에서 밀면 화면 닫기(뒤로)는 그대로
+  const slide = useRef(new Animated.Value(0)).current;
+  const [width, setWidth] = useState(0);
+  const busy = useRef(false);
+  const recenter = useRef(false);
+  const settle = (toValue: number) => new Promise<void>(resolve => {
+    Animated.timing(slide, { toValue, duration: 220, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start(() => resolve());
+  });
+  const slideDay = useRef<(dir: -1 | 1) => void>(() => {});
+  slideDay.current = async dir => {
+    if (!day || !width || busy.current || (dir === 1 && isToday)) { void settle(0); return; }
+    busy.current = true;
+    const target = shiftDay(day, dir);
+    await settle(dir === -1 ? width : -width); // 전날은 왼쪽에서 들어옴
+    recenter.current = true; // 옆 칸이 가운데 칸이 되는 순간 위치를 가운데로 (깜빡임 없이)
+    setDay(target);
+    void load(target); // 받아 둔 날이어도 뒤에서 새로 받음
   };
+  useLayoutEffect(() => {
+    if (!recenter.current) return;
+    recenter.current = false;
+    slide.setValue(0);
+    busy.current = false;
+  }, [day, slide]);
+
+  const fromEdge = (event: { absoluteX: number; translationX: number }) => event.absoluteX - event.translationX < EDGE_BACK_WIDTH;
   const swipe = usePanGesture({
     runOnJS: true,
     activeOffsetX: [-20, 20], // 옆으로 20pt 넘게 밀면 시작
     failOffsetY: [-15, 15], // 위아래로 먼저 움직이면 목록 스크롤
+    onUpdate: event => {
+      if (busy.current || fromEdge(event)) return;
+      const dx = event.translationX;
+      slide.setValue(dx < 0 && isTodayRef.current ? dx * EDGE_RESISTANCE : dx);
+    },
     onDeactivate: event => {
-      if (event.canceled || event.absoluteX - event.translationX < EDGE_BACK_WIDTH) return;
-      if (event.translationX > SWIPE_DISTANCE) swipeDay.current(-1);
-      else if (event.translationX < -SWIPE_DISTANCE) swipeDay.current(1);
+      if (busy.current || fromEdge(event)) return;
+      const dx = event.translationX, vx = event.velocityX;
+      if (!event.canceled && (dx > SWIPE_DISTANCE || (dx > 10 && vx > FLICK_VELOCITY))) slideDay.current(-1);
+      else if (!event.canceled && (dx < -SWIPE_DISTANCE || (dx < -10 && vx < -FLICK_VELOCITY))) slideDay.current(1);
+      else void settle(0);
     },
   });
+
+  const prevData = day ? cache.current.get(shiftDay(day, -1)) ?? null : null;
+  const nextData = day && !isToday ? cache.current.get(shiftDay(day, 1)) ?? null : null;
 
   return (
     <KeyboardAvoidingView style={[ui.screen, { paddingTop: insets.top }]} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <CommunityHeader title="출석인사" right={day && <HeaderButton icon={calendar ? 'list' : 'calendar-outline'} label={calendar ? '목록' : '달력'} onPress={() => setCalendar(c => !c)} />} />
-      {!day || (!data && !calendar) ? <CenterMessage loading={!error} message="인사를 불러오지 못했어요." onRetry={error ? () => load() : undefined} /> : calendar ? (
+      {!day ? <CenterMessage loading={!error} message="인사를 불러오지 못했어요." onRetry={error ? () => load() : undefined} /> : calendar ? (
         <GreetingCalendar day={day} today={today ?? day} onPick={go} />
       ) : (
         <GestureHandlerRootView style={{ flex: 1 }}>
         <GestureDetector gesture={swipe}>
         <View style={{ flex: 1 }}>
           <View style={styles.dayBar}>
-            <Pressable accessibilityLabel="전날" onPress={() => go(shiftDay(day, -1))} hitSlop={10}><Ionicons name="chevron-back" size={22} color="white" /></Pressable>
+            <Pressable accessibilityLabel="전날" onPress={() => slideDay.current(-1)} hitSlop={10}><Ionicons name="chevron-back" size={22} color="white" /></Pressable>
             <Pressable onPress={() => setCalendar(true)} style={styles.dayCenter}>
               <Text style={styles.dayText}>{dayLabel(day)}{isToday ? ' · 오늘' : ''}</Text>
               <Text style={styles.count}>인사 {data?.count ?? 0}건</Text>
             </Pressable>
-            <Pressable accessibilityLabel="다음 날" disabled={isToday} onPress={() => go(shiftDay(day, 1))} hitSlop={10} style={isToday && { opacity: 0.25 }}>
+            <Pressable accessibilityLabel="다음 날" disabled={isToday} onPress={() => slideDay.current(1)} hitSlop={10} style={isToday && { opacity: 0.25 }}>
               <Ionicons name="chevron-forward" size={22} color="white" />
             </Pressable>
           </View>
-          <FlatList
-            data={data?.items ?? []}
-            keyExtractor={g => String(g.id)}
-            contentContainerStyle={[styles.list, !data?.items.length && { flexGrow: 1 }]}
-            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor="rgba(255,255,255,0.6)" />}
-            ListEmptyComponent={<CenterMessage message={isToday ? '오늘 첫 인사를 남겨 보세요.' : '이 날은 인사가 없어요.'} />}
-            renderItem={({ item }) => <GreetingRow greeting={item} onLongPress={openMenu} />}
-          />
+          <View style={styles.slideArea} onLayout={e => setWidth(e.nativeEvent.layout.width)}>
+            <Animated.View style={[styles.slideRow, { width: width * 3, marginLeft: -width, transform: [{ translateX: slide }] }]}>
+              <View style={{ width }}><SidePanel data={prevData} /></View>
+              <View style={{ width }}>
+                {data ? (
+                  <FlatList
+                    data={data.items}
+                    keyExtractor={g => String(g.id)}
+                    contentContainerStyle={[styles.list, !data.items.length && { flexGrow: 1 }]}
+                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor="rgba(255,255,255,0.6)" />}
+                    ListEmptyComponent={<CenterMessage message={isToday ? '오늘 첫 인사를 남겨 보세요.' : '이 날은 인사가 없어요.'} />}
+                    renderItem={({ item }) => <GreetingRow greeting={item} onLongPress={openMenu} />}
+                  />
+                ) : <CenterMessage loading={!error} message="인사를 불러오지 못했어요." onRetry={error ? () => load() : undefined} />}
+              </View>
+              <View style={{ width }}>{!isToday && <SidePanel data={nextData} />}</View>
+            </Animated.View>
+          </View>
           {isToday && (
             <View style={[styles.inputArea, { paddingBottom: insets.bottom + 8 }]}>
               {data?.greetedToday ? <Text style={styles.done}>오늘 인사 완료 · 내 인사는 길게 눌러 지울 수 있어요</Text> : (
@@ -128,6 +197,17 @@ export default function GreetingsScreen() {
       )}
       {menu.element}
     </KeyboardAvoidingView>
+  );
+}
+
+// 밀 때 옆에 보이는 전날 · 다음 날 목록 (보기만, 아직 못 받았으면 로딩)
+function SidePanel({ data }: { data: DayData | null }) {
+  if (!data) return <CenterMessage loading message="" />;
+  if (!data.items.length) return <CenterMessage message="이 날은 인사가 없어요." />;
+  return (
+    <View style={[styles.list, { overflow: 'hidden' }]} pointerEvents="none">
+      {data.items.slice(0, 20).map(item => <GreetingRow key={item.id} greeting={item} />)}
+    </View>
   );
 }
 
@@ -173,6 +253,8 @@ function GreetingCalendar({ day, today, onPick }: { day: string; today: string; 
 }
 
 const styles = StyleSheet.create({
+  slideArea: { flex: 1, overflow: 'hidden' },
+  slideRow: { flex: 1, flexDirection: 'row' },
   dayBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginHorizontal: 20, marginBottom: 10, padding: 12, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.08)' },
   dayCenter: { alignItems: 'center', gap: 2 },
   dayText: { fontFamily: 'SUIT-Bold', fontSize: 16, color: 'white' },
