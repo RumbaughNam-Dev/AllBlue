@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/Colors';
 import PopupBackdrop from '@/components/PopupBackdrop';
 import GlassBackground, { glassClear, PANEL_TINT } from '@/components/GlassBackground';
@@ -14,11 +15,13 @@ export function canSubmitReport(reason: string | null, memo: string) {
 }
 
 export function Popup({ visible, title, onClose, children }: { visible: boolean; title: string; onClose: () => void; children: React.ReactNode }) {
+  // 아이폰 듀오: 오른쪽 여백(카메라 · 상태 표시)을 빼고 그림 (일반 폰은 좌우 안전 영역이 0)
+  const insets = useSafeAreaInsets();
   return (
     <Modal transparent visible={visible} animationType="fade" statusBarTranslucent onRequestClose={onClose}>
       <PopupBackdrop />
       <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="닫기" />
-      <KeyboardAvoidingView style={styles.center} behavior={Platform.OS === 'ios' ? 'padding' : undefined} pointerEvents="box-none">
+      <KeyboardAvoidingView style={[styles.center, { paddingLeft: 24 + insets.left, paddingRight: 24 + insets.right }]} behavior={Platform.OS === 'ios' ? 'padding' : undefined} pointerEvents="box-none">
         <View style={[styles.panel, glassClear]}>
           <GlassBackground radius={20} tintColor={PANEL_TINT} />
           <Text style={styles.title}>{title}</Text>
