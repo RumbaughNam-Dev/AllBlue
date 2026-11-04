@@ -53,7 +53,7 @@ export default function TourHomeScreen() {
             </>
           )}
           {/* 누구나: 가고 싶은 투어를 강사님들께 거꾸로 제안 (투어 역제안) */}
-          <ActionChip icon="hand-left" label="투어 가고 싶어요" onPress={() => router.push('/tour-wish')} />
+          <ActionChip icon="megaphone" label="투어 가고 싶은 사람 여기 주목!" onPress={() => router.push('/tour-wish')} />
           <ActionChip icon="search" label="투어 검색" onPress={() => setSearching(true)} />
         </View>
       </View>
@@ -125,7 +125,7 @@ function IconChip({ icon, label, onPress }: { icon: 'add' | 'settings-sharp'; la
   );
 }
 
-function ActionChip({ icon, label, onPress = showTourComingSoon }: { icon?: 'search' | 'hand-left'; label: string; onPress?: () => void }) {
+function ActionChip({ icon, label, onPress = showTourComingSoon }: { icon?: 'search' | 'megaphone'; label: string; onPress?: () => void }) {
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={({ pressed }) => pressed && { opacity: 0.6 }}>
       <GlassChip fallbackStyle={styles.chipFallback}>
@@ -161,8 +161,11 @@ const styles = StyleSheet.create({
     paddingTop: 4,
     paddingBottom: 12,
   },
+  // 폭이 모자라면 다음 줄로 (좁은 폰에서 '투어 검색'이 밀려나지 않게)
   actionGroup: {
+    flex: 1,
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 8,
   },
   chipFallback: {
