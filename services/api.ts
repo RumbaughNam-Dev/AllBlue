@@ -596,6 +596,11 @@ export const api = {
     const params = Object.entries(query).filter(([, v]) => v).map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join('&');
     return request<{ seenAt: string | null; loadedAt: string; from: string; to: string; wishes: TourWish[] }>(`/tours/wishes?${params}`);
   },
+  // 투어 제안 목록 첫 화면: 최근 들어온 순 10개씩. before = 더 예전 것, after = 더 최근 것 (hasMore는 그 방향에 더 있음)
+  getRecentTourWishes(cursor: { before?: number; after?: number } = {}) {
+    const q = cursor.before ? `?before=${cursor.before}` : cursor.after ? `?after=${cursor.after}` : '';
+    return request<{ seenAt: string | null; loadedAt: string; hasMore: boolean; wishes: TourWish[] }>(`/tours/wishes/recent${q}`);
+  },
   markTourWishesSeen(until: string) {
     return request<{ success: boolean }>('/tours/wishes/seen', { method: 'POST', body: JSON.stringify({ until }) });
   },
