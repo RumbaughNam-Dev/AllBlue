@@ -9,6 +9,7 @@ import { api, type CommunityGreeting } from '@/services/api';
 import { GreetingRow } from './Cards';
 import { CenterMessage, CommunityHeader, HeaderButton, LIMITS, styles as ui } from './ui';
 import { useContentMenu } from './useContentMenu';
+import { useScreenParams } from '@/features/split/SplitPane';
 import { dayLabel, monthCells, shiftDay, shiftMonth, WEEKDAYS } from './greetingDates';
 
 // 6장 출석인사: 하루 단위로 인사 건수와 한 줄 목록만 (상세 없음). 날짜를 누르면 달력, 오늘만 입력 · 하루 1번 · 삭제만
@@ -61,7 +62,9 @@ export default function GreetingsScreen() {
       if (id === request.current) setError(true);
     }
   }, [day, fetchDay]);
-  useEffect(() => { void load(null); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // date: 커뮤니티 홈의 인사를 눌러 들어오면 그 날, 없으면 오늘
+  const { date: startDate } = useScreenParams<{ date?: string }>();
+  useEffect(() => { void load(startDate && /^\d{4}-\d{2}-\d{2}$/.test(startDate) ? startDate : null); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const prefetching = useRef(new Set<string>());
   useEffect(() => {

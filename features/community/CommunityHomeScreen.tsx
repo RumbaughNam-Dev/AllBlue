@@ -88,7 +88,8 @@ export default function CommunityHomeScreen() {
           <View style={styles.rows}>
             <Text style={styles.todayCount}>오늘 인사 {home.greetings.todayCount}건</Text>
             {home.greetings.items.length
-              ? home.greetings.items.map(g => <GreetingRow key={g.id} greeting={g} showTime={false} />)
+              // 누르면 그 인사를 남긴 날의 출석인사 목록
+              ? home.greetings.items.map(g => <GreetingRow key={g.id} greeting={g} showTime={false} onPress={item => router.push({ pathname: '/community-greetings', params: { date: item.date } })} />)
               : <Empty text="첫 인사를 남겨 보세요." inline />}
           </View>
 

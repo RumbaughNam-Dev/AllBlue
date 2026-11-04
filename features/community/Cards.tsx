@@ -54,9 +54,12 @@ export function PromoCard({ post, onPress, height, label }: { post: CommunityCar
   );
 }
 
-export function GreetingRow({ greeting, onLongPress, showTime = true }: { greeting: CommunityGreeting; onLongPress?: (g: CommunityGreeting) => void; showTime?: boolean }) {
+export function GreetingRow({ greeting, onPress, onLongPress, showTime = true }: {
+  greeting: CommunityGreeting; onPress?: (g: CommunityGreeting) => void; onLongPress?: (g: CommunityGreeting) => void; showTime?: boolean;
+}) {
   return (
-    <Pressable onLongPress={onLongPress && (() => onLongPress(greeting))} delayLongPress={350} style={[ui.card, styles.greeting]}>
+    <Pressable onPress={onPress && (() => onPress(greeting))} onLongPress={onLongPress && (() => onLongPress(greeting))} delayLongPress={350}
+      accessibilityRole={onPress ? 'button' : undefined} style={({ pressed }) => [ui.card, styles.greeting, onPress && pressed && { opacity: 0.7 }]}>
       {greeting.author.profileImage ? <Image source={{ uri: greeting.author.profileImage }} style={styles.greetingAvatar} /> : (
         <View style={[styles.greetingAvatar, styles.essayPlaceholder]}><Text style={styles.initial}>{greeting.author.nickname.charAt(0)}</Text></View>
       )}
