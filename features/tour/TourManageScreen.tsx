@@ -15,7 +15,7 @@ import { StatusBadge, TourEmpty, TourRow } from './TourCards';
 import { OverCapacityPopup, TourProcessPopup } from './TourManagePopups';
 import { SORT_LABELS } from './TourSearchScreen';
 import { localToday } from './tourForm';
-import { manageActions, manageNotice } from './manage';
+import { manageActions, manageNotice, wishNotice } from './manage';
 import { editNotice } from './edit';
 import { formatFee, formatTourPeriod } from './ui';
 
@@ -291,7 +291,7 @@ function ManageCard({ tour, today, onOpen, onStep, onProcess, onEdit, onRemove, 
   const actions = manageActions(tour.status);
   // 공개 중인 투어의 수정본 상태(18장)가 있으면 그 안내가 우선
   const editing = tour.editRequest;
-  const notice = editNotice(editing) ?? manageNotice(tour.status, tour.endDate, today, tour.reviewNote);
+  const notice = editNotice(editing) ?? wishNotice(tour.status, tour.wishOffer) ?? manageNotice(tour.status, tour.endDate, today, tour.reviewNote);
   const editLabel = editing?.status === 'REJECTED' ? '보완 후 재요청' : actions.editLabel;
   const meta = [tour.countryName, formatTourPeriod(tour.startDate, tour.endDate), tour.fee !== null ? `참가비 ${formatFee(tour.fee)}` : null].filter(Boolean).join('  ·  ');
   return (

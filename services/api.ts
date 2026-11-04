@@ -373,7 +373,10 @@ export type TemporaryLinkPreview = {
   confirmationToken: string;
 };
 // common_code TOUR_STATUS
-export type TourStatus = 'PENDING' | 'REJECTED' | 'PREPARING' | 'RECRUITING' | 'CLOSED' | 'CANCELED' | 'COMPLETED' | 'UNPROCESSED';
+// WISH_WAITING: 역제안 투어가 승인됐지만 제안자 응답 전 · WISH_DECLINED: 제안자가 응하지 않음 (지난 투어)
+export type TourStatus = 'PENDING' | 'REJECTED' | 'PREPARING' | 'RECRUITING' | 'CLOSED' | 'CANCELED' | 'COMPLETED' | 'UNPROCESSED' | 'WISH_WAITING' | 'WISH_DECLINED';
+// 역제안으로 만든 투어의 제안자 응답
+export type WishOfferStatus = 'WAITING' | 'ACCEPTED' | 'DECLINED';
 export type TourCard = {
   id: number; title: string; status: TourStatus;
   continentCode: string; countryCode: string; countryName: string;
@@ -390,6 +393,8 @@ export type TourWishStyle = 'DIVING_ONLY' | 'DIVING_SIGHTSEEING';
 export type TourWish = {
   id: number; nickname: string; continentCode: string; countryCode: string; startDate: string; endDate: string;
   headcount: number | null; tourStyle: TourWishStyle | null; createdAt: string;
+  myTourId: number | null; // 이 제안으로 내가 만든 투어
+  taken: boolean; // 제안자가 이미 다른 투어에 응함
 };
 export type TourWishQuery = { from: string; to: string; continent: string; country: string };
 
@@ -433,6 +438,8 @@ export type TourDetail = {
     shareUrl: string | null; // 24장 공유 링크, 공개 중일 때만
     reviewNote: string | null; // 보완 요청 내용 (만든 강사 · admin)
     editRequest: import('@/features/tour/edit').EditRequest | null; // 18장 공개 중인 투어의 수정본 (만든 강사 · admin)
+    // 역제안 투어: 제안자에게는 '이 투어에 응하기'(canAccept), 강사 · admin에게는 응답 상태
+    wishOffer?: { status: WishOfferStatus; deadline: string | null; isWisher: boolean; canAccept: boolean } | null;
     continentCode: string; continentName: string; countryCode: string; countryName: string;
     startDate: string; endDate: string; capacity: number; recruitedCount: number; fee: number | null;
     images: string[]; included: string[]; excluded: string[];
@@ -443,7 +450,7 @@ export type TourDetail = {
 
 // 8~10장 투어 관리 (내가 만든 투어)
 // reviewNote: 보완 요청 내용, editRequest: 공개 중인 투어의 수정본 상태 (18장)
-export type MyTour = TourCard & { fee: number | null; reviewNote: string | null; editRequest: { status: 'PENDING' | 'REJECTED'; reviewNote: string | null } | null };
+export type MyTour = TourCard & { fee: number | null; reviewNote: string | null; editRequest: { status: 'PENDING' | 'REJECTED'; reviewNote: string | null } | null; wishOffer?: { status: WishOfferStatus; deadline: string | null } | null };
 export type Recruitment = { recruitedCount: number; capacity: number; status: TourStatus };
 
 export const api = {
@@ -509,8 +516,12 @@ export const api = {
   createTourWish(input: { continentCode: string; countryCode: string; startDate: string; endDate: string; headcount: number; tourStyle: TourWishStyle }) {
     return request<{ success: boolean; recipientCount: number }>('/tours/wishes', { method: 'POST', body: JSON.stringify(input) });
   },
-  createTourRequest(input: TourRequestInput) {
-    return request<{ tourId: number; status: TourStatus }>('/tours', { method: 'POST', body: JSON.stringify(input) });
+  // wishId: 역제안 목록의 '이 제안으로 투어 만들기' (제안자에게 바로 알림)
+  createTourRequest(input: TourRequestInput, wishId?: number) {
+    return request<{ tourId: number; status: TourStatus }>('/tours', { method: 'POST', body: JSON.stringify(wishId ? { ...input, wishId } : input) });
+  },
+  acceptTourWish(tourId: number) {
+    return request<{ tourId: number; status: TourStatus; wishStatus: WishOfferStatus }>(`/tours/${tourId}/wish-accept`, { method: 'POST' });
   },
   getNotices(offset = 0) { return request<{ notices: Notice[]; hasMore: boolean; canManage: boolean }>(`/notices?offset=${offset}`); },
   getNotice(id: number) { return request<{ notice: Notice; canManage: boolean }>(`/notices/${id}`); },

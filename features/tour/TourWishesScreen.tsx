@@ -73,7 +73,7 @@ export default function TourWishesScreen() {
   const createFrom = (wish: TourWish) => router.push({
     pathname: '/tour-create',
     params: {
-      wishContinent: wish.continentCode, wishCountry: wish.countryCode, wishStart: wish.startDate, wishEnd: wish.endDate,
+      wishId: String(wish.id), wishContinent: wish.continentCode, wishCountry: wish.countryCode, wishStart: wish.startDate, wishEnd: wish.endDate,
       ...(wish.headcount ? { wishCapacity: String(Math.min(TOUR_FORM_LIMITS.capacityMax, Math.max(TOUR_FORM_LIMITS.capacityMin, wish.headcount))) } : {}),
     },
   });
@@ -140,8 +140,9 @@ export default function TourWishesScreen() {
               wish={item}
               isNew={isNew(item)}
               place={`${regionName(continents, item.continentCode)} · ${regionName(countries, item.countryCode)}`}
-              canCreate={item.startDate >= today}
+              canCreate={item.startDate > today}
               onCreate={() => createFrom(item)}
+              onOpenMine={() => item.myTourId && router.push({ pathname: '/tour-detail', params: { id: String(item.myTourId) } })}
             />
           )}
         />
@@ -182,7 +183,7 @@ export default function TourWishesScreen() {
   );
 }
 
-function WishCard({ wish, isNew, place, canCreate, onCreate }: { wish: TourWish; isNew: boolean; place: string; canCreate: boolean; onCreate: () => void }) {
+function WishCard({ wish, isNew, place, canCreate, onCreate, onOpenMine }: { wish: TourWish; isNew: boolean; place: string; canCreate: boolean; onCreate: () => void; onOpenMine: () => void }) {
   const period = wish.startDate === wish.endDate ? dot(wish.startDate) : `${dot(wish.startDate)} ~ ${dot(wish.endDate)}`;
   return (
     <View style={[styles.card, isNew ? styles.cardNew : styles.cardSeen]}>
@@ -209,13 +210,21 @@ function WishCard({ wish, isNew, place, canCreate, onCreate }: { wish: TourWish;
         {wish.tourStyle && <Info icon="options-outline" text={WISH_STYLE_LABELS[wish.tourStyle]} strong={isNew} />}
       </View>
 
-      {canCreate ? (
+      {wish.myTourId ? (
+        // 이 제안으로 이미 만든 투어가 있으면 그 투어로 (제안당 강사 한 명에 투어 하나)
+        <Pressable accessibilityRole="button" onPress={onOpenMine} style={({ pressed }) => [styles.createButton, pressed && { opacity: 0.7 }]}>
+          <Ionicons name="checkmark-circle-outline" size={17} color={ACCENT} />
+          <Text style={styles.createText}>이 제안으로 만든 투어 보기</Text>
+        </Pressable>
+      ) : wish.taken ? (
+        <Text style={styles.departed}>제안자가 이미 다른 투어에 응했어요</Text>
+      ) : canCreate ? (
         <Pressable accessibilityRole="button" onPress={onCreate} style={({ pressed }) => [styles.createButton, isNew && styles.createButtonNew, pressed && { opacity: 0.7 }]}>
           <Ionicons name="add-circle-outline" size={17} color={isNew ? Colors.brand.primary : Colors.brand.white} />
           <Text style={[styles.createText, isNew && styles.createTextNew]}>이 제안으로 투어 만들기</Text>
         </Pressable>
       ) : (
-        <Text style={styles.departed}>출발일이 지나 투어를 만들 수 없어요</Text>
+        <Text style={styles.departed}>출발일이 가까워 투어를 만들 수 없어요</Text>
       )}
     </View>
   );
