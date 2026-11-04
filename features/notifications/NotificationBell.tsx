@@ -117,6 +117,8 @@ export default function NotificationBell() {
       setVisible(false); epoch.current++; busy.current = false; progress.setValue(0);
       const tour = tourNoticeDestination(item.notificationType, item.tourId);
       if (tour) router.push(tour);
+      // 투어 역제안: 아직 갈 화면이 없어 내용을 그대로 보여줌
+      else if (item.notificationType === 'TOUR_WISH') Alert.alert(item.title, item.body);
       else router.push({ pathname: '/schedule-detail', params: { id: String(item.scheduleId), filter: 'notification' } });
     } catch { Alert.alert('알림', '알림을 열지 못했습니다. 다시 시도해주세요.'); }
     finally { moving.current = false; }
@@ -203,7 +205,7 @@ export default function NotificationBell() {
                   style={({ pressed }) => [styles.rowContent, pressed && styles.pressed]} onPress={() => go(item)}>
                   <View style={styles.metaLine}>
                     <View style={styles.statusLine}>
-                      <Ionicons name={item.tourId ? 'airplane-outline' : 'calendar-outline'} size={13} color={item.readAt ? '#8FA9C4' : '#92DDEB'} />
+                      <Ionicons name={item.notificationType === 'TOUR_WISH' ? 'hand-left-outline' : item.tourId ? 'airplane-outline' : 'calendar-outline'} size={13} color={item.readAt ? '#8FA9C4' : '#92DDEB'} />
                       <Text style={[styles.statusText, !item.readAt && styles.newStatus]}>{item.readAt ? '확인한 소식' : '새로운 소식'}</Text>
                     </View>
                     <Text style={styles.date}>{formatNotificationDate(item.createdAt)}</Text>

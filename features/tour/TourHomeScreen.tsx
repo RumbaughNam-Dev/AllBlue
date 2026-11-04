@@ -52,8 +52,8 @@ export default function TourHomeScreen() {
               <IconChip icon="settings-sharp" label="투어 관리" onPress={() => router.push('/tour-manage')} />
             </>
           )}
-          {/* 누구나: 가고 싶은 투어를 강사에게 거꾸로 제안 (역 제안, 상세 명세 전이라 아직 준비 중 안내) */}
-          <ActionChip icon="hand-left" label="투어 가고 싶어요" />
+          {/* 누구나: 가고 싶은 투어를 강사님들께 거꾸로 제안 (투어 역제안) */}
+          <ActionChip icon="hand-left" label="투어 가고 싶어요" onPress={() => router.push('/tour-wish')} />
           <ActionChip icon="search" label="투어 검색" onPress={() => setSearching(true)} />
         </View>
       </View>
