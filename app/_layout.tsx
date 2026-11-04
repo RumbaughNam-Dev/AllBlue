@@ -53,7 +53,7 @@ function RootLayoutNav() {
       router.replace('/onboarding');
     } else if (hasSeenOnboarding && !isLoggedIn && !inLogin && !inRegister) {
       router.replace('/login');
-    } else if (isLoggedIn && !inApp && !['notices','notice-detail','notice-edit','profile','profile-edit','profile-view','cert-upload','cert-manage','schedule-daily','schedule-detail','schedule-add','achievement','debriefing','blocked-users','inquiry','inquiry-write','inquiry-detail','inquiry-manage','inquiry-answer','withdraw','schedule-settings','organization-register','organization-manage','organization-members','tour-create','tour-search','tour-detail','tour-manage','tour-requests','tour-reports','tour-banners','tour-banner-edit','community-posts','community-post','community-essay-write','community-free-write','community-promo-edit','community-greetings','community-reports','tour-wish'].includes(segments[0] as string)) {
+    } else if (isLoggedIn && !inApp && !['notices','notice-detail','notice-edit','profile','profile-edit','profile-view','cert-upload','cert-manage','schedule-daily','schedule-detail','schedule-add','achievement','debriefing','blocked-users','inquiry','inquiry-write','inquiry-detail','inquiry-manage','inquiry-answer','withdraw','schedule-settings','organization-register','organization-manage','organization-members','tour-create','tour-search','tour-detail','tour-manage','tour-requests','tour-reports','tour-banners','tour-banner-edit','community-posts','community-post','community-essay-write','community-free-write','community-promo-edit','community-greetings','community-reports','tour-wish','tour-wishes'].includes(segments[0] as string)) {
       router.replace('/(tabs)');
     }
 
@@ -150,6 +150,7 @@ function RootLayoutNav() {
           <Stack.Screen name="community-greetings" options={{ gestureEnabled: true }} />
           <Stack.Screen name="community-reports" options={{ gestureEnabled: true, contentStyle: { ...side, backgroundColor: '#144A84' } }} />
           <Stack.Screen name="tour-wish" options={{ gestureEnabled: true, contentStyle: { ...side, backgroundColor: '#144A84' } }} />
+          <Stack.Screen name="tour-wishes" options={{ gestureEnabled: true }} />
         </Stack>
       </StripTabBarHost>
     </View>

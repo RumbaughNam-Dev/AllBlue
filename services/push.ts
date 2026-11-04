@@ -112,7 +112,7 @@ export function observeTourPushes(onOpen: (code: string, tourId: number, notific
     const request = response.notification.request;
     const data = request.content?.data;
     const tourId = Number(data?.tourId);
-    // 투어 역제안(TOUR_WISH)은 가리키는 투어가 없음 (0으로 넘겨 읽음 처리만)
+    // 투어 역제안(TOUR_WISH)은 가리키는 투어가 없음 (0으로 넘기면 역제안 목록으로)
     const wish = data?.notification === 'TOUR_WISH';
     if (data?.type !== 'tour' || typeof data.notification !== 'string' || (!wish && (!Number.isSafeInteger(tourId) || tourId < 1))) return;
     if (handledTourResponses.has(request.identifier)) return;

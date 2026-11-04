@@ -120,8 +120,6 @@ export default function NotificationBell() {
       const tour = tourNoticeDestination(item.notificationType, item.tourId);
       if (community) router.push(community);
       else if (tour) router.push(tour);
-      // 투어 역제안: 아직 갈 화면이 없어 내용을 그대로 보여줌
-      else if (item.notificationType === 'TOUR_WISH') Alert.alert(item.title, item.body);
       // 내려진 글 알림처럼 갈 곳이 없는 커뮤니티 알림은 읽음 처리만
       else if (!item.notificationType?.startsWith('COMMUNITY_')) router.push({ pathname: '/schedule-detail', params: { id: String(item.scheduleId), filter: 'notification' } });
     } catch { Alert.alert('알림', '알림을 열지 못했습니다. 다시 시도해주세요.'); }

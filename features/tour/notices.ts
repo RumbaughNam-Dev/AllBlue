@@ -3,13 +3,16 @@ export type TourDestination =
   | { pathname: '/tour-requests'; params: { focusTourId: string } }
   | { pathname: '/tour-reports'; params: { focusTourId: string } }
   | { pathname: '/tour-detail'; params: { id: string } }
-  | { pathname: '/tour-manage'; params: Record<string, never> };
+  | { pathname: '/tour-manage'; params: Record<string, never> }
+  | { pathname: '/tour-wishes'; params: Record<string, never> };
 
 const TO_REQUESTS = ['REQUEST_CREATE', 'REQUEST_UPDATE'];
 const TO_DETAIL = ['CREATE_APPROVED', 'UPDATE_APPROVED'];
 
 // code: 알림 코드, tourId: 알림이 가리키는 투어. 투어 알림이 아니면 null
 export function tourNoticeDestination(code: unknown, tourId: unknown): TourDestination | null {
+  // 투어 역제안은 가리키는 투어 없이 역제안 목록으로
+  if (code === 'TOUR_WISH') return { pathname: '/tour-wishes', params: {} };
   const id = Number(tourId);
   if (typeof code !== 'string' || !Number.isSafeInteger(id) || id < 1) return null;
   if (TO_REQUESTS.includes(code)) return { pathname: '/tour-requests', params: { focusTourId: String(id) } };

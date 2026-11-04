@@ -383,7 +383,15 @@ export type TourCard = {
   instructor: { userId: string; nickname: string };
 };
 export type TourBanner = { id: number; imageUrl: string; tourId: number };
-export type TourHome = { canCreate: boolean; banners: TourBanner[]; recent: TourCard[]; popular: TourCard[] };
+// wishNew: 강사 · admin에게 아직 안 본 역제안 수 (출발 전)
+export type TourHome = { canCreate: boolean; wishNew?: number; banners: TourBanner[]; recent: TourCard[]; popular: TourCard[] };
+export type TourWishStyle = 'DIVING_ONLY' | 'DIVING_SIGHTSEEING';
+// 역제안 목록 한 건 (headcount · tourStyle은 업데이트 전 앱에서 보낸 건 null)
+export type TourWish = {
+  id: number; nickname: string; continentCode: string; countryCode: string; startDate: string; endDate: string;
+  headcount: number | null; tourStyle: TourWishStyle | null; createdAt: string;
+};
+export type TourWishQuery = { from: string; to: string; continent: string; country: string };
 
 export type CommonCode = { code: string; name: string; nameKo: string | null; extraValue: string | null; sortOrder: number };
 // 4장 투어 만들기 → 등록 요청 (승인 대기로 저장)
@@ -577,8 +585,15 @@ export const api = {
     return parseResponse<{ url: string }>(result.status, result.body, token);
   },
   // 투어 역제안 ('투어 가고 싶어요'): 하루에 한 번
+  getTourWishes(query: TourWishQuery) {
+    const params = Object.entries(query).filter(([, v]) => v).map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join('&');
+    return request<{ seenAt: string | null; loadedAt: string; from: string; to: string; wishes: TourWish[] }>(`/tours/wishes?${params}`);
+  },
+  markTourWishesSeen(until: string) {
+    return request<{ success: boolean }>('/tours/wishes/seen', { method: 'POST', body: JSON.stringify({ until }) });
+  },
   getTourWishStatus() { return request<{ sentToday: boolean }>('/tours/wishes/today'); },
-  createTourWish(input: { continentCode: string; countryCode: string; startDate: string; endDate: string; headcount: number; tourStyle: 'DIVING_ONLY' | 'DIVING_SIGHTSEEING' }) {
+  createTourWish(input: { continentCode: string; countryCode: string; startDate: string; endDate: string; headcount: number; tourStyle: TourWishStyle }) {
     return request<{ success: boolean; recipientCount: number }>('/tours/wishes', { method: 'POST', body: JSON.stringify(input) });
   },
   createTourRequest(input: TourRequestInput) {
