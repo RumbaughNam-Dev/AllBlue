@@ -4,8 +4,6 @@ import { Image as ExpoImage } from 'expo-image';
 import { Image as RNImage } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/Colors';
-import AdSlot from '@/components/AdSlot';
-import { AD_IMAGES, AD_LINKS } from '@/constants/Ads';
 
 const ANIMATION_DURATION = 4400;
 const AD_MARGIN = 24;
@@ -61,11 +59,9 @@ export default function SplashView({ onFinish }: Props) {
         )}
       </View>
       </View>
-      <AdSlot
-        source={AD_IMAGES.splash}
-        url={AD_LINKS.splash}
-        style={[styles.ad, { width: adWidth, height: adHeight, marginBottom: AD_MARGIN + insets.bottom }]}
-      />
+      {/* 로고 아래 광고 자리: 지금은 비워 둠 (로고 위치는 그대로). 새 이미지를 넣을 때 여기에
+          <AdSlot source={AD_IMAGES.splash} url={AD_LINKS.splash} style={...} /> 처럼 다시 넣으면 됨 */}
+      <View style={[styles.ad, { width: adWidth, height: adHeight, marginBottom: AD_MARGIN + insets.bottom }]} />
     </View>
   );
 }
