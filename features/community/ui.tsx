@@ -52,8 +52,9 @@ export function CommunityHeader({ title, left, right, onBack }: { title: string;
   return (
     <View style={styles.header}>
       <View style={[styles.headerSide, styles.headerLeft]}>
-        {paneRoot ? <View style={styles.headerBack} /> : (
-          <StripBackSlot size={44}>
+        {/* 왼쪽 버튼이 있으면 뒤로가기가 없거나(오른쪽 칸 첫 화면) 여백으로 옮겨질 때 그 자리를 비워 두지 않음 → 버튼이 왼쪽 끝에 붙음 */}
+        {paneRoot ? (left ? null : <View style={styles.headerBack} />) : (
+          <StripBackSlot size={44} collapse={!!left}>
             <Pressable accessibilityLabel="뒤로가기" onPress={onBack ?? (() => router.back())} style={styles.headerBack} hitSlop={8}>
               <GlassCircle><Ionicons name="chevron-back" size={LiquidGlassView ? 20 : 26} color="white" /></GlassCircle>
             </Pressable>

@@ -12,7 +12,8 @@ const STRIP_BACK_TOP = 212;
 // 화면 왼쪽 위의 뒤로가기 버튼을 감쌈. 오른쪽 여백이 있는 기기(아이폰 듀오)에서는 원래 자리를
 // 같은 크기로 비워 두고(제목 위치 유지), 버튼만 모든 화면에서 같은 곳 — 여백의 상태 표시 아래 — 에 그림.
 // 펼친 화면 오른쪽 칸에서 연 화면도 같은 곳에 그림 (오른쪽 칸 첫 화면은 뒤로가기가 없음).
-export default function StripBackSlot({ size, children }: { size: number; children: React.ReactNode }) {
+// collapse: 버튼을 여백으로 옮긴 뒤 원래 자리를 비워 두지 않음 (그 옆 버튼이 왼쪽 끝으로 붙게)
+export default function StripBackSlot({ size, collapse = false, children }: { size: number; collapse?: boolean; children: React.ReactNode }) {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const navigation = useNavigation();
@@ -51,7 +52,7 @@ export default function StripBackSlot({ size, children }: { size: number; childr
 
   if (!lift) return <>{children}</>;
   return (
-    <View ref={ref} onLayout={measure} style={{ width: size, height: size }}>
+    <View ref={ref} onLayout={measure} style={{ width: collapse ? 0 : size, height: size }}>
       {origin && (
         <View style={{
           position: 'absolute',

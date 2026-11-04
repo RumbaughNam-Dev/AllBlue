@@ -1,5 +1,5 @@
 import React, { useCallback, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppRouter, useScreenParams } from '@/features/split/SplitPane';
@@ -75,29 +75,76 @@ export default function PostListScreen() {
   );
 }
 
+// 에세이는 날짜(쓴 날, 기기 날짜)마다 작은 날짜 줄을 두고 그 아래 두 개씩
+type EssayRow = { key: string; date: string } | { key: string; posts: CommunityCard[] };
+const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
+const dayOf = (iso: string) => {
+  const d = new Date(iso);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+export function dayLabel(day: string, today: string) {
+  const d = new Date(`${day}T00:00:00`);
+  const label = `${d.getMonth() + 1}월 ${d.getDate()}일 (${WEEKDAYS[d.getDay()]})`;
+  return day === today ? `오늘 · ${label}` : d.getFullYear() === new Date(`${today}T00:00:00`).getFullYear() ? label : `${d.getFullYear()}년 ${label}`;
+}
+export function essayRows(posts: CommunityCard[]): EssayRow[] {
+  const rows: EssayRow[] = [];
+  let day = '';
+  let pair: CommunityCard[] = [];
+  const flush = () => { if (pair.length) { rows.push({ key: `p-${pair[0].id}`, posts: pair }); pair = []; } };
+  for (const post of posts) {
+    const d = dayOf(post.createdAt);
+    if (d !== day) { flush(); day = d; rows.push({ key: `d-${d}`, date: d }); }
+    pair.push(post);
+    if (pair.length === 2) flush();
+  }
+  flush();
+  return rows;
+}
+
 // 목록 공통: 아래 끝 → 더 예전 10개, 위 끝(덜어낸 적이 있으면) → 더 최근 10개, 붙이거나 덜어도 보던 자리 유지
 export function PostFlatList({ board, list, inner, bottom, empty, onPress }: {
   board: CommunityBoard; list: ReturnType<typeof useWindowedList<CommunityCard>>; inner: number; bottom: number; empty: string; onPress: (post: CommunityCard) => void;
 }) {
   const spinner = <ActivityIndicator style={styles.more} color="rgba(255,255,255,0.6)" />;
+  const common = {
+    contentContainerStyle: [styles.list, { paddingBottom: bottom + 24 }, !list.items.length && { flexGrow: 1 }],
+    refreshControl: <RefreshControl refreshing={list.refreshing} onRefresh={() => void list.reload('refresh')} tintColor="rgba(255,255,255,0.6)" />,
+    onEndReached: () => void list.loadOlder(),
+    onEndReachedThreshold: 0.5,
+    onStartReached: () => void list.loadNewer(),
+    onStartReachedThreshold: 0.5,
+    maintainVisibleContentPosition: { minIndexForVisible: 0 },
+    windowSize: 7,
+    ListHeaderComponent: list.more === 'newer' ? spinner : undefined,
+    ListFooterComponent: list.more === 'older' ? spinner : undefined,
+    ListEmptyComponent: <CenterMessage message={empty} />,
+  };
+  if (board === 'ESSAY') {
+    const today = dayOf(new Date().toISOString());
+    const cardWidth = (inner - 10) / 2;
+    return (
+      <FlatList
+        key="essay-days"
+        {...common}
+        data={essayRows(list.items)}
+        keyExtractor={row => row.key}
+        renderItem={({ item }) => ('date' in item
+          ? <Text style={styles.dayLabel}>{dayLabel(item.date, today)}</Text>
+          : (
+            <View style={styles.pair}>
+              {item.posts.map(post => <EssayCard key={post.id} post={post} width={cardWidth} onPress={onPress} />)}
+            </View>
+          ))}
+      />
+    );
+  }
   return (
     <FlatList
-      key={board === 'ESSAY' ? 'grid' : 'list'}
+      key="list"
+      {...common}
       data={list.items}
       keyExtractor={item => String(item.id)}
-      numColumns={board === 'ESSAY' ? 2 : 1}
-      columnWrapperStyle={board === 'ESSAY' ? { gap: 10 } : undefined}
-      contentContainerStyle={[styles.list, { paddingBottom: bottom + 24 }, !list.items.length && { flexGrow: 1 }]}
-      refreshControl={<RefreshControl refreshing={list.refreshing} onRefresh={() => void list.reload('refresh')} tintColor="rgba(255,255,255,0.6)" />}
-      onEndReached={() => void list.loadOlder()}
-      onEndReachedThreshold={0.5}
-      onStartReached={() => void list.loadNewer()}
-      onStartReachedThreshold={0.5}
-      maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
-      windowSize={7}
-      ListHeaderComponent={list.more === 'newer' ? spinner : undefined}
-      ListFooterComponent={list.more === 'older' ? spinner : undefined}
-      ListEmptyComponent={<CenterMessage message={empty} />}
       renderItem={({ item }) => <PostItem board={board} post={item} inner={inner} onPress={onPress} />}
     />
   );
@@ -106,5 +153,7 @@ export function PostFlatList({ board, list, inner, bottom, empty, onPress }: {
 const styles = StyleSheet.create({
   filters: { flexDirection: 'row', gap: 8, paddingHorizontal: SIDE, paddingBottom: 8 },
   list: { paddingHorizontal: SIDE, paddingTop: 4, gap: 10 },
+  pair: { flexDirection: 'row', gap: 10 },
+  dayLabel: { fontFamily: 'SUIT-SemiBold', fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 6 },
   more: { paddingVertical: 14 },
 });
