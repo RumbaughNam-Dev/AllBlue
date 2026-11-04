@@ -19,11 +19,13 @@ const ACCENT = '#00E5FF';
 const FREE = '#FFD166';
 const PROMINENT_TINT = 'rgba(255,255,255,0.85)';
 type Sheet = 'continent' | 'country' | 'from' | 'to' | null;
-type Draft = { continent: string; country: string; from: string; to: string };
-const EMPTY: Draft = { continent: '', country: '', from: '', to: '' };
+type Draft = { continent: string; country: string; from: string; to: string; headcount: number };
+// 참여 인원: 나를 포함해 1~20명, 처음엔 나 혼자(1명)
+const HEADCOUNT_MIN = 1, HEADCOUNT_MAX = 20;
+const EMPTY: Draft = { continent: '', country: '', from: '', to: '', headcount: HEADCOUNT_MIN };
 const dot = (day: string) => day.replace(/-/g, '.');
 
-// 투어 역제안 ('투어 가고 싶어요'): 누구나 기간 · 지역만 정해 강사님들께 알림. 하루에 한 번
+// 투어 역제안 ('투어 가고 싶어요'): 누구나 기간 · 지역 · 참여 인원만 정해 강사님들께 알림. 하루에 한 번
 export default function TourWishScreen() {
   const router = useAppRouter();
   const insets = useSafeAreaInsets();
@@ -59,7 +61,7 @@ export default function TourWishScreen() {
     sendingRef.current = true; // 두 번 눌러도 한 번만
     setSending(true);
     try {
-      await api.createTourWish({ continentCode: draft.continent, countryCode: draft.country, startDate: draft.from, endDate: draft.to });
+      await api.createTourWish({ continentCode: draft.continent, countryCode: draft.country, startDate: draft.from, endDate: draft.to, headcount: draft.headcount });
       setConfirming(false);
       router.back(); // 투어 홈으로
     } catch (e: any) {
@@ -107,7 +109,7 @@ export default function TourWishScreen() {
           <View style={styles.divider} />
 
           <IntroLine icon="paper-plane-outline">
-            <Text style={styles.point}>전문 투어 강사님</Text>들께 <Text style={styles.point}>기간과 지역</Text>만 정해서 투어를 제안해 보세요!
+            <Text style={styles.point}>전문 투어 강사님</Text>들께 <Text style={styles.point}>기간 · 지역 · 인원</Text>만 정해서 투어를 제안해 보세요!
           </IntroLine>
           <IntroLine icon="notifications-outline">
             제안하면 강사님들께 <Text style={styles.point}>투어 제안 알림</Text>이 바로 가요.
@@ -133,6 +135,16 @@ export default function TourWishScreen() {
           {/* 대륙을 고르기 전까지 나라는 비활성 */}
           <Selector label={draft.country ? regionName(countries, draft.country) : '나라'} placeholder={!draft.country} disabled={!draft.continent} onPress={() => setSheet('country')} />
         </View>
+
+        <Text style={styles.label}><Ionicons name="people-outline" size={14} color={ACCENT} />  몇 명이 함께 가나요?</Text>
+        <View style={styles.headcount}>
+          <StepButton icon="remove" label="한 명 빼기" disabled={draft.headcount <= HEADCOUNT_MIN} onPress={() => set({ headcount: draft.headcount - 1 })} />
+          <Text style={styles.headcountValue} accessibilityLiveRegion="polite">
+            <Text style={styles.headcountNumber}>{draft.headcount}</Text>명
+          </Text>
+          <StepButton icon="add" label="한 명 더하기" disabled={draft.headcount >= HEADCOUNT_MAX} onPress={() => set({ headcount: draft.headcount + 1 })} />
+        </View>
+        <Text style={styles.headcountHint}>나를 포함한 인원이에요 (최대 {HEADCOUNT_MAX}명)</Text>
 
         {sentToday ? (
           <View style={styles.sentNotice}>
@@ -168,6 +180,7 @@ export default function TourWishScreen() {
         <View style={styles.summary}>
           <SummaryRow icon="calendar-outline" text={period} />
           <SummaryRow icon="location-outline" text={place} />
+          <SummaryRow icon="people-outline" text={`${draft.headcount}명 (나 포함)`} />
         </View>
         <Text style={styles.confirmText}>
           <Text style={styles.point}>확인</Text>을 누르면 <Text style={styles.point}>강사님들께 알림</Text>이 전송됩니다!
@@ -221,6 +234,21 @@ function IntroLine({ icon, children }: { icon: React.ComponentProps<typeof Ionic
       <View style={styles.introIcon}><Ionicons name={icon} size={15} color={ACCENT} /></View>
       <Text style={styles.introText}>{children}</Text>
     </View>
+  );
+}
+
+function StepButton({ icon, label, disabled, onPress }: { icon: 'add' | 'remove'; label: string; disabled: boolean; onPress: () => void }) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled }}
+      disabled={disabled}
+      onPress={onPress}
+      style={({ pressed }) => [styles.stepButton, disabled && { opacity: 0.3 }, pressed && { opacity: 0.6 }]}
+    >
+      <View style={styles.stepCircle}><Ionicons name={icon} size={20} color={Colors.brand.white} /></View>
+    </Pressable>
   );
 }
 
@@ -298,6 +326,16 @@ const styles = StyleSheet.create({
   selectorText: { flex: 1, fontFamily: 'SUIT-Regular', fontSize: 15, color: Colors.brand.white },
   placeholder: { color: 'rgba(255,255,255,0.35)' },
   tilde: { fontFamily: 'SUIT-Regular', fontSize: 15, color: 'rgba(255,255,255,0.5)' },
+  headcount: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', paddingHorizontal: 4,
+  },
+  stepButton: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
+  stepCircle: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.15)' },
+  headcountValue: { fontFamily: 'SUIT-SemiBold', fontSize: 15, color: Colors.brand.white },
+  headcountNumber: { fontFamily: 'SUIT-Bold', fontSize: 20, color: ACCENT },
+  headcountHint: { fontFamily: 'SUIT-Regular', fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 6 },
   hint: { fontFamily: 'SUIT-Regular', fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 14 },
   sentNotice: {
     flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 16,
