@@ -769,16 +769,12 @@ test('schedule link survives onboarding and login and resumes once after login n
   assert.equal(h.destinations.length, 1);
 });
 
-test('slide 24: a tour share link opened while signed out opens that tour after login', () => {
+test('only schedule links are resumed after login (tour share links were removed with the tour feature)', () => {
   const h = scheduleLinkResumeHarness();
   h.render({ route: 'tour-detail', id: '7' });
-  h.render({ route: 'login' });
   h.render({ route: 'login', isLoggedIn: true });
   h.render({ route: '(tabs)', isLoggedIn: true });
-  assert.equal(h.destinations.length, 1);
-  assert.equal(h.destinations[0].pathname, '/tour-detail');
-  assert.equal(h.destinations[0].params.id, '7');
-  assert.equal(h.destinations[0].params.filter, undefined);
+  assert.equal(h.destinations.length, 0);
 });
 
 test('restored session opening schedule directly does not reopen it after leaving', () => {

@@ -14,7 +14,7 @@ import { useOrganizationSearch } from '@/hooks/useSearch';
 import { useLeaveConfirm } from '@/hooks/useLeaveConfirm';
 import { hasInstructorAccess } from '@/utils/userRole';
 import { useAuth } from '@/contexts/AuthContext';
-import { api, Profile, Organization, TourLink } from '@/services/api';
+import { api, Profile, Organization, ProfileLink } from '@/services/api';
 import Spinner from '@/components/Spinner';
 import BottomSheet from '@/components/BottomSheet';
 import type { TextInputInstance } from 'react-native';
@@ -33,7 +33,7 @@ export default function ProfileEditScreen() {
   const [nicknameTxt, setNicknameTxt] = useState(user?.nickname ?? '');
   const [nameTxt, setNameTxt] = useState(user?.name ?? '');
   const [description, setDescription] = useState('');
-  const [links, setLinks] = useState<TourLink[]>([]);
+  const [links, setLinks] = useState<ProfileLink[]>([]);
   const [linksLoaded, setLinksLoaded] = useState(false);
   const [draggingLink, setDraggingLink] = useState(false);
   const [shoesSize, setShoesSize] = useState('');
@@ -316,9 +316,9 @@ export default function ProfileEditScreen() {
             numberOfLines={3}
           />
 
-          {/* Links (14장) */}
+          {/* 링크 */}
           <Text style={styles.sectionLabel}>링크  <Text style={styles.optional}>(선택)</Text></Text>
-          <Text style={styles.linkGuide}>참가 문의 · 소개 링크 — 프로필에 이름으로 보여요</Text>
+          <Text style={styles.linkGuide}>소개 · 연락 링크 — 프로필에 이름으로 보여요</Text>
           <ProfileLinksEditor links={links} onChange={setLinks} onDragChange={setDraggingLink} />
 
           {/* Sizes */}

@@ -9,8 +9,7 @@ function load(api) {
   return { mod, use: isAdmin => h.render(() => mod.useAdminPendingCounts(isAdmin)) };
 }
 const counts = { getInquiryPendingCount: async () => ({ count: 1 }), getCertPendingCount: async () => ({ count: 2 }),
-  getPendingOrganizations: async () => ({ organizations: [{}] }), getTourRequests: async () => ({ requests: [{}, {}] }),
-  getTourReports: async () => ({ tours: [{}] }), getCommunityReportCount: async () => ({ count: 3 }) };
+  getPendingOrganizations: async () => ({ organizations: [{}] }), getCommunityReportCount: async () => ({ count: 3 }) };
 
 test('slide 16: the home photo shows the admin total, hidden at 0 and 99+ from 100', () => {
   const { mod } = load(counts);
@@ -21,13 +20,13 @@ test('slide 16: the home photo shows the admin total, hidden at 0 and 99+ from 1
 });
 
 test('admins load every count into one total; one failing count keeps its last value; non-admins get nothing', async () => {
-  let failTours = false;
-  const f = load({ ...counts, getTourRequests: async () => { if (failTours) throw new Error('x'); return { requests: [{}, {}] }; } });
+  let failReports = false;
+  const f = load({ ...counts, getCommunityReportCount: async () => { if (failReports) throw new Error('x'); return { count: 3 }; } });
   await f.use(true).reload();
-  assert.equal(f.use(true).total, 10); // 문의 1 + 자격증 2 + 단체 1 + 등록요청 2 + 투어 신고 1 + 커뮤니티 신고 3
-  failTours = true;
+  assert.equal(f.use(true).total, 7); // 문의 1 + 자격증 2 + 단체 1 + 커뮤니티 신고 3
+  failReports = true;
   await f.use(true).reload();
-  assert.equal(f.use(true).counts.tourRequests, 2);
+  assert.equal(f.use(true).counts.communityReports, 3);
   let called = false;
   const g = load({ ...counts, getInquiryPendingCount: async () => { called = true; return { count: 1 }; } });
   await g.use(false).reload();

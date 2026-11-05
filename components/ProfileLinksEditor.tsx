@@ -2,19 +2,19 @@ import React, { useRef, useState } from 'react';
 import { Animated, PanResponder, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Colors from '@/constants/Colors';
-import type { TourLink } from '@/services/api';
-import TourLinkPopup from '@/features/tour/TourLinkPopup';
-import { moveItem } from '@/features/tour/tourForm';
+import type { ProfileLink } from '@/services/api';
+import ProfileLinkPopup from '@/components/ProfileLinkPopup';
+import { moveItem } from '@/utils/profileLinks';
 
 const ROW = 48;
 const GAP = 8;
 type Editing = { index: number | null } | null; // index null = 새 링크
 
-// 14장 프로필 편집의 링크 (선택): 이름만 목록으로, 누르면 수정 팝업(삭제 포함),
+// 프로필 편집의 링크 (선택): 이름만 목록으로, 누르면 수정 팝업(삭제 포함),
 // 왼쪽 ≡를 길게 눌러 끌면 순서 변경 (프로필에 보이는 순서)
 export default function ProfileLinksEditor({ links, onChange, onDragChange }: {
-  links: TourLink[];
-  onChange: (links: TourLink[]) => void;
+  links: ProfileLink[];
+  onChange: (links: ProfileLink[]) => void;
   onDragChange: (dragging: boolean) => void;
 }) {
   const [editing, setEditing] = useState<Editing>(null);
@@ -104,7 +104,7 @@ export default function ProfileLinksEditor({ links, onChange, onDragChange }: {
         <Text style={styles.addText}>＋ 링크 추가</Text>
       </Pressable>
 
-      <TourLinkPopup
+      <ProfileLinkPopup
         visible={!!editing}
         initial={editingLink}
         onClose={() => setEditing(null)}

@@ -11,7 +11,6 @@ import { formatNotificationDate } from './date';
 import Colors from '@/constants/Colors';
 import { api, AppNotification } from '@/services/api';
 import { communityNoticeDestination } from '@/features/community/notices';
-import { tourNoticeDestination } from '@/features/tour/notices';
 import type { ViewInstance } from 'react-native';
 import GlassBackground, { glassClear, PANEL_TINT } from '@/components/GlassBackground';
 
@@ -122,9 +121,7 @@ export default function NotificationBell() {
       DeviceEventEmitter.emit('notificationsChanged');
       setVisible(false); epoch.current++; busy.current = false; progress.setValue(0);
       const community = item.notificationType?.startsWith('COMMUNITY_') ? communityNoticeDestination(item.notificationType, item.communityPostId) : null;
-      const tour = tourNoticeDestination(item.notificationType, item.tourId);
       if (community) router.push(community);
-      else if (tour) router.push(tour);
       // 내려진 글 알림처럼 갈 곳이 없는 커뮤니티 알림은 읽음 처리만
       else if (!item.notificationType?.startsWith('COMMUNITY_')) router.push({ pathname: '/schedule-detail', params: { id: String(item.scheduleId), filter: 'notification' } });
     } catch { Alert.alert('알림', '알림을 열지 못했습니다. 다시 시도해주세요.'); }
@@ -212,7 +209,7 @@ export default function NotificationBell() {
                   style={({ pressed }) => [styles.rowContent, pressed && styles.pressed]} onPress={() => go(item)}>
                   <View style={styles.metaLine}>
                     <View style={styles.statusLine}>
-                      <Ionicons name={item.notificationType?.startsWith('COMMUNITY_') ? 'chatbubbles-outline' : item.notificationType === 'TOUR_WISH' ? 'hand-left-outline' : item.tourId ? 'airplane-outline' : 'calendar-outline'} size={13} color={item.readAt ? '#8FA9C4' : '#92DDEB'} />
+                      <Ionicons name={item.notificationType?.startsWith('COMMUNITY_') ? 'chatbubbles-outline' : 'calendar-outline'} size={13} color={item.readAt ? '#8FA9C4' : '#92DDEB'} />
                       <Text style={[styles.statusText, !item.readAt && styles.newStatus]}>{item.readAt ? '확인한 소식' : '새로운 소식'}</Text>
                     </View>
                     <Text style={styles.date}>{formatNotificationDate(item.createdAt)}</Text>

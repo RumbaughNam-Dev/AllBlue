@@ -16,11 +16,11 @@ function editor(initial) {
     },
     '@expo/vector-icons': { Ionicons: 'Ionicons' },
     '@/constants/Colors': { default: { brand: { white: '#fff' } }, __esModule: true },
-    '@/features/tour/TourLinkPopup': { __esModule: true, default: 'TourLinkPopup' },
-    '@/features/tour/tourForm': loadModule('features/tour/tourForm.ts', {}),
+    '@/components/ProfileLinkPopup': { __esModule: true, default: 'ProfileLinkPopup' },
+    '@/utils/profileLinks': loadModule('utils/profileLinks.ts', {}),
   }).default;
   const render = () => nodes(h.render(() => Editor({ links, onChange: next => { links = JSON.parse(JSON.stringify(next)); }, onDragChange() {} })));
-  const popup = () => render().find(n => n.type === 'TourLinkPopup').props;
+  const popup = () => render().find(n => n.type === 'ProfileLinkPopup').props;
   const press = label => render().find(n => n.props.accessibilityLabel === label || (n.type === 'Pressable' && n.children.flat().some(c => c?.children?.flat().includes(label)))).props.onPress();
   return { render, popup, press, get links() { return links; } };
 }
