@@ -39,6 +39,23 @@ export function FreeRow({ post, onPress }: { post: CommunityCard; onPress: (post
 }
 
 // 교육단체 홍보: 대표 이미지 위에 단체 이름과 제목
+// 펼친 화면 자유게시판 (한 줄에 4개): 제목 두 줄 · 오른쪽 위 작은 사진, 태그, 맨 아래 작성자 · 시간 · 좋아요 · 댓글
+export function FreeCell({ post, onPress }: { post: CommunityCard; onPress: (post: CommunityCard) => void }) {
+  return (
+    <Pressable accessibilityRole="button" onPress={() => onPress(post)} style={({ pressed }) => [ui.card, styles.cell, pressed && { opacity: 0.8 }]}>
+      <View style={styles.cellTop}>
+        <Text style={styles.cellTitle} numberOfLines={2}>{post.title}</Text>
+        {post.imageUrl ? <Image source={{ uri: post.imageUrl }} style={styles.cellThumb} /> : null}
+      </View>
+      {!!post.tags.length && <Text style={ui.tag} numberOfLines={1}>{post.tags.map(t => `#${t}`).join(' ')}</Text>}
+      <View style={styles.cellBottom}>
+        <Text style={ui.meta} numberOfLines={1}>{post.author.nickname} · {timeAgo(post.createdAt)}</Text>
+        <Counts likeCount={post.likeCount} commentCount={post.commentCount} />
+      </View>
+    </Pressable>
+  );
+}
+
 export function PromoCard({ post, onPress, height, label }: { post: CommunityCard; onPress: (post: CommunityCard) => void; height: number; label?: string }) {
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={`${post.organization?.name ?? ''} 홍보, ${post.title}`} onPress={() => onPress(post)}
@@ -85,6 +102,12 @@ const styles = StyleSheet.create({
   rowTitle: { fontFamily: 'SUIT-SemiBold', fontSize: 15, color: 'white' },
   rowMeta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   thumb: { width: 52, height: 52, borderRadius: 10 },
+  // 한 줄에 같이 놓인 칸끼리 높이를 맞추고 작성자 줄은 맨 아래로
+  cell: { flex: 1, padding: 12, gap: 6 },
+  cellTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  cellTitle: { flex: 1, fontFamily: 'SUIT-SemiBold', fontSize: 14, lineHeight: 19, color: 'white', minHeight: 38 },
+  cellThumb: { width: 40, height: 40, borderRadius: 8 },
+  cellBottom: { marginTop: 'auto', gap: 4 },
   promo: { overflow: 'hidden', justifyContent: 'flex-end' },
   promoShade: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: 'rgba(2,30,60,0.35)' },
   promoLabel: {

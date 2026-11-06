@@ -119,6 +119,6 @@ test('tour tab is declared behind a guard that only admin accounts pass', () => 
   assert.equal(admin.community, true);
   for (const user of [{ id: 'i', level: '5' }, { id: 'n', level: 5 }, { id: 'u', level: '1' }, { id: 'x' }, null]) {
     assert.equal(tabScreens(user).guard, false, `level ${user?.level} must not see the tour tab`);
-    assert.equal(tabScreens(user).community, false, `level ${user?.level} must not see the community tab`);
+    assert.equal(tabScreens(user).community, true, `level ${user?.level} sees the community tab (open to everyone since 2026-11-06)`);
   }
 });

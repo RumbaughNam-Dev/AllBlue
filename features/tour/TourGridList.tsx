@@ -1,11 +1,13 @@
 import React from 'react';
 import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { TourEmpty } from './TourCards';
-import type { useWindowedList } from '@/features/community/useWindowedList';
+import { gridRows } from '@/features/community/listRows';
+import { useRowAnchors, type useWindowedList } from '@/features/community/useWindowedList';
 import { GRID_GAP, gridColumns } from './ui';
 
 // 목록 공통 (12 · 24장): 큰 사진 카드를 한 줄에 2개 (목록 폭 600pt 이상이면 4개).
-// 아래 끝 → 더 예전 10개, 위 끝(덜어낸 적이 있으면) → 더 최근 10개, 붙이거나 덜어도 보던 자리 유지
+// 아래 끝 → 더 예전 10개, 위 끝(덜어낸 적이 있으면) → 더 최근 10개, 붙이거나 덜어도 보던 자리 유지.
+// 줄은 목록 안 자리로 나눠서(gridRows) 4개씩일 때도 10개씩 붙이거나 덜면서 줄이 통째로 바뀌지 않음
 export default function TourGridList<T extends { id: number }>({ list, width, side, bottom, empty, header, renderCard }: {
   list: ReturnType<typeof useWindowedList<T>>; width: number; side: number; bottom: number; empty: string;
   header?: React.ReactElement; renderCard: (item: T, cardWidth: number) => React.ReactNode;
@@ -13,15 +15,15 @@ export default function TourGridList<T extends { id: number }>({ list, width, si
   const inner = Math.max(0, width - side * 2);
   const columns = gridColumns(inner);
   const cardWidth = inner ? Math.floor((inner - GRID_GAP * (columns - 1)) / columns) : 0;
-  const rows: T[][] = [];
-  for (let i = 0; i < list.items.length; i += columns) rows.push(list.items.slice(i, i + columns));
+  const anchors = useRowAnchors(list.epoch);
+  const rows = gridRows(list.items, list.base, columns, anchors);
   const spinner = <ActivityIndicator style={styles.more} color="rgba(255,255,255,0.6)" />;
   return (
     <FlatList
       // 2개 ↔ 4개가 바뀌면 줄을 다시 나눔 (펼치거나 접을 때)
       key={`grid-${columns}`}
       data={cardWidth ? rows : []}
-      keyExtractor={row => String(row[0].id)}
+      keyExtractor={row => row.key}
       contentContainerStyle={[styles.list, { paddingHorizontal: side, paddingBottom: bottom + 24 }, !list.items.length && { flexGrow: 1 }]}
       refreshControl={<RefreshControl refreshing={list.refreshing} onRefresh={() => void list.reload('refresh')} tintColor="rgba(255,255,255,0.6)" />}
       onEndReached={() => void list.loadOlder()}
@@ -34,7 +36,7 @@ export default function TourGridList<T extends { id: number }>({ list, width, si
       ListFooterComponent={list.more === 'older' ? spinner : undefined}
       ListEmptyComponent={<TourEmpty message={empty} />}
       renderItem={({ item: row }) => (
-        <View style={styles.row}>{row.map(item => <View key={item.id} style={{ width: cardWidth }}>{renderCard(item, cardWidth)}</View>)}</View>
+        <View style={styles.row}>{row.items.map(item => <View key={item.id} style={{ width: cardWidth }}>{renderCard(item, cardWidth)}</View>)}</View>
       )}
     />
   );

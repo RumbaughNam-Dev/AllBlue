@@ -25,7 +25,7 @@ export default function TabLayout() {
   const { user, updateUser } = useAuth();
   // 투어 · 커뮤니티 탭은 만드는 동안 admin에게만 보임 (다른 사용자는 탭 3개 그대로)
   const showTour = user?.level === 'A';
-  const showCommunity = user?.level === 'A';
+  const showCommunity = true; // 2026-11-06 모두에게 공개 (그 전엔 admin만)
   const router = useRouter();
   const updateUserRef = useRef(updateUser);
   updateUserRef.current = updateUser;
