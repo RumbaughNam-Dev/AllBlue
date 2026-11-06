@@ -81,12 +81,12 @@ function RootLayoutNav() {
     });
   }, [isLoggedIn, isLoading, ready, splashDone]);
 
-  // 커뮤니티 알림 푸시: 그 글로 (admin 신고 알림은 신고 처리로)
+  // 커뮤니티 알림 푸시: 그 글로 (출석인사 태그는 그 날 출석인사로, admin 신고 알림은 신고 처리로)
   useEffect(() => {
     if (!isLoggedIn || isLoading || !ready || !splashDone) return;
-    return observeCommunityPushes((code, postId, notificationId) => {
+    return observeCommunityPushes((code, postId, notificationId, date) => {
       if (notificationId) void api.readNotification(notificationId).then(() => DeviceEventEmitter.emit('notificationsChanged')).catch(() => {});
-      const destination = communityNoticeDestination(code, postId);
+      const destination = communityNoticeDestination(code, postId, date);
       if (destination) routerRef.current.push(destination);
     });
   }, [isLoggedIn, isLoading, ready, splashDone]);

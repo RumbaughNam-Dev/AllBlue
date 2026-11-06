@@ -7,9 +7,10 @@ import { Ionicons } from '@expo/vector-icons';
 import Colors from '@/constants/Colors';
 import { api, type CommunityGreeting } from '@/services/api';
 import { GreetingRow } from './Cards';
+import { MentionSuggestions, useMentions } from './mentions';
 import { CenterMessage, CommunityHeader, HeaderButton, LIMITS, styles as ui } from './ui';
 import { useContentMenu } from './useContentMenu';
-import { useScreenParams } from '@/features/split/SplitPane';
+import { useAppRouter, useScreenParams } from '@/features/split/SplitPane';
 import { dayLabel, monthCells, shiftDay, shiftMonth, WEEKDAYS } from './greetingDates';
 
 // 6장 출석인사: 하루 단위로 인사 건수와 한 줄 목록만 (상세 없음). 날짜를 누르면 달력, 오늘만 입력 · 하루 1번 · 삭제만
@@ -31,6 +32,10 @@ export default function GreetingsScreen() {
   const [sending, setSending] = useState(false);
   const request = useRef(0);
   const menu = useContentMenu();
+  const router = useAppRouter();
+  // @를 치면 입력칸 위로 사용자 목록, 고르면 '@닉네임'으로 넣고 등록하면 그 사람에게 푸시 + 알림 (인사는 한 줄이라 줄바꿈은 뺌)
+  const mentions = useMentions(text, value => setText(value.replace(/\n/g, ' ')));
+  const openUser = (userId: string) => router.push({ pathname: '/profile-view', params: { userId } });
 
   // 날짜별로 받아 둔 인사. 보고 있는 날의 앞뒤 날짜도 미리 받아 두어 밀거나 ‹ › 를 눌러도 로딩 없이 바로 보임
   const cache = useRef(new Map<string, DayData>());
@@ -84,8 +89,9 @@ export default function GreetingsScreen() {
     if (!content || sending) return;
     setSending(true);
     try {
-      await api.greet(content);
+      await api.greet(content, mentions.mentionIds());
       setText('');
+      mentions.reset();
       await load(today);
     } catch (e: any) {
       if (e?.code === 'ALREADY') { Alert.alert('오늘은 이미 인사했어요'); void load(today); }
@@ -199,7 +205,7 @@ export default function GreetingsScreen() {
                     contentContainerStyle={[styles.list, !data.items.length && { flexGrow: 1 }]}
                     refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor="rgba(255,255,255,0.6)" />}
                     ListEmptyComponent={<CenterMessage message={isToday ? '오늘 첫 인사를 남겨 보세요.' : '이 날은 인사가 없어요.'} />}
-                    renderItem={({ item }) => <GreetingRow greeting={item} onLongPress={openMenu} />}
+                    renderItem={({ item }) => <GreetingRow greeting={item} onLongPress={openMenu} onOpenUser={openUser} />}
                   />
                 ) : <CenterMessage loading={!error} message="인사를 불러오지 못했어요." onRetry={error ? () => load() : undefined} />}
               </View>
@@ -208,9 +214,10 @@ export default function GreetingsScreen() {
           </View>
           {isToday && (
             <View style={[styles.inputArea, { paddingBottom: insets.bottom + 8 }]}>
+              {!data?.greetedToday && mentions.open && <View style={styles.suggestions}><MentionSuggestions users={mentions.users} loading={mentions.loading} onPick={mentions.pick} /></View>}
               {data?.greetedToday ? <Text style={styles.done}>오늘 인사 완료 · 내 인사는 길게 눌러 지울 수 있어요</Text> : (
                 <View style={styles.inputRow}>
-                  <TextInput value={text} onChangeText={value => setText(value.replace(/\n/g, ' '))} maxLength={LIMITS.greetingMax}
+                  <TextInput value={text} onChangeText={value => setText(value.replace(/\n/g, ' '))} {...mentions.inputProps} maxLength={LIMITS.greetingMax}
                     onSubmitEditing={send} returnKeyType="send" placeholder={`오늘 인사 한 줄 (${LIMITS.greetingMax}자)`} placeholderTextColor="rgba(255,255,255,0.4)" style={styles.input} />
                   <Pressable accessibilityRole="button" onPress={send} disabled={!text.trim() || sending} style={({ pressed }) => [styles.send, (!text.trim() || pressed) && { opacity: 0.5 }]}>
                     {sending ? <ActivityIndicator color="#032A36" /> : <Text style={styles.sendText}>등록</Text>}
@@ -290,6 +297,7 @@ const styles = StyleSheet.create({
   list: { paddingHorizontal: 20, paddingBottom: 16, gap: 8 },
   inputArea: { paddingHorizontal: 16, paddingTop: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(255,255,255,0.15)' },
   inputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  suggestions: { marginBottom: 8 },
   input: { flex: 1, height: 44, borderRadius: 14, backgroundColor: '#0F3D6E', color: 'white', paddingHorizontal: 14, fontFamily: 'SUIT-Regular', fontSize: 14 },
   send: { height: 44, paddingHorizontal: 16, borderRadius: 14, backgroundColor: Colors.brand.accent, alignItems: 'center', justifyContent: 'center' },
   sendText: { fontFamily: 'SUIT-Bold', fontSize: 14, color: '#032A36' },

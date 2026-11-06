@@ -2,6 +2,7 @@ import React from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { CommunityCard, CommunityGreeting } from '@/services/api';
+import { MentionText } from './mentions';
 import { clockTime, Counts, styles as ui, timeAgo } from './ui';
 
 // 에세이 카드: 대표 사진(본문 첫 사진, 없으면 기본 그림) · 제목 · 강사 · 좋아요 수
@@ -71,8 +72,10 @@ export function PromoCard({ post, onPress, height, label }: { post: CommunityCar
   );
 }
 
-export function GreetingRow({ greeting, onPress, onLongPress, showTime = true }: {
-  greeting: CommunityGreeting; onPress?: (g: CommunityGreeting) => void; onLongPress?: (g: CommunityGreeting) => void; showTime?: boolean;
+// onOpenUser: 인사 속 '@닉네임'(태그)을 누르면 그 사람 프로필 (없으면 태그도 글자 그대로)
+export function GreetingRow({ greeting, onPress, onLongPress, onOpenUser, showTime = true }: {
+  greeting: CommunityGreeting; onPress?: (g: CommunityGreeting) => void; onLongPress?: (g: CommunityGreeting) => void;
+  onOpenUser?: (userId: string) => void; showTime?: boolean;
 }) {
   return (
     <Pressable onPress={onPress && (() => onPress(greeting))} onLongPress={onLongPress && (() => onLongPress(greeting))} delayLongPress={350}
@@ -85,7 +88,9 @@ export function GreetingRow({ greeting, onPress, onLongPress, showTime = true }:
           <Text style={ui.metaStrong} numberOfLines={1}>{greeting.author.nickname}</Text>
           {showTime && <Text style={ui.meta}>{clockTime(greeting.createdAt)}</Text>}
         </View>
-        <Text style={styles.greetingText}>{greeting.content}</Text>
+        {onOpenUser && greeting.mentions?.length
+          ? <MentionText text={greeting.content} mentions={greeting.mentions} style={styles.greetingText} onOpenUser={onOpenUser} />
+          : <Text style={styles.greetingText}>{greeting.content}</Text>}
       </View>
     </Pressable>
   );

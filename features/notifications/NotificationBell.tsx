@@ -10,7 +10,7 @@ import { mergeNotificationWindow } from './window';
 import { formatNotificationDate } from './date';
 import Colors from '@/constants/Colors';
 import { api, AppNotification } from '@/services/api';
-import { communityNoticeDestination } from '@/features/community/notices';
+import { communityNoticeDestination, koreaDay } from '@/features/community/notices';
 import { tourNoticeDestination } from '@/features/tour/notices';
 import type { ViewInstance } from 'react-native';
 import GlassBackground, { glassClear, PANEL_TINT } from '@/components/GlassBackground';
@@ -121,7 +121,7 @@ export default function NotificationBell() {
       await api.readNotification(item.id);
       DeviceEventEmitter.emit('notificationsChanged');
       setVisible(false); epoch.current++; busy.current = false; progress.setValue(0);
-      const community = item.notificationType?.startsWith('COMMUNITY_') ? communityNoticeDestination(item.notificationType, item.communityPostId) : null;
+      const community = item.notificationType?.startsWith('COMMUNITY_') ? communityNoticeDestination(item.notificationType, item.communityPostId, koreaDay(item.createdAt)) : null;
       const isTour = !!item.notificationType?.startsWith('TOUR_');
       const tour = isTour ? tourNoticeDestination(item.notificationType, item.tourId) : null;
       if (community) router.push(community);

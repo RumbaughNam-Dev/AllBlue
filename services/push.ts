@@ -127,7 +127,7 @@ export function observeTourPushes(onOpen: (code: string, tourId: number, notific
 
 // 커뮤니티 알림 푸시(태그 · 댓글 · 답글 · 내림 · 신고)를 누르면 알림 코드로 갈 화면을 정함 (일정 푸시와 같은 방식)
 const handledCommunityResponses = new Set<string>();
-export function observeCommunityPushes(onOpen: (code: string, postId: number | null, notificationId?: number) => void) {
+export function observeCommunityPushes(onOpen: (code: string, postId: number | null, notificationId?: number, date?: string) => void) {
   if (!Notifications) return () => {};
   let active = true;
   const handle = (response: any) => {
@@ -139,7 +139,8 @@ export function observeCommunityPushes(onOpen: (code: string, postId: number | n
     if (handledCommunityResponses.size > 100) handledCommunityResponses.delete(handledCommunityResponses.values().next().value!);
     const postId = Number(data.postId), notificationId = Number(data.notificationId);
     onOpen(data.notification, Number.isSafeInteger(postId) && postId > 0 ? postId : null,
-      Number.isSafeInteger(notificationId) && notificationId > 0 ? notificationId : undefined);
+      Number.isSafeInteger(notificationId) && notificationId > 0 ? notificationId : undefined,
+      typeof data.date === 'string' ? data.date : undefined);
   };
   const response = Notifications.addNotificationResponseReceivedListener(handle);
   Notifications.getLastNotificationResponseAsync().then(handle).catch(() => {});

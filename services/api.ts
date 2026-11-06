@@ -391,7 +391,7 @@ export type CommunityPost = Omit<CommunityCard, 'organization'> & {
   organization: { id: number; name: string; logo: string | null; address: string | null; phone: string | null } | null;
   liked: boolean; canEdit: boolean; canDelete: boolean; canComment: boolean;
 };
-export type CommunityGreeting = { id: number; content: string; date: string; createdAt: string; author: CommunityAuthor; mine: boolean; canDelete: boolean };
+export type CommunityGreeting = { id: number; content: string; mentions?: CommunityMention[]; date: string; createdAt: string; author: CommunityAuthor; mine: boolean; canDelete: boolean };
 export type CommunityHome = {
   essays: CommunityCard[]; banner: CommunityCard | null;
   greetings: { todayCount: number; items: CommunityGreeting[] };
@@ -600,7 +600,10 @@ export const api = {
     return request<{ date: string; today: string; count: number; greetedToday: boolean; items: CommunityGreeting[] }>(`/community/greetings${date ? `?date=${date}` : ''}`);
   },
   getGreetingCalendar(month: string) { return request<{ month: string; days: Record<string, number> }>(`/community/greetings/calendar?month=${month}`); },
-  greet(content: string) { return request<{ id: number }>('/community/greetings', { method: 'POST', body: JSON.stringify({ content }) }); },
+  // mentions: 인사에서 @로 태그한 사용자 id (태그된 사람에게 푸시 + 알림)
+  greet(content: string, mentions: string[] = []) {
+    return request<{ id: number }>('/community/greetings', { method: 'POST', body: JSON.stringify(mentions.length ? { content, mentions } : { content }) });
+  },
   deleteGreeting(id: number) { return request<{ success: boolean }>(`/community/greetings/${id}`, { method: 'DELETE' }); },
   getMentionUsers(q: string) { return request<{ users: MentionUser[] }>(`/community/mention-users?q=${encodeURIComponent(q)}`); },
   async uploadCommunityImage(uri: string, mimeType = 'image/jpeg') {

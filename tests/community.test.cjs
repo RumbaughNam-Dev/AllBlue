@@ -61,3 +61,13 @@ test('greeting dates move by day and month and the calendar starts on the right 
   assert.equal(cells[0], '2026-11-01'); // 2026-11-01 is a Sunday
   assert.equal(cells.length, 30);
 });
+
+test('a greeting tag notice opens that day\'s greetings (push brings the day, the bell uses the Korean date of the notice)', () => {
+  assert.deepEqual(plain(notices.communityNoticeDestination('COMMUNITY_GREETING_MENTION', null, '2026-11-06')), { pathname: '/community-greetings', params: { date: '2026-11-06' } });
+  assert.deepEqual(plain(notices.communityNoticeDestination('COMMUNITY_GREETING_MENTION', null, 'nope')), { pathname: '/community-greetings', params: {} });
+  assert.equal(notices.koreaDay('2026-11-05T16:30:00.000Z'), '2026-11-06'); // 11-06 01:30 한국
+  assert.equal(notices.koreaDay('2026-11-06T03:00:00.000Z'), '2026-11-06');
+  assert.equal(notices.koreaDay(undefined), undefined);
+  // 글 태그는 그대로 글로
+  assert.deepEqual(plain(notices.communityNoticeDestination('COMMUNITY_MENTION', 7, '2026-11-06')), { pathname: '/community-post', params: { id: '7' } });
+});
