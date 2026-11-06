@@ -12,7 +12,8 @@ export const SPLIT_MIN_WIDTH = 600;
 
 export type PaneTab = 'index' | 'b' | 'c' | 'community' | 'tour';
 type Params = Record<string, string>;
-const PANE_PATHS = ['/schedule-daily', '/schedule-detail', '/profile-view', '/achievement', '/debriefing', '/community-posts', '/community-post', '/community-post-search'] as const;
+// 투어는 상세만 오른쪽 칸에서 (24장: 투어 목록 화면은 나누지 않고 전체 화면)
+const PANE_PATHS = ['/schedule-daily', '/schedule-detail', '/profile-view', '/achievement', '/debriefing', '/community-posts', '/community-post', '/community-post-search', '/tour-detail'] as const;
 type PanePath = typeof PANE_PATHS[number];
 type PaneRoute = { key: number; pathname: PanePath; params: Params };
 type Href = string | { pathname: string; params?: Record<string, unknown> };
@@ -30,6 +31,7 @@ const getPaneScreen = (pathname: PanePath): React.ComponentType => {
     case '/community-posts': return require('@/app/community-posts').default;
     case '/community-post': return require('@/app/community-post').default;
     case '/community-post-search': return require('@/app/community-post-search').default;
+    case '/tour-detail': return require('@/app/tour-detail').default;
   }
 };
 

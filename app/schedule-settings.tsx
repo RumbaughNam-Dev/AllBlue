@@ -75,9 +75,9 @@ export default function SettingsScreen() {
           {showTour && (
             <>
               <Text style={[styles.sectionTitle, styles.sectionGap]}>투어</Text>
-              <ToggleRow label="투어 역제안 알림 허용" value={values.tourWishNotify} onChange={v => handleToggle('tourWishNotify', v)} />
+              <ToggleRow label="투어 제안 요청 알림" value={values.tourWishNotify} onChange={v => handleToggle('tourWishNotify', v)} />
               <Text style={styles.settingDesc}>
-                켜 두면 투어에 가고 싶은 다이버의 역제안 알림을 받을 수 있습니다.
+                켜 두면 인원이 다 모여 인솔 강사님을 찾는 투어가 생길 때 알림을 받을 수 있습니다.
               </Text>
             </>
           )}

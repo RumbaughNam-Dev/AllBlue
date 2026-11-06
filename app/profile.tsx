@@ -15,6 +15,7 @@ import GlassBackground, { glassClear } from '@/components/GlassBackground';
 import BottomSheet from '@/components/BottomSheet';
 import LinkChips from '@/components/LinkChips';
 import { useAdminPendingCounts } from '@/hooks/useAdminPendingCounts';
+import ProfileTours from '@/features/tour/ProfileTours';
 
 function formatRecord(val: number | null, unit?: string): string {
   if (val === null || val === undefined) return '--';
@@ -75,6 +76,9 @@ export default function ProfileScreen() {
     { label: '문의 요청 처리', value: '/inquiry-manage', badge: pendingBadge(adminCounts.inquiry) },
     { label: '자격증 등록 처리', value: '/cert-manage', badge: pendingBadge(adminCounts.cert) },
     { label: '단체 등록처리', value: '/organization-manage', badge: pendingBadge(adminCounts.org) },
+    { label: '투어 등록요청', value: '/tour-requests', badge: pendingBadge(adminCounts.tourRequests) },
+    { label: '투어 신고 처리', value: '/tour-reports', badge: pendingBadge(adminCounts.tourReports) },
+    { label: '광고 배너 관리', value: '/tour-banners' }, // 건수 없음
     { label: '커뮤니티 신고 처리', value: '/community-reports', badge: pendingBadge(adminCounts.communityReports) },
   ];
 
@@ -98,7 +102,8 @@ export default function ProfileScreen() {
         items={adminMenuItems}
         fitContent
         // 시트가 닫히는 애니메이션(250ms)이 끝난 뒤 화면을 엶
-        onSelect={(path) => setTimeout(() => router.push(path), 260)}
+        // 투어 관리자 화면은 이 시트 안에서 열려 위쪽 여백을 줄임 (useSheetTop)
+        onSelect={(path) => setTimeout(() => router.push(path.startsWith('/tour-') ? { pathname: path, params: { inSheet: '1' } } : path), 260)}
       />
 
       {loading ? (
@@ -231,6 +236,7 @@ export default function ProfileScreen() {
               </View>
             </View>
 
+            {user?.id ? <ProfileTours userId={user.id} /> : null}
           </ScrollView>
 
           {/* Bottom Buttons */}

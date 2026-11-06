@@ -13,6 +13,7 @@ import { groupProfileCertifications } from '@/utils/profileCertifications';
 import GlassBackground, { glassClear } from '@/components/GlassBackground';
 import GlassCircle from '@/components/GlassCircle';
 import LinkChips from '@/components/LinkChips';
+import ProfileTours from '@/features/tour/ProfileTours';
 
 // Main actions stay white (prominent glass) so the navy label keeps its contrast.
 const PROMINENT_TINT = 'rgba(255,255,255,0.85)';
@@ -191,6 +192,7 @@ export default function UserProfileView({ userId, onClose, onOpenLog }: Props) {
             </View>
           </View>
 
+          <ProfileTours userId={userId} />
         </ScrollView>
 
         {onOpenLog && hasInstructorAccess(me?.level) && isMyStudent && userInfo && (

@@ -8,8 +8,9 @@ import { View, DeviceEventEmitter, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { hasSideTabStrip } from '@/utils/tabBarLayout';
 import { StripTabBarHost } from '@/components/StripTabBarHost';
-import { observeCommunityPushes, observeSchedulePushes } from '@/services/push';
+import { observeCommunityPushes, observeSchedulePushes, observeTourPushes } from '@/services/push';
 import { communityNoticeDestination } from '@/features/community/notices';
+import { tourNoticeDestination } from '@/features/tour/notices';
 import { api } from '@/services/api';
 import { StatusBar } from 'expo-status-bar';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
@@ -52,7 +53,7 @@ function RootLayoutNav() {
       router.replace('/onboarding');
     } else if (hasSeenOnboarding && !isLoggedIn && !inLogin && !inRegister) {
       router.replace('/login');
-    } else if (isLoggedIn && !inApp && !['notices','notice-detail','notice-edit','profile','profile-edit','profile-view','cert-upload','cert-manage','schedule-daily','schedule-detail','schedule-add','achievement','debriefing','blocked-users','inquiry','inquiry-write','inquiry-detail','inquiry-manage','inquiry-answer','withdraw','schedule-settings','organization-register','organization-manage','organization-members','community-posts','community-post','community-post-search','community-essay-write','community-free-write','community-promo-edit','community-greetings','community-reports'].includes(segments[0] as string)) {
+    } else if (isLoggedIn && !inApp && !['notices','notice-detail','notice-edit','profile','profile-edit','profile-view','cert-upload','cert-manage','schedule-daily','schedule-detail','schedule-add','achievement','debriefing','blocked-users','inquiry','inquiry-write','inquiry-detail','inquiry-manage','inquiry-answer','withdraw','schedule-settings','organization-register','organization-manage','organization-members','community-posts','community-post','community-post-search','community-essay-write','community-free-write','community-promo-edit','community-greetings','community-reports','tour-register','tour-detail','tour-list','tour-search','tour-mine','tour-applications','tour-propose','tour-proposals','tour-proposal','tour-requests','tour-reports','tour-banners','tour-banner-edit'].includes(segments[0] as string)) {
       router.replace('/(tabs)');
     }
 
@@ -68,6 +69,16 @@ function RootLayoutNav() {
       if (notificationId) void api.readNotification(notificationId).then(() => DeviceEventEmitter.emit('notificationsChanged')).catch(() => {});
       routerRef.current.push({ pathname: '/schedule-detail', params: { id: String(scheduleId), filter: 'notification' } });
     }, () => DeviceEventEmitter.emit('notificationsChanged'));
+  }, [isLoggedIn, isLoading, ready, splashDone]);
+
+  // 22장 투어 알림 푸시: 투어 상세 · 참여 신청 · 받은 제안 · 내 투어 · admin 등록요청 · 신고 처리로
+  useEffect(() => {
+    if (!isLoggedIn || isLoading || !ready || !splashDone) return;
+    return observeTourPushes((code, tourId, notificationId) => {
+      if (notificationId) void api.readNotification(notificationId).then(() => DeviceEventEmitter.emit('notificationsChanged')).catch(() => {});
+      const destination = tourNoticeDestination(code, tourId);
+      if (destination) routerRef.current.push(destination);
+    });
   }, [isLoggedIn, isLoading, ready, splashDone]);
 
   // 커뮤니티 알림 푸시: 그 글로 (admin 신고 알림은 신고 처리로)
@@ -131,6 +142,20 @@ function RootLayoutNav() {
           {/* 가운데 좌우 밀기는 날짜 이동: iOS 26의 화면 전체 밀어서 닫기를 끄고 왼쪽 끝 밀기로만 닫음 */}
           <Stack.Screen name="community-greetings" options={{ gestureEnabled: true, fullScreenGestureEnabled: false }} />
           <Stack.Screen name="community-reports" options={{ gestureEnabled: true, contentStyle: { ...side, backgroundColor: '#144A84' } }} />
+          {/* 투어: 등록 · 제안은 밀어서 닫으면 작성 중인 내용이 사라지므로 뒤로가기 버튼(확인 창)으로만 나감 */}
+          <Stack.Screen name="tour-register" options={{ contentStyle: { ...side, backgroundColor: '#144A84' } }} />
+          <Stack.Screen name="tour-propose" options={{ contentStyle: { ...side, backgroundColor: '#144A84' } }} />
+          <Stack.Screen name="tour-detail" options={{ gestureEnabled: true }} />
+          <Stack.Screen name="tour-list" options={{ gestureEnabled: true }} />
+          <Stack.Screen name="tour-search" options={{ gestureEnabled: true }} />
+          <Stack.Screen name="tour-mine" options={{ gestureEnabled: true }} />
+          <Stack.Screen name="tour-applications" options={{ gestureEnabled: true }} />
+          <Stack.Screen name="tour-proposals" options={{ gestureEnabled: true }} />
+          <Stack.Screen name="tour-proposal" options={{ gestureEnabled: true }} />
+          <Stack.Screen name="tour-requests" options={{ gestureEnabled: true }} />
+          <Stack.Screen name="tour-reports" options={{ gestureEnabled: true }} />
+          <Stack.Screen name="tour-banners" options={{ gestureEnabled: true }} />
+          <Stack.Screen name="tour-banner-edit" options={{ gestureEnabled: true }} />
         </Stack>
       </StripTabBarHost>
     </View>

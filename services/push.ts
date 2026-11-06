@@ -102,6 +102,29 @@ export function observeSchedulePushes(onOpen: (scheduleId: number, notificationI
   return () => { active = false; response.remove(); received.remove(); };
 }
 
+// 22장 투어 알림 푸시를 누르면 알림 코드(notification)로 갈 화면을 정함 (일정 푸시와 같은 방식).
+// 새 투어 설계의 푸시는 type 'tourV2' (예전 투어 푸시 'tour'는 무시)
+const handledTourResponses = new Set<string>();
+export function observeTourPushes(onOpen: (code: string, tourId: number, notificationId?: number) => void) {
+  if (!Notifications) return () => {};
+  let active = true;
+  const handle = (response: any) => {
+    if (!active || !response?.notification) return;
+    const request = response.notification.request;
+    const data = request.content?.data;
+    const tourId = Number(data?.tourId);
+    if (data?.type !== 'tourV2' || typeof data.notification !== 'string' || !Number.isSafeInteger(tourId) || tourId < 1) return;
+    if (handledTourResponses.has(request.identifier)) return;
+    handledTourResponses.add(request.identifier);
+    if (handledTourResponses.size > 100) handledTourResponses.delete(handledTourResponses.values().next().value!);
+    const notificationId = Number(data.notificationId);
+    onOpen(data.notification, tourId, Number.isSafeInteger(notificationId) && notificationId > 0 ? notificationId : undefined);
+  };
+  const response = Notifications.addNotificationResponseReceivedListener(handle);
+  Notifications.getLastNotificationResponseAsync().then(handle).catch(() => {});
+  return () => { active = false; response.remove(); };
+}
+
 // 커뮤니티 알림 푸시(태그 · 댓글 · 답글 · 내림 · 신고)를 누르면 알림 코드로 갈 화면을 정함 (일정 푸시와 같은 방식)
 const handledCommunityResponses = new Set<string>();
 export function observeCommunityPushes(onOpen: (code: string, postId: number | null, notificationId?: number) => void) {
