@@ -117,10 +117,10 @@ export default function FreeWriteScreen() {
             {titleError && <Text style={ui.error}>{titleError}</Text>}
           </View>
           <View>
-            <TextInput value={content} onChangeText={text => { setContent(text); setDirty(true); }} {...mentions.inputProps}
+            <TextInput onChangeText={text => { setContent(text); setDirty(true); }} {...mentions.inputProps}
               multiline maxLength={LIMITS.freeContentMax} textAlignVertical="top"
               placeholder="내용을 입력하세요. @를 치면 사용자를 태그할 수 있어요." placeholderTextColor="rgba(255,255,255,0.4)"
-              style={[ui.input, styles.content, contentError && ui.inputError]} />
+              style={[ui.input, styles.content, contentError && ui.inputError]}>{mentions.styled}</TextInput>
             {mentions.open && <View style={styles.suggestions}><MentionSuggestions users={mentions.users} loading={mentions.loading} onPick={mentions.pick} /></View>}
             {contentError && <Text style={ui.error}>{contentError}</Text>}
             <Text style={styles.counter}>{content.length} / {LIMITS.freeContentMax}</Text>

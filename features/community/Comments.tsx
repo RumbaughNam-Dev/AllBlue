@@ -111,8 +111,8 @@ export function CommentInput({ postId, replyTo, onCancelReply, onSent, bottomIns
         </View>
       )}
       <View style={styles.inputRow}>
-        <TextInput value={text} onChangeText={setText} {...mentions.inputProps} multiline maxLength={LIMITS.commentMax}
-          placeholder="댓글을 입력하세요 (@로 사용자 태그)" placeholderTextColor="rgba(255,255,255,0.4)" style={styles.input} />
+        <TextInput onChangeText={setText} {...mentions.inputProps} multiline maxLength={LIMITS.commentMax}
+          placeholder="댓글을 입력하세요 (@로 사용자 태그)" placeholderTextColor="rgba(255,255,255,0.4)" style={styles.input}>{mentions.styled}</TextInput>
         <Pressable accessibilityRole="button" accessibilityLabel="등록" onPress={send} disabled={!text.trim() || sending}
           style={({ pressed }) => [styles.send, (!text.trim() || pressed) && { opacity: 0.5 }]}>
           {sending ? <ActivityIndicator color="#032A36" /> : <Text style={styles.sendText}>등록</Text>}

@@ -217,8 +217,8 @@ export default function GreetingsScreen() {
               {!data?.greetedToday && mentions.open && <View style={styles.suggestions}><MentionSuggestions users={mentions.users} loading={mentions.loading} onPick={mentions.pick} /></View>}
               {data?.greetedToday ? <Text style={styles.done}>오늘 인사 완료 · 내 인사는 길게 눌러 지울 수 있어요</Text> : (
                 <View style={styles.inputRow}>
-                  <TextInput value={text} onChangeText={value => setText(value.replace(/\n/g, ' '))} {...mentions.inputProps} maxLength={LIMITS.greetingMax}
-                    onSubmitEditing={send} returnKeyType="send" placeholder={`오늘 인사 한 줄 (${LIMITS.greetingMax}자)`} placeholderTextColor="rgba(255,255,255,0.4)" style={styles.input} />
+                  <TextInput onChangeText={value => setText(value.replace(/\n/g, ' '))} {...mentions.inputProps} maxLength={LIMITS.greetingMax}
+                    onSubmitEditing={send} returnKeyType="send" placeholder={`오늘 인사 한 줄 (${LIMITS.greetingMax}자)`} placeholderTextColor="rgba(255,255,255,0.4)" style={styles.input}>{mentions.styled}</TextInput>
                   <Pressable accessibilityRole="button" onPress={send} disabled={!text.trim() || sending} style={({ pressed }) => [styles.send, (!text.trim() || pressed) && { opacity: 0.5 }]}>
                     {sending ? <ActivityIndicator color="#032A36" /> : <Text style={styles.sendText}>등록</Text>}
                   </Pressable>

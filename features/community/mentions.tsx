@@ -57,6 +57,8 @@ export function useMentions(text: string, setText: (text: string) => void) {
     // Controlled selection so the caret lands after an inserted tag.
     inputProps: { selection, onSelectionChange: (e: { nativeEvent: { selection: { start: number; end: number } } }) => setSelection(e.nativeEvent.selection) },
     mentionIds: () => keptMentionIds(text, picked),
+    // 입력칸에 넣을 글자 (고른 태그는 푸른색): <TextInput ...>{mentions.styled}</TextInput>
+    styled: <MentionInputText text={text} mentions={picked} />,
     // 답글 달기: 입력칸을 '@닉네임 '으로 채움 (9장)
     prefill: (mention: CommunityMention) => {
       const next = `@${mention.nickname} `;
@@ -87,26 +89,46 @@ export function MentionSuggestions({ users, loading, onPick }: { users: MentionU
 }
 
 // 본문 · 댓글의 '@닉네임'을 강조하고, 누르면 그 사람 프로필
-export function MentionText({ text, mentions, style, onOpenUser }: {
-  text: string; mentions: CommunityMention[]; style: object; onOpenUser: (userId: string) => void;
-}) {
-  if (!mentions.length) return <Text style={style}>{text}</Text>;
+// 글을 '@닉네임'(태그) 조각과 나머지 글자로 나눔 (긴 닉네임 먼저 맞춤)
+export function splitMentions(text: string, mentions: CommunityMention[]) {
+  const parts: { text: string; mention?: CommunityMention }[] = [];
   const names = [...mentions].sort((a, b) => b.nickname.length - a.nickname.length);
-  const parts: React.ReactNode[] = [];
-  let rest = text, key = 0;
+  let rest = text;
   while (rest) {
     let best: { index: number; mention: CommunityMention } | null = null;
     for (const mention of names) {
       const index = rest.indexOf(`@${mention.nickname}`);
       if (index >= 0 && (!best || index < best.index)) best = { index, mention };
     }
-    if (!best) { parts.push(rest); break; }
-    if (best.index) parts.push(rest.slice(0, best.index));
-    const { mention } = best;
-    parts.push(<Text key={key++} style={styles.mention} onPress={() => onOpenUser(mention.userId)}>@{mention.nickname}</Text>);
-    rest = rest.slice(best.index + mention.nickname.length + 1);
+    if (!best) { parts.push({ text: rest }); break; }
+    if (best.index) parts.push({ text: rest.slice(0, best.index) });
+    parts.push({ text: `@${best.mention.nickname}`, mention: best.mention });
+    rest = rest.slice(best.index + best.mention.nickname.length + 1);
   }
-  return <Text style={style}>{parts}</Text>;
+  return parts;
+}
+
+// 태그는 푸른색. onOpenUser가 있으면 눌러서 프로필 (커뮤니티 홈 출석인사처럼 없으면 색만)
+export function MentionText({ text, mentions, style, onOpenUser }: {
+  text: string; mentions: CommunityMention[]; style: object; onOpenUser?: (userId: string) => void;
+}) {
+  if (!mentions.length) return <Text style={style}>{text}</Text>;
+  return (
+    <Text style={style}>
+      {splitMentions(text, mentions).map((part, i) => (part.mention
+        ? <Text key={i} style={styles.mention} onPress={onOpenUser && (() => onOpenUser(part.mention!.userId))}>{part.text}</Text>
+        : part.text))}
+    </Text>
+  );
+}
+
+// 입력칸 안에서도 고른 사람은 푸른색으로 (TextInput에 value 대신 children으로 넘김)
+export function MentionInputText({ text, mentions }: { text: string; mentions: CommunityMention[] }) {
+  return (
+    <>
+      {splitMentions(text, mentions).map((part, i) => (part.mention ? <Text key={i} style={styles.mention}>{part.text}</Text> : part.text))}
+    </>
+  );
 }
 
 const styles = StyleSheet.create({

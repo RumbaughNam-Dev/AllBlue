@@ -72,7 +72,7 @@ export function PromoCard({ post, onPress, height, label }: { post: CommunityCar
   );
 }
 
-// onOpenUser: 인사 속 '@닉네임'(태그)을 누르면 그 사람 프로필 (없으면 태그도 글자 그대로)
+// 인사 속 '@닉네임'(태그)은 푸른색. onOpenUser가 있으면 눌러서 그 사람 프로필 (커뮤니티 홈은 인사를 누르면 그 날 목록이라 색만)
 export function GreetingRow({ greeting, onPress, onLongPress, onOpenUser, showTime = true }: {
   greeting: CommunityGreeting; onPress?: (g: CommunityGreeting) => void; onLongPress?: (g: CommunityGreeting) => void;
   onOpenUser?: (userId: string) => void; showTime?: boolean;
@@ -88,9 +88,7 @@ export function GreetingRow({ greeting, onPress, onLongPress, onOpenUser, showTi
           <Text style={ui.metaStrong} numberOfLines={1}>{greeting.author.nickname}</Text>
           {showTime && <Text style={ui.meta}>{clockTime(greeting.createdAt)}</Text>}
         </View>
-        {onOpenUser && greeting.mentions?.length
-          ? <MentionText text={greeting.content} mentions={greeting.mentions} style={styles.greetingText} onOpenUser={onOpenUser} />
-          : <Text style={styles.greetingText}>{greeting.content}</Text>}
+        <MentionText text={greeting.content} mentions={greeting.mentions ?? []} style={styles.greetingText} onOpenUser={onOpenUser} />
       </View>
     </Pressable>
   );
