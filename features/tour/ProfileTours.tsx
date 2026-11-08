@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import Colors from '@/constants/Colors';
-import { useAuth } from '@/contexts/AuthContext';
 import { api, type TourCard } from '@/services/api';
 import { StatusBadge, TourGrid, TourPhotoCard, useGridWidth } from './TourCards';
 import { CYAN } from './ui';
@@ -9,12 +8,10 @@ import { useTourRouter } from './nav';
 
 // 14장 강사 프로필 '진행한 투어 n': 다이빙 기록 아래, 인솔자로 모집 마감된 투어(제안 승낙 포함)를 최근 출발일 순으로.
 // 한 줄에 2개 (펼친 화면 4개) · 누르면 투어 상세 · 10개씩 '더 보기'. 없으면 칸째 숨김.
-// 투어 탭과 같이 admin에게만 보임 (탭을 모두에게 열 때 app/(tabs)/_layout.tsx의 showTour와 함께 풀 것)
+// 2026-11-09 투어 탭과 함께 모두에게 공개 (그 전엔 admin에게만 보였음)
 export default function ProfileTours({ userId }: { userId: string }) {
-  const { user } = useAuth();
   const router = useTourRouter();
   const grid = useGridWidth();
-  const visible = user?.level === 'A';
   const [total, setTotal] = useState(0);
   const [items, setItems] = useState<TourCard[]>([]);
   const [hasMore, setHasMore] = useState(false);
@@ -23,12 +20,12 @@ export default function ProfileTours({ userId }: { userId: string }) {
   useEffect(() => {
     let alive = true;
     setTotal(0); setItems([]); setHasMore(false);
-    if (!visible || !userId) return;
+    if (!userId) return;
     api.getLedTours(userId)
       .then(page => { if (alive) { setTotal(page.total); setItems(page.items); setHasMore(page.hasMore); } })
       .catch(() => { /* 못 불러오면 칸을 숨긴 채로 */ });
     return () => { alive = false; };
-  }, [userId, visible]);
+  }, [userId]);
 
   const more = async () => {
     if (loadingMore) return;
@@ -42,7 +39,7 @@ export default function ProfileTours({ userId }: { userId: string }) {
     }
   };
 
-  if (!visible || !items.length) return null;
+  if (!items.length) return null;
   return (
     <View>
       <View style={styles.divider} />
