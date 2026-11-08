@@ -6,6 +6,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Colors from '@/constants/Colors';
+import FloatingActionButton from '@/components/FloatingActionButton';
 import GlassChip from '@/components/GlassChip';
 import { useAppRouter, usePaneDefault } from '@/features/split/SplitPane';
 import { DUO_SYSTEM_TABS } from '@/utils/foldable';
@@ -18,7 +19,8 @@ import { TOURS_CHANGED } from './nav';
 
 const SIDE = 20;
 
-// 3장 투어 홈: 위 버튼 줄(고정) · 광고 최대 5개 · '참여자 모집중' · '인솔자 모집중' · '모집 마감' 세 줄 (가로 스크롤, 최근 등록 순 10개)
+// 3장 투어 홈: 위 버튼 줄(고정: 내 투어 · 투어 검색) · 광고 최대 5개 · '참여자 모집중' · '인솔자 모집중' · '모집 마감' 세 줄
+// (가로 스크롤, 최근 등록 순 10개) · 아래 '여행 만들기' 큰 버튼 (다이빙 만들기 · 친한친구 등록과 같은 모양)
 export default function TourHomeScreen() {
   const appRouter = useAppRouter(); // 상세는 펼친 화면이면 오른쪽 칸
   const router = useRouter(); // 등록 · 내 투어 · 검색 · 전체보기는 전체 화면 (24장)
@@ -63,10 +65,7 @@ export default function TourHomeScreen() {
   return (
     <View style={styles.container} onLayout={e => setWidth(e.nativeEvent.layout.width)}>
       <View style={styles.actions}>
-        <View style={styles.actionGroup}>
-          <ActionChip icon="add" label="투어 등록" prominent onPress={() => router.push('/tour-register')} />
-          <ActionChip label="내 투어" onPress={() => router.push('/tour-mine')} />
-        </View>
+        <ActionChip label="내 투어" onPress={() => router.push('/tour-mine')} />
         <ActionChip icon="search" label="투어 검색" onPress={() => router.push('/tour-search')} />
       </View>
 
@@ -78,7 +77,7 @@ export default function TourHomeScreen() {
         </Pressable>
       ) : (
         <ScrollView
-          contentContainerStyle={[styles.scroll, { paddingBottom: bottomSpace + 20 }, empty && styles.scrollEmpty]}
+          contentContainerStyle={[styles.scroll, { paddingBottom: bottomSpace + 90 }, empty && styles.scrollEmpty]}
           showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void load('refresh')} tintColor="rgba(255,255,255,0.6)" />}
         >
@@ -99,6 +98,17 @@ export default function TourHomeScreen() {
           )}
         </ScrollView>
       )}
+
+      {/* 여행 만들기 (2026-11-08): '투어 등록'이 인솔자 전용처럼 들려 바꾸고 아래 큰 버튼으로. 누르면 참여자 · 인솔자를 고르는 등록 화면 */}
+      <View style={[styles.bottomArea, { bottom: bottomSpace }]}>
+        <FloatingActionButton
+          label="여행 만들기"
+          onPress={() => router.push('/tour-register')}
+          fallbackStyle={styles.addButton}
+          fallbackPressedStyle={styles.addButtonPressed}
+          fallbackTextStyle={styles.addButtonText}
+        />
+      </View>
     </View>
   );
 }
@@ -148,7 +158,6 @@ function ActionChip({ icon, label, prominent = false, onPress }: { icon?: 'add' 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.brand.primary },
   actions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingHorizontal: SIDE, paddingTop: 4, paddingBottom: 12 },
-  actionGroup: { flexDirection: 'row', gap: 8 },
   chipProminent: { backgroundColor: Colors.brand.white },
   chipFallback: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 17, backgroundColor: 'rgba(255,255,255,0.12)' },
   chipContent: { flexDirection: 'row', alignItems: 'center', gap: 4 },
@@ -163,4 +172,12 @@ const styles = StyleSheet.create({
   cardList: { paddingHorizontal: SIDE, gap: GRID_GAP },
   rowEmpty: { paddingHorizontal: SIDE, fontFamily: 'SUIT-Regular', fontSize: 13, color: 'rgba(255,255,255,0.4)' },
   emptyText: { fontFamily: 'SUIT-Regular', fontSize: 15, color: 'rgba(255,255,255,0.35)', textAlign: 'center' },
+  // 다이빙 목록 '다이빙 만들기' · 친구 '친한친구 등록'과 같은 하단 큰 버튼 (흰 바탕 + 남색 글씨, 그림자로 목록 위에 떠 보이게)
+  bottomArea: { position: 'absolute', left: SIDE, right: SIDE },
+  addButton: {
+    height: 54, borderRadius: 14, backgroundColor: Colors.brand.white, alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 6,
+  },
+  addButtonPressed: { opacity: 0.85 },
+  addButtonText: { fontFamily: 'SUIT-Bold', fontSize: 16, color: Colors.brand.primary },
 });

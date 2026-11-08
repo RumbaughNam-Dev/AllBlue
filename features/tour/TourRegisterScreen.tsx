@@ -27,7 +27,7 @@ const PROMINENT_TINT = 'rgba(255,255,255,0.85)';
 type Sheet = 'continent' | 'country' | 'start' | 'end' | null;
 type EditState = { status: TourStatus; joinedCount: number; reviewNote: string | null; isPublic: boolean };
 
-// 4 · 5장 투어 등록 (수정도 같은 화면, ?id=). 역할: 참여자로(누구나, 바로 공개) · 인솔자로(강사 · admin, admin 승인 뒤 공개)
+// 4 · 5장 여행 만들기 = 투어 등록 (수정도 같은 화면, ?id=). 2026-11-08 참여자 쪽 문구는 '여행 만들기', 인솔자는 '등록 요청'. 역할: 참여자로(누구나, 바로 공개) · 인솔자로(강사 · admin, admin 승인 뒤 공개)
 // 입력 검사: 칸을 벗어나면 라벨 옆 빨간 글씨 + 빨간 테두리, 고치면 바로 사라짐
 export default function TourRegisterScreen() {
   const router = useRouter();
@@ -134,9 +134,9 @@ export default function TourRegisterScreen() {
     const message = leader
       ? `${summary}\n\n승인 대기 → ${TOUR_STATUS[outcome].label}\n${left > 0 ? "admin이 승인하면 '참여자 모집중'으로 공개돼요." : "인원이 다 모였어요. admin이 승인하면 '모집 마감'으로 기록돼요. 홈의 '모집 마감' 줄과 검색, 내 프로필 '투어'에 보여요."}`
       : `${summary}\n\n${TOUR_STATUS[outcome].label}\n${left > 0 ? `${left}자리를 먼저 모집해요. 다 모이면 강사님들께 인솔 제안 요청 알림이 가요.` : '인원이 다 모여 강사님들께 바로 인솔 제안 요청 알림이 가요.'}\n\n무분별한 등록은 이용 제한 사유가 될 수 있어요.`;
-    Alert.alert(leader ? '등록 요청할까요?' : '투어를 등록할까요?', message, [
+    Alert.alert(leader ? '등록 요청할까요?' : '여행을 만들까요?', message, [
       { text: '취소', style: 'cancel' },
-      { text: leader ? '등록 요청' : '등록', onPress: () => void submit() },
+      { text: leader ? '등록 요청' : '만들기', onPress: () => void submit() },
     ]);
   };
 
@@ -160,23 +160,23 @@ export default function TourRegisterScreen() {
         disablePrevention();
         const [title, message] = leader
           ? ['등록 요청을 보냈어요', '관리자가 확인한 뒤 공개돼요. 승인되면 알림으로 알려드려요.']
-          : ['투어를 등록했어요', `'${TOUR_STATUS[result.status].label}'으로 공개됐어요.`];
+          : ['여행을 만들었어요', `'${TOUR_STATUS[result.status].label}'으로 공개됐어요.`];
         Alert.alert(title, message, [{ text: '확인', onPress: () => router.back() }]);
       }
     } catch (e: any) {
       submittingRef.current = false;
       setSubmitting(false);
-      if (!e?._handled) Alert.alert(editing ? '저장하지 못했어요' : '등록하지 못했어요', e?.message ?? '잠시 후 다시 시도해 주세요.');
+      if (!e?._handled) Alert.alert(editing ? '저장하지 못했어요' : leader ? '등록 요청하지 못했어요' : '여행을 만들지 못했어요', e?.message ?? '잠시 후 다시 시도해 주세요.');
     }
   };
 
   const contentWidth = width - insets.left - insets.right - SIDE * 2;
   const photoLabel = leader ? '소개 이미지' : '사진';
-  const submitLabel = !editing ? (leader ? '등록 요청' : '투어 등록') : resubmit ? '보완 후 재요청' : editState?.isPublic && leader ? '수정 요청' : '수정 저장';
+  const submitLabel = !editing ? (leader ? '등록 요청' : '여행 만들기') : resubmit ? '보완 후 재요청' : editState?.isPublic && leader ? '수정 요청' : '수정 저장';
 
   return (
     <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-      <TourHeader title={editing ? '투어 수정' : '투어 등록'} onBack={() => router.back()} />
+      <TourHeader title={editing ? '투어 수정' : '여행 만들기'} onBack={() => router.back()} />
       {loading ? (
         <View style={styles.loading}><ActivityIndicator size="large" color="rgba(255,255,255,0.5)" /></View>
       ) : (
