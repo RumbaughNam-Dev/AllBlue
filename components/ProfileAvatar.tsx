@@ -8,10 +8,11 @@ type Props = {
   nickname?: string | null;
   level?: string | number | null;
   count?: string | null; // 16장: 관리자 처리할 건수 (홈 툴바), 없으면 안 보임
+  showLevel?: boolean; // false면 레벨 배지를 그리지 않음 (홈 툴바, 2026-11-08)
 };
 
-// Shared with the home toolbar: 40px frame, 35px photo, 16px level badge.
-export default function ProfileAvatar({ profileImage, nickname, level, count }: Props) {
+// Shared with the home toolbar: 40px frame, 35px photo, 16px level badge (the toolbar hides the badge).
+export default function ProfileAvatar({ profileImage, nickname, level, count, showLevel = true }: Props) {
   const [failedImage, setFailedImage] = useState<string | null>(null);
   return (
     <View style={styles.frame}>
@@ -22,7 +23,7 @@ export default function ProfileAvatar({ profileImage, nickname, level, count }: 
           <Text style={styles.initial}>{nickname?.charAt(0) || '?'}</Text>
         </View>
       )}
-      <View style={styles.badge}><LevelBadge level={level} size={16} /></View>
+      {showLevel ? <View style={styles.badge}><LevelBadge level={level} size={16} /></View> : null}
       {count ? (
         <View style={styles.count} accessibilityLabel={`처리할 관리자 요청 ${count}건`}>
           <Text style={styles.countText}>{count}</Text>

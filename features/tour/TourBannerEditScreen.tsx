@@ -7,6 +7,7 @@ import Colors from '@/constants/Colors';
 import { api } from '@/services/api';
 import BottomSheet from '@/components/BottomSheet';
 import DatePickerSheet from '@/components/DatePickerSheet';
+import { UploadProgressPopup, useUploadProgress } from '@/components/UploadProgress';
 import { useScreenParams } from '@/features/split/SplitPane';
 import { localToday } from './tourForm';
 import { useSheetTop } from './useSheetTop';
@@ -35,6 +36,7 @@ export default function TourBannerEditScreen() {
   const [currentName, setCurrentName] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const uploads = useUploadProgress();
   const [sheet, setSheet] = useState<Sheet>(null);
   const today = localToday();
 
@@ -81,7 +83,8 @@ export default function TourBannerEditScreen() {
     if (error || saving || !form.tourId) return;
     setSaving(true);
     try {
-      const imageUrl = form.remote ? form.imageUri : (await api.uploadTourImage(form.imageUri, form.mimeType)).url;
+      const imageUrl = form.remote ? form.imageUri : (await uploads.run([{ label: '배너 이미지', uri: form.imageUri, mimeType: form.mimeType }],
+        (file, onProgress) => api.uploadTourImage(file.uri, file.mimeType, onProgress)))[0].url;
       await api.saveTourBanner(bannerId, { imageUrl, tourId: form.tourId, startDate: form.startDate, endDate: form.endDate, isEnabled: form.isEnabled });
       router.back();
     } catch (e: any) {
@@ -188,6 +191,7 @@ export default function TourBannerEditScreen() {
         minDate={form.startDate || undefined}
         onSelect={date => update({ endDate: date })}
       />
+      <UploadProgressPopup {...uploads.popup} />
     </View>
   );
 }

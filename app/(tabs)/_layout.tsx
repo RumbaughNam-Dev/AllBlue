@@ -63,7 +63,8 @@ export default function TabLayout() {
           style={({ pressed }) => [styles.profileButton, pressed && { opacity: 0.6 }]}
           onPress={() => router.push('/profile')}
         >
-          <ProfileAvatar profileImage={user?.profileImage} nickname={user?.nickname} level={user?.badgeLevel ?? user?.level} count={adminBadgeText(adminTotal)} />
+          {/* 홈 왼쪽 위 프로필 사진: 레벨 배지 없이 (2026-11-08), admin은 처리할 건수만 */}
+          <ProfileAvatar profileImage={user?.profileImage} nickname={user?.nickname} showLevel={false} count={adminBadgeText(adminTotal)} />
         </Pressable>
 
         <View pointerEvents="none" style={styles.toolbarLogo}>

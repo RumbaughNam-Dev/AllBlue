@@ -1,7 +1,7 @@
 import type { Notice, NoticeInput, PopupSlide } from '@/features/notices/types';
 import { Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { File, UploadType } from 'expo-file-system';
+import { File, UploadType, type UploadProgress } from 'expo-file-system';
 
 import { API_BASE_URL as BASE_URL } from '@/constants/Environment';
 
@@ -425,18 +425,20 @@ export type TourPerson = { userId: string; nickname: string; name: string | null
 // 목록 카드: name = 투어명, 없으면 '나라 · 형태' · count = 지금 모인 인원 · coverUrl = 대표 사진
 export type TourCard = {
   id: number; status: TourStatus; registerRole: TourRole; title: string | null; name: string;
-  continentCode: string; countryCode: string; countryName: string; startDate: string; endDate: string; tourStyle: TourStyle;
+  // place: 투어 장소 (도시 이름, 2026-11-08 전에 등록한 투어는 null)
+  continentCode: string; countryCode: string; countryName: string; place: string | null; startDate: string; endDate: string; tourStyle: TourStyle;
   capacity: number; count: number; fee: number | null; coverUrl: string | null;
   registrant: { userId: string; nickname: string }; leader: { userId: string; nickname: string } | null; proposalCount: number;
 };
 export type TourBanner = { id: number; imageUrl: string; tourId: number };
-export type TourHome = { canLead: boolean; banners: TourBanner[]; recruiting: TourCard[]; seeking: TourCard[] };
+// closed: 모집 마감 줄 (2026-11-08 추가, 그 전 서버는 안 보냄)
+export type TourHome = { canLead: boolean; banners: TourBanner[]; recruiting: TourCard[]; seeking: TourCard[]; closed?: TourCard[] };
 export type TourPage = { items: TourCard[]; hasMore: boolean };
 export type TourSearchConditions = { from: string; to: string; continent: string; country: string; statuses: TourStatus[]; q: string };
-export type TourRegisterOptions = { canLead: boolean; registeredToday: boolean; profileLinks: TourLink[] };
-// 등록 · 수정: 참여자로는 사진 · 기간 · 지역 · 형태 · 인원만, 인솔자로는 인솔 정보(투어명 · 참가비 · 포함/불포함 · 문의 링크)까지
+export type TourRegisterOptions = { canLead: boolean; registeredToday: boolean };
+// 등록 · 수정: 참여자로는 사진 · 기간 · 지역 · 투어 장소 · 형태 · 인원만, 인솔자로는 인솔 정보(투어명 · 참가비 · 포함/불포함 · 문의 링크)까지
 export type TourRegistrationInput = {
-  role: TourRole; images: string[]; coverIndex: number; continentCode: string; countryCode: string; startDate: string; endDate: string;
+  role: TourRole; images: string[]; coverIndex: number; continentCode: string; countryCode: string; place: string; startDate: string; endDate: string;
   tourStyle: TourStyle; capacity: number; baseCount: number;
   title?: string; fee?: number | null; included?: string[]; excluded?: string[]; links?: TourLink[];
 };
@@ -447,7 +449,8 @@ export type TourEditRequest = { id: number; status: 'PENDING' | 'REJECTED'; revi
 export type TourDetail = {
   tour: {
     id: number; status: TourStatus; registerRole: TourRole; title: string | null; name: string;
-    continentCode: string; continentName: string; countryCode: string; countryName: string; startDate: string; endDate: string; tourStyle: TourStyle;
+    continentCode: string; continentName: string; countryCode: string; countryName: string; place: string | null;
+    startDate: string; endDate: string; tourStyle: TourStyle;
     capacity: number; baseCount: number; joinedCount: number; count: number; companions: number; fee: number | null;
     images: string[]; coverIndex: number; included: string[]; excluded: string[];
     isPublic: boolean; isRegistrant: boolean; isLeader: boolean; isAdmin: boolean;
@@ -501,7 +504,7 @@ export const api = {
   getCodes(group: string) { return request<{ success: boolean; data?: CommonCode[]; message?: string }>(`/codes?group=${encodeURIComponent(group)}`); },
   getTourHome() { return request<TourHome>('/tours/home'); },
   // 전체보기: 그 상태만, 최근 등록 순 10개씩 (before = 더 예전 것, after = 더 최근 것)
-  getTours(status: 'RECRUITING' | 'SEEKING_LEADER', cursor: { before?: number; after?: number } = {}) {
+  getTours(status: 'RECRUITING' | 'SEEKING_LEADER' | 'CLOSED', cursor: { before?: number; after?: number } = {}) {
     const params = new URLSearchParams({ status });
     if (cursor.before) params.set('before', String(cursor.before));
     if (cursor.after) params.set('after', String(cursor.after));
@@ -519,13 +522,15 @@ export const api = {
   getTourRegisterOptions() { return request<TourRegisterOptions>('/tours/register-options'); },
   // 강사 프로필 '진행한 투어': 최근 출발일 순 10개씩
   getLedTours(userId: string, offset = 0) { return request<{ total: number; items: TourCard[]; hasMore: boolean }>(`/tours/led/${encodeURIComponent(userId)}?offset=${offset}`); },
-  async uploadTourImage(uri: string, mimeType = 'image/jpeg') {
+  // onProgress: 보낸 바이트 / 전체 바이트 (components/UploadProgress의 진행 막대)
+  async uploadTourImage(uri: string, mimeType = 'image/jpeg', onProgress?: (progress: UploadProgress) => void) {
     const token = await AsyncStorage.getItem('authToken');
     const result = await new File(uri).upload(`${BASE_URL}/tours/images`, {
       uploadType: UploadType.MULTIPART,
       fieldName: 'file',
       mimeType,
       headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      onProgress,
     });
     return parseResponse<{ url: string }>(result.status, result.body, token);
   },
@@ -606,13 +611,14 @@ export const api = {
   },
   deleteGreeting(id: number) { return request<{ success: boolean }>(`/community/greetings/${id}`, { method: 'DELETE' }); },
   getMentionUsers(q: string) { return request<{ users: MentionUser[] }>(`/community/mention-users?q=${encodeURIComponent(q)}`); },
-  async uploadCommunityImage(uri: string, mimeType = 'image/jpeg') {
+  async uploadCommunityImage(uri: string, mimeType = 'image/jpeg', onProgress?: (progress: UploadProgress) => void) {
     const token = await AsyncStorage.getItem('authToken');
     const result = await new File(uri).upload(`${BASE_URL}/community/images`, {
       uploadType: UploadType.MULTIPART,
       fieldName: 'file',
       mimeType,
       headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      onProgress,
     });
     return parseResponse<{ url: string }>(result.status, result.body, token);
   },
@@ -647,7 +653,7 @@ export const api = {
     return request<ProfileResponse>('/profile');
   },
 
-  async uploadProfileImage(uri: string) {
+  async uploadProfileImage(uri: string, onProgress?: (progress: UploadProgress) => void) {
     const token = await AsyncStorage.getItem('authToken');
     const filename = uri.split('/').pop() ?? 'photo.jpg';
 
@@ -659,6 +665,7 @@ export const api = {
       headers: {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
+      onProgress,
     });
     return parseResponse<{ success: boolean; profileImage: string }>(result.status, result.body, token);
   },
@@ -845,7 +852,7 @@ export const api = {
     });
   },
 
-  async uploadCertImage(uri: string) {
+  async uploadCertImage(uri: string, onProgress?: (progress: UploadProgress) => void) {
     const token = await AsyncStorage.getItem('authToken');
     const filename = uri.split('/').pop() ?? 'cert.jpg';
 
@@ -857,6 +864,7 @@ export const api = {
       headers: {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
+      onProgress,
     });
     return parseResponse<{ success: boolean }>(result.status, result.body, token);
   },
@@ -942,7 +950,7 @@ export const api = {
     return request<{ inquiry: { id: number; title: string; content: string; status: 'PENDING' | 'ANSWERED'; answer?: string; answeredAt?: string; createdAt: string; attachment?: { id: number; fileUrl: string; fileName: string; fileSize: number; mimeType: string } } }>(`/inquiries/${id}`);
   },
 
-  async createInquiry(title: string, content: string, attachment?: { uri: string; name: string; type: string }) {
+  async createInquiry(title: string, content: string, attachment?: { uri: string; name: string; type: string }, onProgress?: (progress: UploadProgress) => void) {
     if (!attachment) {
       return request<{ success: boolean }>('/inquiries', {
         method: 'POST',
@@ -961,6 +969,7 @@ export const api = {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       parameters: { title, content },
+      onProgress,
     });
     return parseResponse<{ success: boolean }>(result.status, result.body, token);
   },
@@ -1031,7 +1040,7 @@ export const api = {
     return request<{ organizations: Organization[] }>(`/organizations/search?q=${encodeURIComponent(q)}`);
   },
 
-  async createOrganization(data: { name: string; phone?: string; address?: string; logoUri?: string }) {
+  async createOrganization(data: { name: string; phone?: string; address?: string; logoUri?: string }, onProgress?: (progress: UploadProgress) => void) {
     // 로고 이미지가 있으면 먼저 업로드
     let logoUrl: string | undefined;
     if (data.logoUri) {
@@ -1042,6 +1051,7 @@ export const api = {
         fieldName: 'logo',
         mimeType: 'image/jpeg',
         headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        onProgress,
       });
       const parsed = await parseResponse<{ logoUrl: string }>(result.status, result.body, token);
       logoUrl = parsed.logoUrl;

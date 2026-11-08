@@ -9,6 +9,7 @@ import { api, TourStatus } from '@/services/api';
 import BottomSheet from '@/components/BottomSheet';
 import DatePickerSheet from '@/components/DatePickerSheet';
 import GlassBackground, { glassClear } from '@/components/GlassBackground';
+import { UploadProgressPopup, useUploadProgress } from '@/components/UploadProgress';
 import TourImageGrid from './TourImageGrid';
 import TourLinkPopup from './TourLinkPopup';
 import { regionName, useTourRegions } from './useTourRegions';
@@ -38,7 +39,6 @@ export default function TourRegisterScreen() {
   const [initial, setInitial] = useState<TourForm>(emptyTourForm());
   const [canLead, setCanLead] = useState(false);
   const [registeredToday, setRegisteredToday] = useState(false);
-  const [profileLinks, setProfileLinks] = useState<TourForm['links']>([]);
   const [editState, setEditState] = useState<EditState | null>(null);
   const [loading, setLoading] = useState(true);
   const [touched, setTouched] = useState<Partial<Record<TourField, boolean>>>({});
@@ -48,6 +48,7 @@ export default function TourRegisterScreen() {
   const [addingLink, setAddingLink] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
+  const uploads = useUploadProgress();
   const today = localToday();
   const leader = form.role === 'LEADER';
 
@@ -66,19 +67,19 @@ export default function TourRegisterScreen() {
           // 공개 중인 인솔자 투어에 수정본이 있으면 이어서 고침 (보완 요청을 받았으면 그 내용도 보임)
           const draft = tour.editRequest?.payload as (Parameters<typeof formFromTour>[0] & { links: TourForm['links'] }) | undefined;
           const base = { registerRole: tour.registerRole, capacity: tour.capacity, baseCount: tour.baseCount };
-          const loaded = draft ? formFromTour({ ...draft, ...base }, draft.links.slice(0, L.linkMax)) : formFromTour(tour, links.slice(0, L.linkMax));
+          // 장소가 없던 예전 수정본이면 지금 공개 중인 장소로
+          const loaded = draft ? formFromTour({ place: tour.place, ...draft, ...base }, draft.links.slice(0, L.linkMax)) : formFromTour(tour, links.slice(0, L.linkMax));
           setForm(loaded); setInitial(loaded);
           const isPublic = ['RECRUITING', 'SEEKING_LEADER'].includes(tour.status);
           const note = isPublic ? (tour.editRequest?.status === 'REJECTED' ? tour.editRequest.reviewNote : null) : tour.reviewNote;
           setEditState({ status: tour.status, joinedCount: tour.joinedCount, reviewNote: note, isPublic });
           // 이미 저장된 값이라 처음부터 검사 결과를 보여줌
-          setTouched({ images: true, region: true, period: true, style: true, counts: true, title: true, links: true });
+          setTouched({ images: true, region: true, place: true, period: true, style: true, counts: true, title: true, links: true });
         } else {
           const options = await api.getTourRegisterOptions();
           if (!alive) return;
           setCanLead(options.canLead);
           setRegisteredToday(options.registeredToday);
-          setProfileLinks(options.profileLinks.slice(0, L.linkMax));
         }
       } catch (e: any) {
         if (!alive) return;
@@ -90,13 +91,12 @@ export default function TourRegisterScreen() {
     return () => { alive = false; };
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // 역할을 바꾸면 칸이 달라짐: 인솔자로는 문의 링크를 프로필 링크로 미리 채움 (바뀐 것으로 치지 않음)
+  // 역할을 바꾸면 칸이 달라짐: 문의 링크는 투어마다 따로 넣어 빈 채로 시작 (프로필 링크와 연동 안 함)
   const chooseRole = (role: TourForm['role']) => {
     if (role === form.role) return;
-    const links = role === 'LEADER' ? profileLinks : [];
-    setForm(prev => ({ ...prev, role, links, baseCount: Math.max(baseMin(role), Math.min(prev.baseCount, prev.capacity)) }));
-    setInitial(prev => ({ ...prev, role, links, baseCount: Math.max(baseMin(role), Math.min(prev.baseCount, prev.capacity)) }));
-    if (role === 'LEADER' && !links.length) touch('links');
+    setForm(prev => ({ ...prev, role, links: [], baseCount: Math.max(baseMin(role), Math.min(prev.baseCount, prev.capacity)) }));
+    setInitial(prev => ({ ...prev, role, links: [], baseCount: Math.max(baseMin(role), Math.min(prev.baseCount, prev.capacity)) }));
+    if (role === 'LEADER') touch('links');
   };
 
   const resubmit = editState?.status === 'REVISION';
@@ -127,9 +127,9 @@ export default function TourRegisterScreen() {
   const confirmAndSubmit = () => {
     if (!valid || submittingRef.current || blockedToday) return;
     if (editing) { void submit(); return; }
-    const summary = `${regionName(countries, form.countryCode)} · ${STYLE_LABEL[form.tourStyle as keyof typeof STYLE_LABEL]}\n${formatTourPeriod(form.startDate, form.endDate)} · ${form.capacity}명 중 ${form.baseCount}명 모임`;
+    const summary = `${regionName(countries, form.countryCode)} · ${form.place.trim().replace(/\s+/g, ' ')} · ${STYLE_LABEL[form.tourStyle as keyof typeof STYLE_LABEL]}\n${formatTourPeriod(form.startDate, form.endDate)} · ${form.capacity}명 중 ${form.baseCount}명 모임`;
     const message = leader
-      ? `${summary}\n\n승인 대기 → ${TOUR_STATUS[outcome].label}\n${left > 0 ? "admin이 승인하면 '참여자 모집중'으로 공개돼요." : "인원이 다 모였어요. admin이 승인하면 '모집 마감'으로 기록돼요. 홈에는 안 나오고 검색과 내 프로필 '진행한 투어'에 보여요."}`
+      ? `${summary}\n\n승인 대기 → ${TOUR_STATUS[outcome].label}\n${left > 0 ? "admin이 승인하면 '참여자 모집중'으로 공개돼요." : "인원이 다 모였어요. admin이 승인하면 '모집 마감'으로 기록돼요. 홈의 '모집 마감' 줄과 검색, 내 프로필 '투어'에 보여요."}`
       : `${summary}\n\n${TOUR_STATUS[outcome].label}\n${left > 0 ? `${left}자리를 먼저 모집해요. 다 모이면 강사님들께 인솔 제안 요청 알림이 가요.` : '인원이 다 모여 강사님들께 바로 인솔 제안 요청 알림이 가요.'}\n\n무분별한 등록은 이용 제한 사유가 될 수 있어요.`;
     Alert.alert(leader ? '등록 요청할까요?' : '투어를 등록할까요?', message, [
       { text: '취소', style: 'cancel' },
@@ -142,7 +142,7 @@ export default function TourRegisterScreen() {
     submittingRef.current = true; // 누르면 바로 잠겨서 두 번 요청되지 않음
     setSubmitting(true);
     try {
-      const input = toTourInput(form, await uploadPhotos(form.images));
+      const input = toTourInput(form, await uploadPhotos(form.images, uploads.run, leader ? '소개 이미지' : '사진'));
       if (editing) {
         const result = await api.updateTour(Number(id), input);
         disablePrevention();
@@ -192,7 +192,7 @@ export default function TourRegisterScreen() {
               {(['PARTICIPANT', 'LEADER'] as const).map(role => (
                 <Pressable key={role} accessibilityRole="button" accessibilityState={{ selected: form.role === role }} onPress={() => chooseRole(role)}
                   style={[styles.role, form.role === role && styles.roleOn]}>
-                  <Text style={[styles.roleText, form.role === role && styles.roleTextOn]}>{role === 'PARTICIPANT' ? '참여자로' : '인솔자로'}</Text>
+                  <Text style={[styles.roleText, form.role === role && styles.roleTextOn]}>{role === 'PARTICIPANT' ? '참여자' : '인솔자'}</Text>
                 </Pressable>
               ))}
             </View>
@@ -206,7 +206,7 @@ export default function TourRegisterScreen() {
             </View>
           ) : null}
 
-          <FieldLabel text={photoLabel} required note={`최대 ${L.imageMax}장 · 눌러서 대표 선택`} error={shown('images')} />
+          <FieldLabel text={photoLabel} required={leader} note={`${leader ? '' : '선택 · '}최대 ${L.imageMax}장 · 눌러서 대표 선택`} error={shown('images')} />
           <TourImageGrid
             images={form.images} max={L.imageMax} width={contentWidth} error={!!shown('images')} label={photoLabel}
             coverIndex={Math.max(0, form.images.findIndex(i => i.uri === form.coverUri))}
@@ -226,14 +226,14 @@ export default function TourRegisterScreen() {
             </>
           ) : null}
 
-          <FieldLabel text={leader ? '기간' : '언제 가고 싶나요?'} required error={shown('period')} />
+          <FieldLabel text="기간" required error={shown('period')} />
           <View style={fs.row}>
             <Selector label={form.startDate.replace(/-/g, '.') || '시작일'} placeholder={!form.startDate} error={!!shown('period')} icon="calendar-outline" onPress={() => setSheet('start')} />
             <Text style={fs.tilde}>~</Text>
             <Selector label={form.endDate.replace(/-/g, '.') || '종료일'} placeholder={!form.endDate} error={!!shown('period')} icon="calendar-outline" onPress={() => setSheet('end')} />
           </View>
 
-          <FieldLabel text={leader ? '지역' : '어디로 가고 싶나요?'} required error={shown('region')} />
+          <FieldLabel text="지역" required error={shown('region')} />
           <View style={fs.row}>
             <Selector label={regionName(continents, form.continentCode) || '대륙 선택'} placeholder={!form.continentCode} error={!!shown('region') && !form.continentCode}
               onPress={() => (regionsFailed ? loadRegions() : setSheet('continent'))} />
@@ -242,9 +242,13 @@ export default function TourRegisterScreen() {
           </View>
           {regionsFailed ? <Text style={fs.retry}>지역 목록을 불러오지 못했어요. 대륙 선택을 다시 눌러 주세요.</Text> : null}
 
+          <FieldLabel text="투어 장소" required error={shown('place')} />
+          <TextInput style={[fs.input, shown('place') && fs.inputError]} value={form.place} onChangeText={text => update('place', text)} onBlur={() => touch('place')}
+            placeholder="예) 세부" placeholderTextColor="rgba(255,255,255,0.25)" maxLength={L.placeMax} returnKeyType="done" />
+
           <View style={fs.row}>
             <View style={fs.half}>
-              <FieldLabel text={leader ? '총 인원' : '총 몇 명이 가나요?'} required />
+              <FieldLabel text="총 인원" required />
             </View>
             <View style={fs.half}>
               <FieldLabel text={leader ? '지금 모인 인원 (인솔자 빼고)' : '지금 모인 인원 (나 포함)'} required />
@@ -270,7 +274,7 @@ export default function TourRegisterScreen() {
               </Suffixed>
               <ItemList title="포함 사항" mark="✓" items={form.included} onChange={items => update('included', items)} />
               <ItemList title="불포함 사항" mark="✕" items={form.excluded} onChange={items => update('excluded', items)} />
-              <LinkList links={form.links} error={shown('links')} showProfileHint={!editing && profileLinks.length === 0}
+              <LinkList links={form.links} error={shown('links')}
                 onRemove={index => { touch('links'); update('links', form.links.filter((_, i) => i !== index)); }} onAdd={() => setAddingLink(true)} />
             </>
           ) : null}
@@ -305,6 +309,7 @@ export default function TourRegisterScreen() {
         onSelect={date => setForm(prev => ({ ...prev, startDate: date, endDate: prev.endDate && prev.endDate >= date ? prev.endDate : date }))} />
       <DatePickerSheet visible={sheet === 'end'} onClose={() => { setSheet(null); touch('period'); }} selectedDate={form.endDate || form.startDate}
         minDate={form.startDate || today} onSelect={date => update('endDate', date)} />
+      <UploadProgressPopup {...uploads.popup} />
     </View>
   );
 }

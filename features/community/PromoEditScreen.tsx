@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useLeaveConfirm } from '@/hooks/useLeaveConfirm';
+import { UploadProgressPopup, useUploadProgress } from '@/components/UploadProgress';
 import { useAppRouter } from '@/features/split/SplitPane';
 import { api } from '@/services/api';
 import { CenterMessage, CommunityHeader, LIMITS, TextHeaderButton, styles as ui } from './ui';
@@ -34,6 +35,7 @@ export default function PromoEditScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [saved, setSaved] = useState(false);
   const submittingRef = useRef(false);
+  const uploads = useUploadProgress();
 
   useEffect(() => {
     api.getMyPromo().then(({ organization, post }) => {
@@ -77,8 +79,11 @@ export default function PromoEditScreen() {
     submittingRef.current = true;
     setSubmitting(true);
     try {
-      const urls: string[] = [];
-      for (const image of images) urls.push(image.remote ? image.uri : (await api.uploadCommunityImage(image.uri, image.mimeType)).url);
+      // 새로 고른 이미지만 올림 (이미지마다 진행 막대), 이미 올린 건 주소 그대로
+      const fresh = images.flatMap((image, index) => (image.remote ? [] : [{ label: `이미지 ${index + 1}`, uri: image.uri, mimeType: image.mimeType }]));
+      const uploaded = await uploads.run(fresh, (file, onProgress) => api.uploadCommunityImage(file.uri, file.mimeType, onProgress).then(result => result.url));
+      let next = 0;
+      const urls = images.map(image => (image.remote ? image.uri : uploaded[next++]));
       await api.saveMyPromo({ title: t, images: urls });
       setSaved(true);
     } catch (e: any) {
@@ -149,6 +154,7 @@ export default function PromoEditScreen() {
           )}
         </ScrollView>
       )}
+      <UploadProgressPopup {...uploads.popup} />
     </KeyboardAvoidingView>
   );
 }

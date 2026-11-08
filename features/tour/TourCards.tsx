@@ -37,11 +37,12 @@ export function TourPhotoCard({
   tour, width, badge, lines, onPress, onMenu, onNote, footer, stretch,
 }: {
   tour: TourCard; width: number; badge?: React.ReactNode;
-  lines?: { meta?: string; lead?: string; leadColor?: string; count?: string | null; note?: { text: string; color: string } };
+  lines?: { where?: string; meta?: string; lead?: string; leadColor?: string; count?: string | null; note?: { text: string; color: string } };
   onPress?: () => void; onMenu?: () => void; onNote?: () => void; footer?: React.ReactNode; stretch?: boolean;
 }) {
   const auto = cardLines(tour);
-  const l = { ...auto, ...lines };
+  // meta를 따로 주면 where(나라 · 장소)도 준 것만 씀 — 자동 where가 다른 글 앞에 붙지 않게
+  const l = { ...auto, ...(lines && 'meta' in lines ? { where: undefined } : {}), ...lines };
   return (
     <Pressable onPress={onPress} disabled={!onPress} style={({ pressed }) => [styles.card, { width }, stretch && styles.stretch, pressed && styles.pressed]}>
       <TourPhoto uri={tour.coverUrl} style={{ width, height: width }}>
@@ -54,7 +55,13 @@ export function TourPhotoCard({
       </TourPhoto>
       <View style={[styles.body, stretch && styles.stretch]}>
         <Text style={styles.title} numberOfLines={1}>{tour.name}</Text>
-        {l.meta ? <Text style={styles.meta} numberOfLines={1}>{l.meta}</Text> : null}
+        {l.meta && l.where ? (
+          // 나라 · 장소가 길면 그쪽만 '…'으로 줄이고 기간은 끝까지 보임
+          <View style={styles.metaRow}>
+            <Text style={[styles.meta, styles.metaWhere]} numberOfLines={1}>{l.where}</Text>
+            <Text style={styles.meta} numberOfLines={1}>{` · ${l.meta}`}</Text>
+          </View>
+        ) : l.meta ? <Text style={styles.meta} numberOfLines={1}>{l.meta}</Text> : null}
         {l.lead || l.count ? (
           <View style={styles.leadRow}>
             <Text style={[styles.lead, { color: l.leadColor ?? CYAN }]} numberOfLines={1}>{l.lead}</Text>
@@ -140,6 +147,8 @@ const styles = StyleSheet.create({
   body: { paddingHorizontal: 10, paddingTop: 8, paddingBottom: 10, gap: 3 },
   title: { fontFamily: 'SUIT-Bold', fontSize: 14, color: Colors.brand.white },
   meta: { fontFamily: 'SUIT-Regular', fontSize: 12, color: 'rgba(255,255,255,0.6)' },
+  metaRow: { flexDirection: 'row' },
+  metaWhere: { flexShrink: 1 },
   leadRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 6 },
   lead: { flexShrink: 1, fontFamily: 'SUIT-Bold', fontSize: 12 },
   count: { fontFamily: 'SUIT-Bold', fontSize: 12, color: CYAN },

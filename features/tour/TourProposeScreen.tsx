@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/Colors';
 import { api } from '@/services/api';
 import GlassBackground, { glassClear } from '@/components/GlassBackground';
+import { UploadProgressPopup, useUploadProgress } from '@/components/UploadProgress';
 import TourImageGrid from './TourImageGrid';
 import TourLinkPopup from './TourLinkPopup';
 import { pickPhotos, removePhoto, uploadPhotos } from './photos';
@@ -30,13 +31,13 @@ export default function TourProposeScreen() {
   const [initial, setInitial] = useState<ProposalForm>(EMPTY_PROPOSAL_FORM);
   const [summary, setSummary] = useState<{ title: string; meta: string } | null>(null);
   const [tourId, setTourId] = useState<number | null>(id ? Number(id) : null);
-  const [hadProfileLinks, setHadProfileLinks] = useState(true);
   const [loading, setLoading] = useState(true);
   const [touched, setTouched] = useState<Partial<Record<ProposalField, boolean>>>({});
   const [dragging, setDragging] = useState(false);
   const [addingLink, setAddingLink] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
+  const uploads = useUploadProgress();
 
   const update = <K extends keyof ProposalForm>(key: K, value: ProposalForm[K]) => setForm(prev => ({ ...prev, [key]: value }));
   const touch = (field: ProposalField) => setTouched(prev => (prev[field] ? prev : { ...prev, [field]: true }));
@@ -56,13 +57,8 @@ export default function TourProposeScreen() {
           setForm(loaded); setInitial(loaded); target = p.tourId; setTourId(p.tourId);
           setTouched({ images: true, title: true, fee: true, links: true });
         } else {
-          // 새 제안은 문의 링크를 프로필 링크로 미리 채움 (바뀐 것으로 치지 않음)
-          const options = await api.getTourRegisterOptions();
-          if (!alive) return;
-          const links = options.profileLinks.slice(0, L.linkMax);
-          setForm(prev => ({ ...prev, links })); setInitial(prev => ({ ...prev, links }));
-          setHadProfileLinks(links.length > 0);
-          if (!links.length) touch('links');
+          // 새 제안의 문의 링크는 빈 채로 시작 (프로필 링크와 연동 안 함)
+          touch('links');
         }
         if (target) {
           const { tour, registrant } = await api.getTour(target);
@@ -97,7 +93,7 @@ export default function TourProposeScreen() {
     submittingRef.current = true;
     setSubmitting(true);
     try {
-      const input = toProposalInput(form, await uploadPhotos(form.images));
+      const input = toProposalInput(form, await uploadPhotos(form.images, uploads.run, '소개 이미지'));
       if (editing) await api.updateTourProposal(Number(proposalId), input);
       else await api.proposeTour(tourId, input);
       disablePrevention();
@@ -150,7 +146,7 @@ export default function TourProposeScreen() {
               placeholder="예) 1,200,000" placeholderTextColor="rgba(255,255,255,0.25)" keyboardType="number-pad" />
           </Suffixed>
 
-          <LinkList links={form.links} error={shown('links')} showProfileHint={!editing && !hadProfileLinks}
+          <LinkList links={form.links} error={shown('links')}
             onRemove={index => { touch('links'); update('links', form.links.filter((_, i) => i !== index)); }} onAdd={() => setAddingLink(true)} />
           <ItemList title="포함 사항" mark="✓" items={form.included} onChange={items => update('included', items)} />
           <ItemList title="불포함 사항" mark="✕" items={form.excluded} onChange={items => update('excluded', items)} />
@@ -173,6 +169,7 @@ export default function TourProposeScreen() {
       )}
       <TourLinkPopup visible={addingLink} onClose={() => setAddingLink(false)}
         onAdd={link => { setAddingLink(false); touch('links'); setForm(prev => ({ ...prev, links: [...prev.links, link].slice(0, L.linkMax) })); }} />
+      <UploadProgressPopup {...uploads.popup} />
     </View>
   );
 }

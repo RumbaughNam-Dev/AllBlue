@@ -71,11 +71,6 @@ export default function TourDetailScreen() {
   const changed = () => DeviceEventEmitter.emit(TOURS_CHANGED);
 
   const openLink = (url: string) => Linking.openURL(url).catch(() => Alert.alert('링크를 열 수 없어요', url));
-  const inquire = () => {
-    if (!detail?.links.length) return;
-    if (detail.links.length === 1) void openLink(detail.links[0].url);
-    else setLinkSheet(true);
-  };
 
   // '⋯': 공유하기 · 신고하기 (내 투어에서는 공유하기만)
   const canShare = !!detail?.tour.shareUrl;
@@ -192,6 +187,12 @@ export default function TourDetailScreen() {
     ? withEdit(detail, reviewingEdit.payload as EditPayload, code => regionName([...continents, ...countries], code))
     : detail;
   const { tour, registrant, leader, members, links, viewer } = shown;
+  // 문의하기: 링크가 하나면 바로 열고, 여러 개면 고르는 시트 (admin이 수정 요청을 심사할 땐 수정본의 링크)
+  const inquire = () => {
+    if (!links.length) return;
+    if (links.length === 1) void openLink(links[0].url);
+    else setLinkSheet(true);
+  };
   const left = tour.capacity - tour.count;
   const person = leader ?? registrant;
   const open = ['RECRUITING', 'SEEKING_LEADER'].includes(tour.status);
@@ -251,7 +252,7 @@ export default function TourDetailScreen() {
           <View style={styles.personBody}>
             <Text style={styles.personName} numberOfLines={1}>{person.nickname}{person.name ? ` (${person.name})` : ''}</Text>
             <Text style={styles.personMeta} numberOfLines={1}>
-              {(leader ? [...leader.licenses.slice(0, 1).map(l => `${l}`), `진행한 투어 ${leader.ledCount}`] : ['등록자', ...registrant.licenses.slice(0, 1)]).join('  ·  ')}
+              {(leader ? [...leader.licenses.slice(0, 1).map(l => `${l}`), `투어 ${leader.ledCount}`] : ['등록자', ...registrant.licenses.slice(0, 1)]).join('  ·  ')}
             </Text>
           </View>
           {!leader && tour.status !== 'CLOSED' ? <Badge label="인솔자 구함" color="#023E73" text={LAVENDER} /> : null}
@@ -262,10 +263,10 @@ export default function TourDetailScreen() {
           <StatusBadge status={tour.status} />
         </View>
         <View style={styles.info}>
-          <InfoRow label="지역" value={`${tour.continentName} › ${tour.countryName}`} />
+          <InfoRow label="지역" value={`${tour.continentName} › ${tour.countryName}${tour.place ? ` › ${tour.place}` : ''}`} />
           <InfoRow label="기간" value={`${formatTourPeriod(tour.startDate, tour.endDate)} (${formatStay(tour.startDate, tour.endDate)})`} />
           <InfoRow label="형태" value={STYLE_LABEL[tour.tourStyle]} />
-          <InfoRow label="모집현황" value={tour.status === 'SEEKING_LEADER' ? `${tour.count}명 모임 (다 참)` : `${tour.count} / ${tour.capacity}명  ·  ${left > 0 ? `${left}자리 남음` : '다 참'}`}
+          <InfoRow label="모집현황" value={tour.status === 'SEEKING_LEADER' ? `${tour.count}명 모임` : `${tour.count} / ${tour.capacity}명${left > 0 ? `  ·  ${left}자리 남음` : ''}`}
             accent last={!leader} />
           {leader ? <InfoRow label="참가비" value={tour.fee !== null ? formatFee(tour.fee) : '강사에게 문의'} last /> : null}
           {tour.status === 'RECRUITING' ? (
@@ -305,19 +306,30 @@ export default function TourDetailScreen() {
         {tour.included.length > 0 ? <ItemSection title="포함 사항" mark="✓" items={tour.included} /> : null}
         {tour.excluded.length > 0 ? <ItemSection title="불포함 사항" mark="✕" items={tour.excluded} /> : null}
 
-        <Text style={styles.sectionTitle}>{photoTitle} {tour.images.length}</Text>
-        <View style={styles.images}>
-          {/* 대표 사진부터 */}
-          {[...tour.images.slice(tour.coverIndex), ...tour.images.slice(0, tour.coverIndex)].map((uri, index) => (
-            <Pressable key={uri} accessibilityRole="imagebutton" accessibilityLabel={`${photoTitle} ${index + 1} 크게 보기`} onPress={() => setViewing(uri)}>
-              <FittedImage uri={uri} />
-            </Pressable>
-          ))}
-        </View>
+        {/* 참여자로 등록은 사진이 선택이라 없으면 칸째 빠짐 */}
+        {tour.images.length > 0 ? (
+          <>
+            <Text style={styles.sectionTitle}>{photoTitle} {tour.images.length}</Text>
+            <View style={styles.images}>
+              {/* 대표 사진부터 */}
+              {[...tour.images.slice(tour.coverIndex), ...tour.images.slice(0, tour.coverIndex)].map((uri, index) => (
+                <Pressable key={uri} accessibilityRole="imagebutton" accessibilityLabel={`${photoTitle} ${index + 1} 크게 보기`} onPress={() => setViewing(uri)}>
+                  <FittedImage uri={uri} />
+                </Pressable>
+              ))}
+            </View>
+          </>
+        ) : null}
       </ScrollView>
 
       {tour.pendingRequest ? (
         <View style={[styles.bottomArea, styles.row, { paddingBottom: insets.bottom + 12 }]}>
+          {/* 심사할 때도 등록한 문의 링크를 열어 볼 수 있게 (상세의 '문의하기'와 같은 동작) */}
+          {links.length ? (
+            <Pressable accessibilityRole="button" onPress={inquire} style={({ pressed }) => [styles.sub, pressed && { opacity: 0.7 }]}>
+              <Text style={styles.subText}>문의하기</Text>
+            </Pressable>
+          ) : null}
           <Pressable accessibilityRole="button" disabled={processing} onPress={() => setRevising(true)} style={({ pressed }) => [styles.reject, pressed && { opacity: 0.7 }]}>
             <Text style={styles.rejectText}>보완 요청</Text>
           </Pressable>
@@ -350,7 +362,7 @@ export default function TourDetailScreen() {
       <ApplyPopup visible={applying} registrant={registrant.nickname} onClose={() => setApplying(false)} onSubmit={apply} />
       {viewing ? <CertificateImageViewer imageUrl={viewing} onClose={() => setViewing(null)} /> : null}
       <BottomSheet visible={linkSheet} onClose={() => setLinkSheet(false)} title="문의하기" fitContent onSelect={url => void openLink(url)}
-        items={links.map(link => ({ label: link.name, value: link.url, icon: 'link' as const }))} />
+        items={links.map(link => ({ label: link.name, value: link.url, linkUrl: link.url }))} />
     </View>
   );
 }

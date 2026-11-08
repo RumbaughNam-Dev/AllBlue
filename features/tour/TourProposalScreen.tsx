@@ -82,7 +82,7 @@ export default function TourProposalScreen() {
           <ProfileAvatar profileImage={p.instructor.profileImage} nickname={p.instructor.nickname} level={p.instructor.badgeLevel} />
           <View style={styles.personBody}>
             <Text style={styles.personName} numberOfLines={1}>{p.instructor.nickname}{p.instructor.name ? ` (${p.instructor.name})` : ''}</Text>
-            <Text style={styles.personMeta} numberOfLines={1}>{[...p.instructor.licenses.slice(0, 1), `진행한 투어 ${p.instructor.ledCount}`].join('  ·  ')}</Text>
+            <Text style={styles.personMeta} numberOfLines={1}>{[...p.instructor.licenses.slice(0, 1), `투어 ${p.instructor.ledCount}`].join('  ·  ')}</Text>
           </View>
           <Badge {...PROPOSAL_STATUS[p.status]} />
         </Pressable>
@@ -126,7 +126,7 @@ export default function TourProposalScreen() {
       </View>
       {viewing ? <CertificateImageViewer imageUrl={viewing} onClose={() => setViewing(null)} /> : null}
       <BottomSheet visible={linkSheet} onClose={() => setLinkSheet(false)} title="문의하기" fitContent onSelect={url => void openLink(url)}
-        items={p.links.map(link => ({ label: link.name, value: link.url, icon: 'link' as const }))} />
+        items={p.links.map(link => ({ label: link.name, value: link.url, linkUrl: link.url }))} />
     </View>
   );
 }

@@ -73,7 +73,7 @@ export default function TourSearchScreen() {
       </View>
       <FieldLabel text="검색어" />
       <TextInput style={fs.input} value={keyword} onChangeText={setKeyword} returnKeyType="search" onSubmitEditing={() => set('q', keyword.trim())}
-        placeholder="투어명 · 인솔 강사 · 등록자 닉네임" placeholderTextColor="rgba(255,255,255,0.3)" maxLength={40} />
+        placeholder="투어명 · 장소 · 인솔 강사 · 등록자 닉네임" placeholderTextColor="rgba(255,255,255,0.3)" maxLength={40} />
       <Text style={styles.sort}>출발일 기준 · 최근 등록 순</Text>
     </View>
   );

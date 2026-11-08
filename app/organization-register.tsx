@@ -9,6 +9,7 @@ import { StatusBar } from 'expo-status-bar';
 import * as ImagePicker from 'expo-image-picker';
 import Colors from '@/constants/Colors';
 import { api } from '@/services/api';
+import { UploadProgressPopup, useUploadProgress } from '@/components/UploadProgress';
 import GlassCircle from '@/components/GlassCircle';
 import GlassBackground, { glassClear } from '@/components/GlassBackground';
 import StripBackSlot from '@/components/StripBackSlot';
@@ -25,6 +26,7 @@ export default function OrganizationRegisterScreen() {
   const [address, setAddress] = useState('');
   const [logoUri, setLogoUri] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const uploads = useUploadProgress();
   const [pickingLogo, setPickingLogo] = useState(false);
 
   const pickLogo = async () => {
@@ -56,12 +58,15 @@ export default function OrganizationRegisterScreen() {
 
     try {
       setSaving(true);
-      await api.createOrganization({
+      const data = {
         name: name.trim(),
         phone: phone.replace(/\D/g, '') || undefined,
         address: address.trim() || undefined,
         logoUri: logoUri || undefined,
-      });
+      };
+      // 로고가 있으면 진행 막대를 보여 주며 올림
+      if (logoUri) await uploads.run([{ label: '단체 로고', uri: logoUri }], (_file, onProgress) => api.createOrganization(data, onProgress));
+      else await api.createOrganization(data);
       Alert.alert('알림', '단체 등록요청이 완료되었습니다.', [
         { text: '확인', onPress: () => router.back() },
       ]);
@@ -150,6 +155,7 @@ export default function OrganizationRegisterScreen() {
           </Pressable>
         </View>
       </KeyboardAvoidingView>
+      <UploadProgressPopup {...uploads.popup} />
     </View>
   );
 }

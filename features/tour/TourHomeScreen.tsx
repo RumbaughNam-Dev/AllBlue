@@ -18,7 +18,7 @@ import { TOURS_CHANGED } from './nav';
 
 const SIDE = 20;
 
-// 3장 투어 홈: 위 버튼 줄(고정) · 광고 최대 5개 · '참여자 모집중' · '인솔자 모집중' 두 줄 (가로 스크롤, 최근 등록 순 10개)
+// 3장 투어 홈: 위 버튼 줄(고정) · 광고 최대 5개 · '참여자 모집중' · '인솔자 모집중' · '모집 마감' 세 줄 (가로 스크롤, 최근 등록 순 10개)
 export default function TourHomeScreen() {
   const appRouter = useAppRouter(); // 상세는 펼친 화면이면 오른쪽 칸
   const router = useRouter(); // 등록 · 내 투어 · 검색 · 전체보기는 전체 화면 (24장)
@@ -58,7 +58,7 @@ export default function TourHomeScreen() {
   // 줄 카드: 바형에선 2개와 다음 카드가 조금 보이게 (넓으면 4개)
   const columns = gridColumns(inner);
   const cardWidth = inner ? Math.floor((inner - GRID_GAP * columns) / (columns + 0.25)) : 0;
-  const empty = home && !home.banners.length && !home.recruiting.length && !home.seeking.length;
+  const empty = home && !home.banners.length && !home.recruiting.length && !home.seeking.length && !home.closed?.length;
 
   return (
     <View style={styles.container} onLayout={e => setWidth(e.nativeEvent.layout.width)}>
@@ -93,6 +93,8 @@ export default function TourHomeScreen() {
                 onSeeAll={() => router.push({ pathname: '/tour-list', params: { status: 'RECRUITING' } })} onOpen={openTour} />
               <Row title="인솔자 모집중" tours={home?.seeking ?? []} cardWidth={cardWidth} emptyText="인솔 강사님을 찾는 투어가 없어요."
                 onSeeAll={() => router.push({ pathname: '/tour-list', params: { status: 'SEEKING_LEADER' } })} onOpen={openTour} />
+              <Row title="모집 마감" tours={home?.closed ?? []} cardWidth={cardWidth} emptyText="모집 마감된 투어가 없어요."
+                onSeeAll={() => router.push({ pathname: '/tour-list', params: { status: 'CLOSED' } })} onOpen={openTour} />
             </>
           )}
         </ScrollView>

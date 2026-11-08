@@ -46,7 +46,7 @@ export default function ProfileTours({ userId }: { userId: string }) {
   return (
     <View>
       <View style={styles.divider} />
-      <Text style={styles.title}>진행한 투어 <Text style={styles.count}>{total}</Text></Text>
+      <Text style={styles.title}>투어 <Text style={styles.count}>{total}</Text></Text>
       <View onLayout={grid.onLayout}>
         <TourGrid items={items} cardWidth={grid.cardWidth} keyOf={t => t.id} renderItem={tour => (
           <TourPhotoCard tour={tour} width={grid.cardWidth} badge={<StatusBadge status={tour.status} small />} lines={{ lead: '' }}
@@ -55,7 +55,7 @@ export default function ProfileTours({ userId }: { userId: string }) {
       </View>
       {hasMore ? (
         <Pressable accessibilityRole="button" onPress={() => void more()} disabled={loadingMore} style={({ pressed }) => [styles.more, pressed && { opacity: 0.7 }]}>
-          {loadingMore ? <ActivityIndicator color="rgba(255,255,255,0.7)" /> : <Text style={styles.moreText}>진행한 투어 더 보기</Text>}
+          {loadingMore ? <ActivityIndicator color="rgba(255,255,255,0.7)" /> : <Text style={styles.moreText}>투어 더 보기</Text>}
         </Pressable>
       ) : null}
       <View style={styles.bottom} />

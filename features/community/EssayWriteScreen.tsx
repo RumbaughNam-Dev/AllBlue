@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import Colors from '@/constants/Colors';
+import { UploadProgressPopup, useUploadProgress } from '@/components/UploadProgress';
 import { useLeaveConfirm } from '@/hooks/useLeaveConfirm';
 import { useAppRouter, useScreenParams } from '@/features/split/SplitPane';
 import { api, type EssaySpan } from '@/services/api';
@@ -61,6 +62,7 @@ export default function EssayWriteScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [saved, setSaved] = useState(false);
   const submittingRef = useRef(false);
+  const uploads = useUploadProgress();
   const inputs = useRef(new Map<string, TextInputInstance>());
   const expectedCaret = useRef<number | null>(null);
   const styledWhileTyping = useRef(new Set<string>());
@@ -141,7 +143,8 @@ export default function EssayWriteScreen() {
     if (asset.fileSize && asset.fileSize > MAX_FILE_SIZE) { Alert.alert('알림', '10MB가 넘는 사진은 넣을 수 없어요.'); return; }
     setUploading(true);
     try {
-      const { url } = await api.uploadCommunityImage(asset.uri, asset.mimeType ?? 'image/jpeg');
+      const [{ url }] = await uploads.run([{ label: '사진', uri: asset.uri, mimeType: asset.mimeType ?? 'image/jpeg' }],
+        (file, onProgress) => api.uploadCommunityImage(file.uri, file.mimeType, onProgress));
       const key = focused?.key ?? blocks.filter(b => b.type === 'p').pop()!.key;
       const caret = focused ? selection.end : spansText((blocks.find(b => b.key === key) as Extract<EditorBlock, { type: 'p' }>).spans).length;
       const next = insertImage(blocks, key, caret, { url, ...(asset.width && asset.height ? { w: asset.width, h: asset.height } : {}) });
@@ -257,6 +260,7 @@ export default function EssayWriteScreen() {
           </View>
         </>
       )}
+      <UploadProgressPopup {...uploads.popup} />
     </KeyboardAvoidingView>
   );
 }

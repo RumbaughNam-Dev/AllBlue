@@ -3,6 +3,7 @@ import { View, Text, TextInput, StyleSheet, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Colors from '@/constants/Colors';
 import GlassCircle from '@/components/GlassCircle';
+import LinkIcon from '@/components/LinkIcon';
 import StripBackSlot from '@/components/StripBackSlot';
 import type { TourLink, TourStyle } from '@/services/api';
 import { TOUR_FORM_LIMITS as L } from './tourForm';
@@ -141,15 +142,16 @@ export function ItemList({ title, mark, items, onChange }: { title: string; mark
 }
 
 // 16장 문의 링크: 1~5개, ✕로 삭제 · '＋ 링크 추가'는 팝업 (TourLinkPopup)
-export function LinkList({ links, error, onRemove, onAdd, showProfileHint }: {
-  links: TourLink[]; error?: string; onRemove: (index: number) => void; onAdd: () => void; showProfileHint?: boolean;
+export function LinkList({ links, error, onRemove, onAdd }: {
+  links: TourLink[]; error?: string; onRemove: (index: number) => void; onAdd: () => void;
 }) {
   return (
     <View>
       <FieldLabel text="문의 링크" required note={`${links.length}/${L.linkMax}`} error={error} />
       {links.map((link, index) => (
         <View key={`${index}-${link.url}`} style={styles.item}>
-          <Ionicons name="link" size={15} color="#00E5FF" />
+          {/* 인스타그램 · 유튜브 · 카카오톡 주소면 그 서비스 아이콘, 아니면 하늘색 링크 아이콘 */}
+          <LinkIcon url={link.url} color="#00E5FF" />
           <View style={{ flex: 1 }}>
             <Text style={styles.itemText} numberOfLines={1}>{link.name}</Text>
             <Text style={styles.linkUrl} numberOfLines={1}>{link.url}</Text>
@@ -164,7 +166,7 @@ export function LinkList({ links, error, onRemove, onAdd, showProfileHint }: {
           <Text style={styles.linkAddText}>＋ 링크 추가</Text>
         </Pressable>
       )}
-      <Text style={styles.guide}>참가 문의를 받을 곳이에요. 상세의 '문의하기'를 누르면 열려요.{showProfileHint ? '\n프로필에 링크를 넣어 두면 다음 등록 · 제안부터 자동으로 채워져요.' : ''}</Text>
+      <Text style={styles.guide}>참가 문의를 받을 곳이에요. 상세의 '문의하기'를 누르면 열려요.</Text>
     </View>
   );
 }

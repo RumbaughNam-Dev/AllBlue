@@ -16,6 +16,7 @@ import { hasInstructorAccess } from '@/utils/userRole';
 import { useAuth } from '@/contexts/AuthContext';
 import { api, Profile, Organization, ProfileLink } from '@/services/api';
 import Spinner from '@/components/Spinner';
+import { UploadProgressPopup, useUploadProgress } from '@/components/UploadProgress';
 import BottomSheet from '@/components/BottomSheet';
 import type { TextInputInstance } from 'react-native';
 import GlassCircle from '@/components/GlassCircle';
@@ -28,6 +29,7 @@ export default function ProfileEditScreen() {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const uploads = useUploadProgress();
   const [profileImage, setProfileImage] = useState<string | undefined>(user?.profileImage);
   const [imageChanged, setImageChanged] = useState(false);
   const [nicknameTxt, setNicknameTxt] = useState(user?.nickname ?? '');
@@ -167,7 +169,7 @@ export default function ProfileEditScreen() {
 
       if (imageChanged && profileImage) {
         console.log('[프로필] 이미지 업로드 시작');
-        const imgRes = await api.uploadProfileImage(profileImage);
+        const [imgRes] = await uploads.run([{ label: '프로필 사진', uri: profileImage }], (file, onProgress) => api.uploadProfileImage(file.uri, onProgress));
         console.log('[프로필] 이미지 업로드 응답:', JSON.stringify(imgRes));
         await updateUser({ profileImage: imgRes.profileImage });
       }
@@ -474,6 +476,7 @@ export default function ProfileEditScreen() {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+      <UploadProgressPopup {...uploads.popup} />
     </View>
   );
 }

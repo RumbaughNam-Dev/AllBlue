@@ -123,9 +123,7 @@ export default function ProfileScreen() {
                     <Text style={styles.avatarText}>{user?.nickname?.charAt(0) ?? '?'}</Text>
                   </View>
                 )}
-                <View style={styles.avatarBadge}>
-                  <LevelBadge level={profile?.badgeLevel ?? profile?.level} size={24} />
-                </View>
+                {/* 레벨 배지는 닉네임 옆에만 (사진 위 배지는 2026-11-08 뺌) */}
               </View>
               <View style={styles.nameArea}>
                 <View style={styles.nameRow}>
@@ -332,14 +330,6 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.25)',
     borderRadius: 42,
     padding: 2,
-  },
-  avatarBadge: {
-    position: 'absolute',
-    bottom: -2,
-    right: -2,
-    borderWidth: 2,
-    borderColor: Colors.brand.primary,
-    borderRadius: 14,
   },
   avatar: {
     width: 80,

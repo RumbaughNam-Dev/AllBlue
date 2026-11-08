@@ -12,13 +12,16 @@ const plain = value => JSON.parse(JSON.stringify(value));
 // 목록 카드 하나 (서버 card()와 같은 모양)
 const card = (extra = {}) => ({
   id: 5, status: 'RECRUITING', registerRole: 'PARTICIPANT', title: null, name: '태국 · 다이빙 + 관광', continentCode: 'ASIA', countryCode: 'TH',
-  countryName: '태국', startDate: '2026-12-03', endDate: '2026-12-07', tourStyle: 'DIVING_SIGHTSEEING', capacity: 6, count: 5, fee: null,
+  countryName: '태국', place: null, startDate: '2026-12-03', endDate: '2026-12-07', tourStyle: 'DIVING_SIGHTSEEING', capacity: 6, count: 5, fee: null,
   coverUrl: 'https://cdn/x.jpg', registrant: { userId: 'me', nickname: '나' }, leader: null, proposalCount: 0, ...extra,
 });
 const labels = view => plain(view.menu.map(m => m.label));
 
 test('slide 3: card lines — recruiting shows the leader or "인솔자 구함", seeking shows people gathered and proposals', () => {
-  assert.deepEqual(plain(ui.cardLines(card())), { meta: '태국 · 12.03 - 12.07', lead: '인솔자 구함', leadColor: ui.LAVENDER, count: '5/6명' });
+  assert.deepEqual(plain(ui.cardLines(card())), { where: '태국', meta: '12.03 - 12.07', lead: '인솔자 구함', leadColor: ui.LAVENDER, count: '5/6명' });
+  // 투어 장소가 있으면 '나라 · 장소' (길면 이쪽만 줄어들고 기간은 늘 보임)
+  assert.equal(ui.cardLines(card({ place: '푸켓' })).where, '태국 · 푸켓');
+  assert.equal(ui.placeLabel({ countryName: '필리핀', place: '세부' }), '필리핀 · 세부');
   assert.equal(ui.cardLines(card({ leader: { userId: 'l', nickname: '럼바우' } })).lead, '인솔 럼바우');
   assert.deepEqual(plain(ui.cardLines(card({ status: 'SEEKING_LEADER', count: 6, proposalCount: 2 }))),
     { meta: '12.03 - 12.07 · 6명 모임', lead: '받은 제안 2', leadColor: ui.LAVENDER, count: null });
@@ -139,10 +142,16 @@ test('slides 4 · 5: registration rules — photos, region, period, style and co
   const today = '2026-11-06';
   const filled = {
     ...form.emptyTourForm(), images: [{ uri: 'a', mimeType: 'image/jpeg' }, { uri: 'b', mimeType: 'image/jpeg' }], coverUri: 'b',
-    continentCode: 'ASIA', countryCode: 'TH', startDate: '2026-12-03', endDate: '2026-12-07', tourStyle: 'DIVING_ONLY', capacity: 6, baseCount: 2,
+    continentCode: 'ASIA', countryCode: 'TH', place: ' 푸켓   빠통 ', startDate: '2026-12-03', endDate: '2026-12-07', tourStyle: 'DIVING_ONLY', capacity: 6, baseCount: 2,
   };
   assert.deepEqual(plain(form.tourFormErrors(filled, today)), {});
-  assert.deepEqual(Object.keys(form.tourFormErrors(form.emptyTourForm(), today)).sort(), ['images', 'period', 'region', 'style']);
+  // 사진: 참여자로는 선택, 인솔자로(소개 이미지)는 1장 이상
+  assert.deepEqual(Object.keys(form.tourFormErrors(form.emptyTourForm(), today)).sort(), ['period', 'place', 'region', 'style']);
+  assert.deepEqual(plain(form.tourFormErrors({ ...filled, images: [], coverUri: '' }, today)), {});
+  assert.equal(form.tourFormErrors({ ...filled, role: 'LEADER', baseCount: 0, images: [], coverUri: '' }, today).images, '1장 이상 올려 주세요');
+  // 투어 장소: 참여자로 · 인솔자로 모두 필수 (공백만이면 빈 칸)
+  assert.equal(form.tourFormErrors({ ...filled, place: '   ' }, today).place, '도시 이름을 입력해 주세요');
+  assert.equal(form.tourFormErrors({ ...filled, role: 'LEADER', place: '' }, today).place, '도시 이름을 입력해 주세요');
   assert.equal(form.tourFormErrors({ ...filled, startDate: '2026-11-05' }, today).period, '시작일은 오늘 이후로 골라 주세요');
   assert.equal(form.tourFormErrors({ ...filled, baseCount: 0 }, today).counts, '지금 모인 인원은 총 인원까지예요');
   assert.equal(form.tourFormErrors({ ...filled, capacity: 4, baseCount: 2 }, today, 3).counts, '확정된 5명보다 적게 못 줄여요');
@@ -154,7 +163,7 @@ test('slides 4 · 5: registration rules — photos, region, period, style and co
   assert.equal(form.registerOutcome({ role: 'LEADER', capacity: 6, baseCount: 0 }), 'RECRUITING');
   // 보내는 값: 대표 사진은 순서 번호로, 참여자로는 인솔 정보 없이
   assert.deepEqual(plain(form.toTourInput(filled, ['u1', 'u2'])), {
-    role: 'PARTICIPANT', images: ['u1', 'u2'], coverIndex: 1, continentCode: 'ASIA', countryCode: 'TH', startDate: '2026-12-03', endDate: '2026-12-07',
+    role: 'PARTICIPANT', images: ['u1', 'u2'], coverIndex: 1, continentCode: 'ASIA', countryCode: 'TH', place: '푸켓 빠통', startDate: '2026-12-03', endDate: '2026-12-07',
     tourStyle: 'DIVING_ONLY', capacity: 6, baseCount: 2,
   });
   const sent = form.toTourInput({ ...leader, title: ' 세부   펀다이빙 ', fee: '', included: ['숙박', ' '], links: [{ name: '오픈채팅', url: 'https://open.kakao.com/o/x' }] }, ['u1', 'u2']);

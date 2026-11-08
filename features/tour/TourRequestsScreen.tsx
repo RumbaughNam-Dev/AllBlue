@@ -14,7 +14,7 @@ import ReviewNotePopup from './ReviewNotePopup';
 import { changedLabels } from './edit';
 import { confirmApprove, formatRequestedAt, sendRevision } from './requests';
 import { useSheetTop } from './useSheetTop';
-import { TOUR_STATUS, formatFee, formatTourPeriod } from './ui';
+import { TOUR_STATUS, formatFee, formatTourPeriod, placeLabel } from './ui';
 import { useTourRouter } from './nav';
 
 const SIDE = 20;
@@ -83,11 +83,11 @@ export default function TourRequestsScreen() {
           header={requests.length ? <Text style={styles.summary}>대기 {requests.length}건 · 요청 오래된 순</Text> : undefined}
           renderCard={(item, cardWidth) => {
             const t = item.tour;
-            // 수정 요청은 바뀐 항목을, 새 등록은 나라 · 기간과 참가비를
-            const meta = item.type === 'UPDATE' ? `바뀐 항목: ${changedLabels(item.changedFields)}` : `${t.countryName} · ${formatTourPeriod(t.startDate, t.endDate)}`;
+            // 수정 요청은 바뀐 항목을, 새 등록은 나라 · 장소 · 기간과 참가비를
+            const [where, meta] = item.type === 'UPDATE' ? [undefined, `바뀐 항목: ${changedLabels(item.changedFields)}`] : [placeLabel(t), formatTourPeriod(t.startDate, t.endDate)];
             return (
               <TourPhotoCard tour={t} width={cardWidth} stretch badge={<Badge {...REQUEST_TYPE[item.type]} small />}
-                lines={{ meta, lead: t.fee !== null ? formatFee(t.fee) : '', count: null, note: { text: `요청: ${item.registrant.nickname} · ${formatRequestedAt(item.requestedAt)}`, color: 'rgba(255,255,255,0.55)' } }}
+                lines={{ where, meta, lead: t.fee !== null ? formatFee(t.fee) : '', count: null, note: { text: `요청: ${item.registrant.nickname} · ${formatRequestedAt(item.requestedAt)}`, color: 'rgba(255,255,255,0.55)' } }}
                 onPress={() => router.push({ pathname: '/tour-detail', params: { id: String(t.id), inSheet } })}
                 footer={(
                   <View style={styles.buttons}>

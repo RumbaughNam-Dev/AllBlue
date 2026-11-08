@@ -46,3 +46,61 @@ test("slide 14: '＋ 링크 추가' adds to the bottom, tapping a link edits it 
   assert.deepEqual(e.links, [{ name: '오픈채팅', url: kakao.url }]);
   assert.equal(e.popup().visible, false);
 });
+
+test('link icons: instagram, youtube and kakaotalk addresses get their own icon, other addresses keep the link icon', () => {
+  const { linkBrand } = loadModule('utils/profileLinks.ts', {});
+  assert.equal(linkBrand('https://www.instagram.com/allblue'), 'instagram');
+  assert.equal(linkBrand('https://instagr.am/p/x'), 'instagram');
+  assert.equal(linkBrand('https://m.youtube.com/@allblue'), 'youtube');
+  assert.equal(linkBrand('https://youtu.be/abc'), 'youtube');
+  assert.equal(linkBrand('https://music.youtube.com/x'), 'youtube');
+  assert.equal(linkBrand('https://open.kakao.com/o/abc'), 'kakaotalk');
+  assert.equal(linkBrand('https://pf.kakao.com/_abc'), 'kakaotalk');
+  assert.equal(linkBrand('open.kakao.com/o/abc'), 'kakaotalk');
+  assert.equal(linkBrand('HTTPS://WWW.YOUTUBE.COM/watch?v=1'), 'youtube');
+  // 다른 카카오 서비스 · 비슷한 이름 · 다른 사이트는 링크 아이콘
+  assert.equal(linkBrand('https://map.kakao.com/x'), null);
+  assert.equal(linkBrand('https://notinstagram.com'), null);
+  assert.equal(linkBrand('https://instagram.com.evil.kr'), null);
+  assert.equal(linkBrand('https://blog.naver.com/x'), null);
+  assert.equal(linkBrand(''), null);
+});
+
+test('profile link chips: up to two links show as chips, three or more add 더보기 that opens a popup with every link', () => {
+  const h = hookDriver();
+  const opened = [];
+  const element = (type, props, ...children) => ({ type, props: props || {}, children });
+  const nodes = tree => !tree ? [] : Array.isArray(tree) ? tree.flatMap(nodes) : typeof tree === 'object' ? [tree, ...nodes(tree.children)] : [];
+  const content = tree => tree == null || typeof tree === 'boolean' ? '' : Array.isArray(tree) ? tree.map(content).join('') : typeof tree === 'object' ? content(tree.children) : String(tree);
+  const Chips = loadModule('components/LinkChips.tsx', {
+    react: { ...h.react, createElement: element },
+    'react-native': {
+      View: 'View', Text: 'Text', Pressable: 'Pressable', StyleSheet: { create: x => x },
+      Linking: { openURL: async url => { opened.push(url); } }, Alert: { alert() {} },
+    },
+    '@expo/vector-icons': { Ionicons: 'Ionicons' },
+    '@/constants/Colors': { default: { brand: { white: '#fff' } }, __esModule: true },
+    '@/components/LinkIcon': { __esModule: true, default: 'LinkIcon' },
+    '@/components/LinksPopup': { __esModule: true, default: 'LinksPopup' },
+  }).default;
+  const links = n => Array.from({ length: n }, (_, i) => ({ name: `링크${i + 1}`, url: `https://site${i + 1}.kr` }));
+  const render = n => h.render(() => Chips({ links: links(n) }));
+  const buttons = tree => nodes(tree).filter(n => n.type === 'Pressable').map(content);
+
+  assert.equal(render(0), null);
+  assert.deepEqual(buttons(render(2)), ['링크1', '링크2']);
+  // 3개부터: 앞의 2개 + 더보기, 팝업에는 전부
+  let tree = render(4);
+  assert.deepEqual(buttons(tree), ['링크1', '링크2', '더보기']);
+  let popup = nodes(tree).find(n => n.type === 'LinksPopup');
+  assert.equal(popup.props.visible, false);
+  assert.equal(popup.props.links.length, 4);
+  nodes(tree).find(n => n.type === 'Pressable' && content(n) === '더보기').props.onPress();
+  tree = render(4);
+  popup = nodes(tree).find(n => n.type === 'LinksPopup');
+  assert.equal(popup.props.visible, true);
+  popup.props.onOpen('https://site4.kr');
+  assert.deepEqual(opened, ['https://site4.kr']);
+  popup.props.onClose();
+  assert.equal(nodes(render(4)).find(n => n.type === 'LinksPopup').props.visible, false);
+});

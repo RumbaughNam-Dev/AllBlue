@@ -9,6 +9,7 @@ import { StatusBar } from 'expo-status-bar';
 import * as ImagePicker from 'expo-image-picker';
 import Colors from '@/constants/Colors';
 import { api } from '@/services/api';
+import { UploadProgressPopup, useUploadProgress } from '@/components/UploadProgress';
 import GlassBackground, { glassClear } from '@/components/GlassBackground';
 import GlassCircle from '@/components/GlassCircle';
 import StripBackSlot from '@/components/StripBackSlot';
@@ -21,6 +22,7 @@ export default function CertUploadScreen() {
   const router = useRouter();
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const uploads = useUploadProgress();
   const [rejectReason, setRejectReason] = useState<string | null>(null);
 
   React.useEffect(() => {
@@ -63,7 +65,7 @@ export default function CertUploadScreen() {
           onPress: async () => {
             try {
               setUploading(true);
-              await api.uploadCertImage(imageUri);
+              await uploads.run([{ label: '자격증 사진', uri: imageUri }], (file, onProgress) => api.uploadCertImage(file.uri, onProgress));
               Alert.alert(
                 '요청 완료',
                 '자격증 인증 요청이 접수되었습니다.\n관리자 확인 후 레벨이 변경됩니다.',
@@ -155,6 +157,7 @@ export default function CertUploadScreen() {
           )}
         </Pressable>
       </View>
+      <UploadProgressPopup {...uploads.popup} />
     </View>
   );
 }

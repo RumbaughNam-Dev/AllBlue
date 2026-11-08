@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 
-export default function KakaoLogo({ size = 20 }: { size?: number }) {
+// color: 말풍선 색 (로그인 버튼은 노란 바탕에 갈색, 프로필 링크 칩은 카카오 노랑)
+export default function KakaoLogo({ size = 20, color = '#3C1E1E' }: { size?: number; color?: string }) {
   const s = size;
   return (
     <View style={{ width: s, height: s, alignItems: 'center', justifyContent: 'center' }}>
@@ -11,7 +12,7 @@ export default function KakaoLogo({ size = 20 }: { size?: number }) {
           width: s * 0.9,
           height: s * 0.7,
           borderRadius: s * 0.25,
-          backgroundColor: '#3C1E1E',
+          backgroundColor: color,
         }}
       />
       {/* Chat bubble tail */}
@@ -27,7 +28,7 @@ export default function KakaoLogo({ size = 20 }: { size?: number }) {
           borderTopWidth: s * 0.18,
           borderLeftColor: 'transparent',
           borderRightColor: 'transparent',
-          borderTopColor: '#3C1E1E',
+          borderTopColor: color,
           transform: [{ rotate: '-20deg' }],
         }}
       />

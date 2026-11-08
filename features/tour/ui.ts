@@ -48,17 +48,20 @@ export function formatStay(startDate: string, endDate: string) {
 
 export const formatFee = (fee: number) => `${String(fee).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}원`;
 
-// 카드 아래 글자 (3장 카드 모양):
-// 참여자 모집중 = 나라 · 기간 / '인솔 닉네임' 또는 '인솔자 구함' / n/m명
+// 카드의 '나라 · 투어 장소' (장소가 없던 예전 투어는 나라만)
+export const placeLabel = (tour: { countryName: string; place: string | null }) => (tour.place ? `${tour.countryName} · ${tour.place}` : tour.countryName);
+
+// 카드 아래 글자 (3장 카드 모양). where(나라 · 장소)는 길면 줄어들고 meta(기간)는 늘 보임:
+// 참여자 모집중 = 나라 · 장소 · 기간 / '인솔 닉네임' 또는 '인솔자 구함' / n/m명
 // 인솔자 모집중 = 기간 · n명 모임 / 받은 제안 n
-// 모집 마감 · 그 밖 = 나라 · 기간 / 인솔 닉네임 / n/m명
-export function cardLines(tour: TourCard) {
+// 모집 마감 · 그 밖 = 나라 · 장소 · 기간 / 인솔 닉네임 / n/m명
+export function cardLines(tour: TourCard): { where?: string; meta: string; lead: string; leadColor: string; count: string | null } {
   const period = formatTourPeriod(tour.startDate, tour.endDate);
   if (tour.status === 'SEEKING_LEADER') {
     return { meta: `${period} · ${tour.count}명 모임`, lead: `받은 제안 ${tour.proposalCount}`, leadColor: LAVENDER, count: null };
   }
   const lead = tour.leader ? `인솔 ${tour.leader.nickname}` : tour.status === 'RECRUITING' ? '인솔자 구함' : '';
-  return { meta: `${tour.countryName} · ${period}`, lead, leadColor: tour.leader ? CYAN : LAVENDER, count: `${tour.count}/${tour.capacity}명` };
+  return { where: placeLabel(tour), meta: period, lead, leadColor: tour.leader ? CYAN : LAVENDER, count: `${tour.count}/${tour.capacity}명` };
 }
 
 // 24장: 목록이 놓인 폭이 600pt 이상이면 한 줄 4개, 아니면 2개 (바형 · 접은 화면 · 펼친 화면의 한 칸)

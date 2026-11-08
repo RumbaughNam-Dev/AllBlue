@@ -2,20 +2,21 @@ import type { TourLink, TourProposalInput, TourRegistrationInput, TourRole, Tour
 
 // 서버(tour-rules.ts)와 같은 규칙
 export const TOUR_FORM_LIMITS = {
-  imageMax: 10, titleMin: 2, titleMax: 40, capacityMin: 2, capacityMax: 20, itemLength: 40, itemCount: 20,
+  imageMax: 10, titleMin: 2, titleMax: 40, placeMax: 30, capacityMin: 2, capacityMax: 20, itemLength: 40, itemCount: 20,
   linkMax: 5, linkNameMax: 20, linkUrlMax: 500, applyMessageMax: 100, proposalMessageMax: 200,
 };
 
 // remote: 이미 올린 사진 (수정할 때), 다시 올리지 않고 주소 그대로 보냄
 export type LocalImage = { uri: string; mimeType: string; remote?: boolean };
 
-// 4 · 5장 등록 화면 (수정도 같은 화면). 참여자로는 사진 · 기간 · 지역 · 형태 · 인원, 인솔자로는 인솔 정보까지
+// 4 · 5장 등록 화면 (수정도 같은 화면). 참여자로는 사진 · 기간 · 지역 · 투어 장소 · 형태 · 인원, 인솔자로는 인솔 정보까지
 export type TourForm = {
   role: TourRole;
   images: LocalImage[];
   coverUri: string; // 대표 사진 (카드에 크게) — 처음엔 첫 장
   continentCode: string;
   countryCode: string;
+  place: string; // 투어 장소: 도시 이름 (참여자로 · 인솔자로 모두 필수)
   startDate: string; // YYYY-MM-DD or ''
   endDate: string;
   tourStyle: TourStyle | '';
@@ -25,12 +26,12 @@ export type TourForm = {
   fee: string; // 숫자만 (쉼표는 보여줄 때)
   included: string[];
   excluded: string[];
-  links: TourLink[]; // 문의 링크: 새 등록 · 제안은 프로필 링크로 미리 채움 (16장)
+  links: TourLink[]; // 문의 링크: 투어마다 따로 넣음, 프로필 링크와 연동 안 함 (16장)
 };
-export type TourField = 'images' | 'region' | 'period' | 'style' | 'counts' | 'title' | 'fee' | 'links';
+export type TourField = 'images' | 'region' | 'place' | 'period' | 'style' | 'counts' | 'title' | 'fee' | 'links';
 
 export const emptyTourForm = (role: TourRole = 'PARTICIPANT'): TourForm => ({
-  role, images: [], coverUri: '', continentCode: '', countryCode: '', startDate: '', endDate: '', tourStyle: '',
+  role, images: [], coverUri: '', continentCode: '', countryCode: '', place: '', startDate: '', endDate: '', tourStyle: '',
   capacity: 4, baseCount: role === 'PARTICIPANT' ? 1 : 0, title: '', fee: '', included: [], excluded: [], links: [],
 });
 
@@ -43,8 +44,10 @@ export const baseMin = (role: TourRole) => (role === 'PARTICIPANT' ? 1 : 0);
 export function tourFormErrors(form: TourForm, today: string, joined = 0): Partial<Record<TourField, string>> {
   const L = TOUR_FORM_LIMITS;
   const errors: Partial<Record<TourField, string>> = {};
-  if (form.images.length < 1) errors.images = '1장 이상 올려 주세요';
+  // 사진: 참여자로는 선택, 인솔자로(소개 이미지)는 1장 이상
+  if (form.role === 'LEADER' && form.images.length < 1) errors.images = '1장 이상 올려 주세요';
   if (!form.continentCode || !form.countryCode) errors.region = '대륙과 나라를 골라 주세요';
+  if (!placeText(form.place)) errors.place = '도시 이름을 입력해 주세요';
   if (!form.startDate || !form.endDate) errors.period = '시작일과 종료일을 골라 주세요';
   else if (form.startDate < today) errors.period = '시작일은 오늘 이후로 골라 주세요';
   else if (form.endDate < form.startDate) errors.period = '종료일이 시작일보다 빨라요';
@@ -67,12 +70,14 @@ export function registerOutcome(form: Pick<TourForm, 'role' | 'capacity' | 'base
 }
 
 const lines = (items: string[]) => items.map(line => line.trim()).filter(Boolean);
+// 투어 장소: 앞뒤 공백을 빼고 여러 칸은 한 칸으로 (서버와 같은 규칙)
+const placeText = (place: string) => place.trim().replace(/\s+/g, ' ');
 
 // 사진을 올린 뒤 서버로 보낼 값 (빈 줄은 저장 안 함)
 export function toTourInput(form: TourForm, imageUrls: string[]): TourRegistrationInput {
   const base = {
     role: form.role, images: imageUrls, coverIndex: coverIndexOf(form.images, form.coverUri),
-    continentCode: form.continentCode, countryCode: form.countryCode, startDate: form.startDate, endDate: form.endDate,
+    continentCode: form.continentCode, countryCode: form.countryCode, place: placeText(form.place), startDate: form.startDate, endDate: form.endDate,
     tourStyle: form.tourStyle as TourStyle, capacity: form.capacity, baseCount: form.baseCount,
   };
   if (form.role === 'PARTICIPANT') return base;
@@ -82,15 +87,16 @@ export function toTourInput(form: TourForm, imageUrls: string[]): TourRegistrati
   };
 }
 
-// 수정: 저장된 투어를 입력 칸으로
+// 수정: 저장된 투어를 입력 칸으로 (장소가 없던 예전 투어는 빈 칸 → 채워야 저장)
 export function formFromTour(tour: {
-  registerRole: TourRole; images: string[]; coverIndex: number; continentCode: string; countryCode: string; startDate: string; endDate: string;
+  registerRole: TourRole; images: string[]; coverIndex: number; continentCode: string; countryCode: string; place?: string | null;
+  startDate: string; endDate: string;
   tourStyle: TourStyle; capacity: number; baseCount: number; title: string | null; fee: number | null; included: string[]; excluded: string[];
 }, links: TourLink[]): TourForm {
   return {
     role: tour.registerRole, images: tour.images.map(uri => ({ uri, mimeType: '', remote: true })),
     coverUri: tour.images[tour.coverIndex] ?? tour.images[0] ?? '',
-    continentCode: tour.continentCode, countryCode: tour.countryCode, startDate: tour.startDate, endDate: tour.endDate,
+    continentCode: tour.continentCode, countryCode: tour.countryCode, place: tour.place ?? '', startDate: tour.startDate, endDate: tour.endDate,
     tourStyle: tour.tourStyle, capacity: tour.capacity, baseCount: tour.baseCount,
     title: tour.title ?? '', fee: tour.fee !== null ? String(tour.fee) : '', included: tour.included, excluded: tour.excluded, links,
   };

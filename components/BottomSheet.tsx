@@ -8,11 +8,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/Colors';
 import type { ScrollViewInstance } from 'react-native';
 import GlassBackground, { glassClear, PANEL_TINT } from '@/components/GlassBackground';
-import { Ionicons } from '@expo/vector-icons';
+import LinkIcon from '@/components/LinkIcon';
 
 // badge: short text shown at the right of the item (e.g. a pending count '3건')
-// icon: small white icon before the label (e.g. 'link' for contact links)
-type BottomSheetItem = { label: string; value: any; badge?: string; icon?: 'link' };
+// linkUrl: contact link item — the icon before the label follows the address
+// (Instagram · YouTube · KakaoTalk get their own icon, anything else a white link icon)
+type BottomSheetItem = { label: string; value: any; badge?: string; linkUrl?: string };
 
 type Props = {
   visible: boolean;
@@ -147,8 +148,8 @@ export default function BottomSheet({ visible, onClose, title, items, onSelect, 
                   style={({ pressed }) => [styles.item, pressed && { opacity: 0.6 }]}
                   onPress={() => { onSelect(item.value); if (closeOnSelect) onClose(); }}
                 >
-                  {item.icon && <Ionicons name={item.icon} size={18} color={Colors.brand.white} style={styles.itemIcon} />}
-                  <Text style={[styles.itemText, item.icon && styles.itemTextWithIcon, isSelected && styles.itemTextSelected]}>{item.label}</Text>
+                  {item.linkUrl ? <View style={styles.itemIcon}><LinkIcon url={item.linkUrl} size={18} /></View> : null}
+                  <Text style={[styles.itemText, !!item.linkUrl && styles.itemTextWithIcon, isSelected && styles.itemTextSelected]}>{item.label}</Text>
                   {!!item.badge && <Text style={styles.itemBadge}>{item.badge}</Text>}
                   {isSelected && <Text style={styles.checkMark}>✓</Text>}
                 </Pressable>

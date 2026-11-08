@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import Colors from '@/constants/Colors';
+import { UploadProgressPopup, useUploadProgress } from '@/components/UploadProgress';
 import { useLeaveConfirm } from '@/hooks/useLeaveConfirm';
 import { useAppRouter, useScreenParams } from '@/features/split/SplitPane';
 import { api } from '@/services/api';
@@ -36,6 +37,7 @@ export default function FreeWriteScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [saved, setSaved] = useState(false);
   const submittingRef = useRef(false);
+  const uploads = useUploadProgress();
   const mentions = useMentions(content, text => { setContent(text); setDirty(true); });
 
   useEffect(() => {
@@ -92,7 +94,8 @@ export default function FreeWriteScreen() {
     submittingRef.current = true;
     setSubmitting(true);
     try {
-      const imageUrl = !photo ? null : photo.remote ? photo.uri : (await api.uploadCommunityImage(photo.uri, photo.mimeType)).url;
+      const imageUrl = !photo ? null : photo.remote ? photo.uri : (await uploads.run([{ label: '사진', uri: photo.uri, mimeType: photo.mimeType }],
+        (file, onProgress) => api.uploadCommunityImage(file.uri, file.mimeType, onProgress)))[0].url;
       const input = { board: 'FREE' as const, title: t, content: content.trim(), imageUrl, tags: finalTags, mentions: mentions.mentionIds() };
       if (editId) await api.updateCommunityPost(editId, input);
       else await api.createCommunityPost(input);
@@ -164,6 +167,7 @@ export default function FreeWriteScreen() {
           )}
         </ScrollView>
       )}
+      <UploadProgressPopup {...uploads.popup} />
     </KeyboardAvoidingView>
   );
 }

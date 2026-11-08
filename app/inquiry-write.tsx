@@ -11,6 +11,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import Colors from '@/constants/Colors';
 import { api } from '@/services/api';
+import { UploadProgressPopup, useUploadProgress } from '@/components/UploadProgress';
 import GlassCircle from '@/components/GlassCircle';
 import GlassBackground, { glassClear } from '@/components/GlassBackground';
 import StripBackSlot from '@/components/StripBackSlot';
@@ -35,6 +36,7 @@ export default function InquiryWriteScreen() {
   const [content, setContent] = useState('');
   const [attachment, setAttachment] = useState<Attachment | null>(null);
   const [saving, setSaving] = useState(false);
+  const uploads = useUploadProgress();
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -100,7 +102,14 @@ export default function InquiryWriteScreen() {
     }
     setSaving(true);
     try {
-      await api.createInquiry(title.trim(), content.trim(), attachment || undefined);
+      const [t, c] = [title.trim(), content.trim()];
+      // 첨부가 있으면 글과 함께 한 번에 올림 (진행 막대)
+      if (attachment) {
+        await uploads.run([{ label: attachment.name, uri: attachment.uri, kind: isImage(attachment.type) ? 'image' : 'file', mimeType: attachment.type }],
+          (_file, onProgress) => api.createInquiry(t, c, attachment, onProgress));
+      } else {
+        await api.createInquiry(t, c);
+      }
       Alert.alert('알림', '문의가 등록되었습니다.', [
         { text: '확인', onPress: () => router.back() },
       ]);
@@ -220,6 +229,7 @@ export default function InquiryWriteScreen() {
           </Pressable>
         </View>
       </KeyboardAvoidingView>
+      <UploadProgressPopup {...uploads.popup} />
     </View>
   );
 }

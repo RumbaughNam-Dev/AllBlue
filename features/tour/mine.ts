@@ -1,6 +1,6 @@
 import type { MyTourItem, MyTourTab, TourStatus } from '@/services/api';
 import { editNotice } from './edit';
-import { APPLICATION_STATUS, CYAN, LAVENDER, PROPOSAL_STATUS, TOUR_STATUS, formatFee, formatTourPeriod } from './ui';
+import { APPLICATION_STATUS, CYAN, LAVENDER, PROPOSAL_STATUS, TOUR_STATUS, formatFee, formatTourPeriod, placeLabel } from './ui';
 
 // 10장 내 투어: 등록한 · 참여한 · 제안한(강사 · admin만). 카드마다 버튼 하나 + 나머지(수정 · 삭제 · 취소)는 '⋯'
 export const MINE_TABS: { tab: MyTourTab; label: string; empty: string }[] = [
@@ -14,7 +14,7 @@ export type MineAction = 'edit' | 'delete' | 'cancelEdit' | 'cancelApply' | 'lea
 export type MineGo = 'applications' | 'proposals' | 'edit' | 'proposalEdit' | 'detail';
 export type MineCard = {
   badge: { label: string; color: string; text: string };
-  lines: { meta: string; lead: string; leadColor: string; count: string | null; note?: { text: string; color: string } };
+  lines: { where?: string; meta: string; lead: string; leadColor: string; count: string | null; note?: { text: string; color: string } };
   // 한 줄로 줄인 보완 내용을 누르면 전체를 보여 줌
   noteDetail?: { title: string; body: string };
   button: { label: string; kind: 'primary' | 'dark' | 'salmon'; go: MineGo };
@@ -50,7 +50,7 @@ export function mineCard(tab: MyTourTab, item: MyTourItem): MineCard {
       : [PROPOSAL_CLOSED_REASON[p.closedReason ?? ''] ?? '마감됐어요', MUTED];
     return {
       badge: PROPOSAL_STATUS[p.status],
-      lines: { meta: `${item.countryName} · ${period}`, lead, leadColor, count: null },
+      lines: { where: placeLabel(item), meta: period, lead, leadColor, count: null },
       button: active ? { label: '제안 수정', kind: 'primary', go: 'proposalEdit' } : view,
       menu: active ? [{ label: '제안 취소', action: 'withdraw' }] : [],
       ended: !active,
@@ -67,7 +67,7 @@ export function mineCard(tab: MyTourTab, item: MyTourItem): MineCard {
       : ['', CYAN];
     return {
       badge: (!ended && appBadge) || TOUR_STATUS[item.status],
-      lines: { meta: `${item.countryName} · ${period}`, lead, leadColor, count: `${item.count}/${item.capacity}명` },
+      lines: { where: placeLabel(item), meta: period, lead, leadColor, count: `${item.count}/${item.capacity}명` },
       button: view,
       // 참여 취소는 모집 마감 전까지 (뒤에는 인솔 강사에게 직접 연락)
       menu: app === 'PENDING' ? [{ label: '신청 취소', action: 'cancelApply' }]
