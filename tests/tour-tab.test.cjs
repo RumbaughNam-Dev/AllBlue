@@ -21,7 +21,7 @@ function tabBar(stripWidth) {
     '@/utils/liquidGlass': { LiquidGlassView: null },
     '@/utils/tabBarLayout': loadModule('utils/tabBarLayout.ts', {}),
     '@/constants/Colors': { brand: { white: '#fff' } },
-    '@expo/vector-icons': { Ionicons: 'Ionicons', MaterialCommunityIcons: 'MaterialCommunityIcons' },
+    '@expo/vector-icons': { Ionicons: 'Ionicons' },
     '@/assets/images/icon-snorkel-tab.png': 'snorkel',
   }).default;
   // names: the routes the navigator passes, focused: the selected one, hidden: routes still in state but hidden.
@@ -42,7 +42,7 @@ function tabBar(stripWidth) {
 test('tab bar draws icons by route name, only for shown tabs', () => {
   const f = tabBar();
   assert.deepEqual(f.icons(f.render(['index', 'b', 'c'], 'c')), [['calendar', false], ['snorkel', false], ['people', true]]);
-  assert.deepEqual(f.icons(f.render(['index', 'b', 'c', 'tour'], 'tour')), [['calendar', false], ['snorkel', false], ['people', false], ['bag-suitcase', true]]);
+  assert.deepEqual(f.icons(f.render(['index', 'b', 'c', 'tour'], 'tour')), [['calendar', false], ['snorkel', false], ['people', false], ['airplane', true]]);
   // A hidden route left in state gets no slot and doesn't shift the others or the focus.
   const tree = f.render(['index', 'tour', 'b', 'c'], 'c', ['tour']);
   assert.deepEqual(f.icons(tree), [['calendar', false], ['snorkel', false], ['people', true]]);
@@ -90,7 +90,7 @@ function tabScreens(user) {
     '@/contexts/AuthContext': { useAuth: () => ({ user, updateUser: async () => {} }) },
     '@/services/api': { api: {} },
     'expo-router/native-tabs': { NativeTabs: { BottomAccessory: {} } },
-    '@expo/vector-icons': { Ionicons: 'Ionicons', MaterialCommunityIcons: 'MaterialCommunityIcons' },
+    '@expo/vector-icons': { Ionicons: 'Ionicons' },
     '@/utils/tabBarLayout': { hasSideTabStrip: () => false },
     '@/components/StripTabBarHost': { StripTabBarRelay: () => null, useStripTabBarSetter: () => null },
     '@/hooks/useAdminPendingCounts': { useAdminPendingCounts: () => ADMIN_COUNTS, adminBadgeText: () => null },
