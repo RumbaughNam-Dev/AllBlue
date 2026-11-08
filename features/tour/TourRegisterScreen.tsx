@@ -251,7 +251,7 @@ export default function TourRegisterScreen() {
               <FieldLabel text="총 인원" required />
             </View>
             <View style={fs.half}>
-              <FieldLabel text={leader ? '지금 모인 인원 (인솔자 빼고)' : '지금 모인 인원 (나 포함)'} required />
+              <FieldLabel text="지금 모인 인원" required />
             </View>
           </View>
           <View style={fs.row}>
@@ -259,6 +259,11 @@ export default function TourRegisterScreen() {
               onChange={v => { touch('counts'); update('capacity', v); }} />
             <Stepper label="지금 모인 인원" value={form.baseCount} min={baseMin(form.role)} max={form.capacity - (editState?.joinedCount ?? 0)}
               error={!!shown('counts')} onChange={v => { touch('counts'); update('baseCount', v); }} />
+          </View>
+          {/* 세는 기준은 라벨 대신 숫자 칸 아래에 (라벨이 길어 반 칸에서 줄바꿈되던 것, 2026-11-08) */}
+          <View style={fs.row}>
+            <View style={fs.half} />
+            <Text style={[fs.half, styles.countNote]}>{leader ? '인솔자 빼고' : '나 포함'}</Text>
           </View>
           {shown('counts') ? <Text style={fs.retry}>{errors.counts}</Text> : <Text style={fs.hint}>{editing && editState?.joinedCount ? `수락한 참여자 ${editState.joinedCount}명 포함 · ` : ''}{outcomeText}</Text>}
 
@@ -318,6 +323,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.brand.primary },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   scroll: { paddingHorizontal: SIDE, paddingTop: 8, paddingBottom: 24 },
+  countNote: { fontFamily: 'SUIT-Regular', fontSize: 12, color: 'rgba(255,255,255,0.45)', textAlign: 'center', marginTop: 6 },
   roles: { flexDirection: 'row', padding: 3, borderRadius: 12, backgroundColor: 'rgba(2,62,115,0.9)', marginTop: 8 },
   role: { flex: 1, height: 38, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   roleOn: { backgroundColor: '#00B4D8' },
