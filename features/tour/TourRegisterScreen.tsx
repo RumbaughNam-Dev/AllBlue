@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View, Text, TextInput, StyleSheet, Pressable, ScrollView, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, useWindowDimensions,
 } from 'react-native';
-import { useLocalSearchParams, useRouter, usePreventRemove } from 'expo-router';
+import { useLocalSearchParams, useNavigation, useRouter, usePreventRemove } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/Colors';
 import { api, TourStatus } from '@/services/api';
@@ -50,6 +50,9 @@ export default function TourRegisterScreen() {
   const submittingRef = useRef(false);
   const uploads = useUploadProgress();
   const today = localToday();
+  const navigation = useNavigation();
+  // 저장하는 동안엔 왼쪽 끝 밀어서 닫기를 막음 (닫힌 뒤 완료 알림의 '확인'이 한 화면 더 뒤로 가지 않게)
+  useEffect(() => { navigation.setOptions({ gestureEnabled: !submitting }); }, [navigation, submitting]);
   const leader = form.role === 'LEADER';
 
   const update = <K extends keyof TourForm>(key: K, value: TourForm[K]) => setForm(prev => ({ ...prev, [key]: value }));

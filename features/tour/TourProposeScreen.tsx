@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View, Text, TextInput, StyleSheet, Pressable, ScrollView, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, useWindowDimensions, DeviceEventEmitter,
 } from 'react-native';
-import { useLocalSearchParams, useRouter, usePreventRemove } from 'expo-router';
+import { useLocalSearchParams, useNavigation, useRouter, usePreventRemove } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/Colors';
 import { api } from '@/services/api';
@@ -38,6 +38,9 @@ export default function TourProposeScreen() {
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
   const uploads = useUploadProgress();
+  const navigation = useNavigation();
+  // 저장하는 동안엔 왼쪽 끝 밀어서 닫기를 막음 (닫힌 뒤 완료 알림의 '확인'이 한 화면 더 뒤로 가지 않게)
+  useEffect(() => { navigation.setOptions({ gestureEnabled: !submitting }); }, [navigation, submitting]);
 
   const update = <K extends keyof ProposalForm>(key: K, value: ProposalForm[K]) => setForm(prev => ({ ...prev, [key]: value }));
   const touch = (field: ProposalField) => setTouched(prev => (prev[field] ? prev : { ...prev, [field]: true }));

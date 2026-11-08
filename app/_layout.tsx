@@ -22,6 +22,11 @@ export { ErrorBoundary } from 'expo-router';
 SplashScreen.preventAutoHideAsync();
 SystemUI.setBackgroundColorAsync('#144A84');
 
+// 편집 화면(글쓰기 · 투어 등록 · 제안): 왼쪽 끝에서 밀어서 닫기 (2026-11-08).
+// 작성 중이면 화면의 나가기 확인(usePreventRemove)이 스와이프를 멈추고 '나갈까요?'를 물음.
+// iOS 26의 화면 아무 데서나 밀어서 닫기는 끔 — 사진 순서 끌기 · 글 선택과 겹치지 않게 (출석인사와 같음)
+const EDIT_SWIPE = { gestureEnabled: true, fullScreenGestureEnabled: false } as const;
+
 function RootLayoutNav() {
   const { isLoggedIn, hasSeenOnboarding, isLoading, login } = useAuth();
   const router = useRouter();
@@ -135,15 +140,15 @@ function RootLayoutNav() {
           <Stack.Screen name="organization-members" options={{ gestureEnabled: true, contentStyle: { ...side, backgroundColor: '#144A84' } }} />
           <Stack.Screen name="community-posts" options={{ gestureEnabled: true }} />
           <Stack.Screen name="community-post" options={{ gestureEnabled: true }} />
-          <Stack.Screen name="community-essay-write" options={{ contentStyle: { ...side, backgroundColor: '#144A84' } }} />
-          <Stack.Screen name="community-free-write" options={{ contentStyle: { ...side, backgroundColor: '#144A84' } }} />
-          <Stack.Screen name="community-promo-edit" options={{ contentStyle: { ...side, backgroundColor: '#144A84' } }} />
+          <Stack.Screen name="community-essay-write" options={{ ...EDIT_SWIPE, contentStyle: { ...side, backgroundColor: '#144A84' } }} />
+          <Stack.Screen name="community-free-write" options={{ ...EDIT_SWIPE, contentStyle: { ...side, backgroundColor: '#144A84' } }} />
+          <Stack.Screen name="community-promo-edit" options={{ ...EDIT_SWIPE, contentStyle: { ...side, backgroundColor: '#144A84' } }} />
           {/* 가운데 좌우 밀기는 날짜 이동: iOS 26의 화면 전체 밀어서 닫기를 끄고 왼쪽 끝 밀기로만 닫음 */}
           <Stack.Screen name="community-greetings" options={{ gestureEnabled: true, fullScreenGestureEnabled: false }} />
           <Stack.Screen name="community-reports" options={{ gestureEnabled: true, contentStyle: { ...side, backgroundColor: '#144A84' } }} />
           {/* 투어: 등록 · 제안은 밀어서 닫으면 작성 중인 내용이 사라지므로 뒤로가기 버튼(확인 창)으로만 나감 */}
-          <Stack.Screen name="tour-register" options={{ contentStyle: { ...side, backgroundColor: '#144A84' } }} />
-          <Stack.Screen name="tour-propose" options={{ contentStyle: { ...side, backgroundColor: '#144A84' } }} />
+          <Stack.Screen name="tour-register" options={{ ...EDIT_SWIPE, contentStyle: { ...side, backgroundColor: '#144A84' } }} />
+          <Stack.Screen name="tour-propose" options={{ ...EDIT_SWIPE, contentStyle: { ...side, backgroundColor: '#144A84' } }} />
           <Stack.Screen name="tour-detail" options={{ gestureEnabled: true }} />
           <Stack.Screen name="tour-list" options={{ gestureEnabled: true }} />
           <Stack.Screen name="tour-search" options={{ gestureEnabled: true }} />
