@@ -157,6 +157,9 @@ export type ScheduleParticipant = {
   temporaryLink?: { auditId: number; sourceName: string } | null;
   canViewDivingLog?: boolean;
   canWriteDebriefing?: boolean;
+  // 강사간 수강생 정보 공유 글 수: 일정을 만든 강사에게, 수락한 체험교육 · 자격증 과정 · 트레이닝 수강생(앱 사용자)일 때만 숫자.
+  // null · 없음이면 버튼을 숨김 (서버가 권한을 판단)
+  instructorNoteCount?: number | null;
   userId?: string | null;
   invitationStatus?: InvitationStatus;
   invitationToken?: string | null;
@@ -279,6 +282,40 @@ export type DebriefingItem = {
   content: string;
   createdByName: string;
   createdAt: string;
+};
+
+// 강사간 수강생 정보 공유 (일정 상세 교육생 카드). 강사끼리만 보고 수강생에게는 어디에도 보이지 않음.
+// 쓴 일정의 제목 · 날짜 · 다이빙 구분, 자격증 과정이면 그때의 과정 이름이 함께 남음
+export type StudentNote = {
+  id: number;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+  edited: boolean;
+  scheduleId: number | null;
+  scheduleTitle: string;
+  scheduleDate: string;
+  categoryCode: string;
+  categoryName: string;
+  licenseNames: string[];
+  author: { id: number; userId: string; nickname: string; name: string | null; profileImage: string | null; level: string; badgeLevel: string } | null;
+  isMine: boolean;
+};
+
+// 앱 홈 (2026-11-09, 위쪽 가운데 로고 · 앱 첫 화면). '각종 요청' 한 줄은 아직 처리 안 한 것만, kind에 따라 누르면 갈 곳이 다름
+export type HomeRequestKind =
+  | 'SCHEDULE_INVITE' | 'TOUR_SEEKING_LEADER' | 'TOUR_APPLY' | 'TOUR_PROPOSAL'
+  | 'ADMIN_INQUIRY' | 'ADMIN_CERT' | 'ADMIN_ORG' | 'ADMIN_TOUR_REQUEST' | 'ADMIN_TOUR_REPORT' | 'ADMIN_COMMUNITY_REPORT';
+export type HomeRequest = {
+  id: string; kind: HomeRequestKind; title: string; body: string; at: string;
+  scheduleId?: number; tourId?: number; count?: number;
+};
+// 다가오는 다이빙 3 (캘린더 월 목록과 같은 모양) · 각종 요청 3 + 전체 건수 · 모집중 투어 3 · 최근 한 달 인기 에세이 3
+export type HomeData = {
+  upcoming: Schedule[];
+  requests: { total: number; items: HomeRequest[] };
+  tours: TourCard[];
+  essays: CommunityCard[];
 };
 
 export type DiveBuddy = {
@@ -502,6 +539,7 @@ export type TourBannerInput = { imageUrl: string; tourId: number; startDate: str
 export const api = {
   // ── 투어 ──
   getCodes(group: string) { return request<{ success: boolean; data?: CommonCode[]; message?: string }>(`/codes?group=${encodeURIComponent(group)}`); },
+  getHome() { return request<HomeData>('/home'); },
   getTourHome() { return request<TourHome>('/tours/home'); },
   // 전체보기: 그 상태만, 최근 등록 순 10개씩 (before = 더 예전 것, after = 더 최근 것)
   getTours(status: 'RECRUITING' | 'SEEKING_LEADER' | 'CLOSED', cursor: { before?: number; after?: number } = {}) {
@@ -804,6 +842,27 @@ export const api = {
 
   getDebriefings(userId: number, page: number, limit: number = 10) {
     return request<{ debriefings: DebriefingItem[]; hasMore: boolean }>(`/user/${userId}/debriefings?page=${page}&limit=${limit}`);
+  },
+
+  // 목록 공통 규칙: 최근순 10개씩, before(더 예전) · after(더 최근) id 커서
+  getStudentNotes(studentId: number, cursor: { before?: number; after?: number } = {}) {
+    const query = cursor.after ? `?after=${cursor.after}` : cursor.before ? `?before=${cursor.before}` : '';
+    return request<{ notes: StudentNote[]; total: number; hasMore: boolean }>(`/students/${studentId}/notes${query}`);
+  },
+
+  addStudentNote(studentId: number, scheduleId: number, content: string) {
+    return request<{ success: boolean; id: number }>(`/students/${studentId}/notes`, {
+      method: 'POST',
+      body: JSON.stringify({ scheduleId, content }),
+    });
+  },
+
+  updateStudentNote(id: number, content: string) {
+    return request<{ success: boolean }>(`/student-notes/${id}`, { method: 'PATCH', body: JSON.stringify({ content }) });
+  },
+
+  deleteStudentNote(id: number) {
+    return request<{ success: boolean }>(`/student-notes/${id}`, { method: 'DELETE' });
   },
 
   saveDebriefing(scheduleId: number, participantId: number, content: string) {

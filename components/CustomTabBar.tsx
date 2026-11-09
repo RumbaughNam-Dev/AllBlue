@@ -17,7 +17,7 @@ type TabIconConfig = {
 
 // By route name, so a tab that is shown only to some users (투어: admin) doesn't shift the others' icons.
 const TAB_ICONS: Record<string, TabIconConfig> = {
-  index: { pack: 'ionicons', icon: 'calendar', iconOutline: 'calendar-outline' },
+  calendar: { pack: 'ionicons', icon: 'calendar', iconOutline: 'calendar-outline' },
   b: { pack: 'image', icon: '', iconOutline: '', image: require('@/assets/images/icon-snorkel-tab.png') },
   c: { pack: 'ionicons', icon: 'people', iconOutline: 'people-outline' },
   community: { pack: 'ionicons', icon: 'chatbubbles', iconOutline: 'chatbubbles-outline' },
@@ -91,8 +91,14 @@ export default function CustomTabBar({ state, descriptors, emitter, navigateToTa
   // Vertical tabs are fixed squares; horizontal ones share the row, so a tab shown or hidden resizes them.
   const tabLength = rowLength > 0 && tabCount > 0 ? (vertical ? tabSize : rowLength / tabCount) : 0;
 
+  // 홈(탭 바에 칸이 없음)에 있다가 탭을 누르면 밀려 들어오지 않고 그 자리에 바로 (2026-11-09)
+  const prevFocused = useRef(focusedIndex);
   useEffect(() => {
-    if (tabLength > 0) {
+    const from = prevFocused.current;
+    prevFocused.current = focusedIndex;
+    if (tabLength > 0 && focusedIndex >= 0 && from < 0) {
+      slideX.setValue(focusedIndex * tabLength);
+    } else if (tabLength > 0 && focusedIndex >= 0) {
       Animated.spring(slideX, {
         toValue: focusedIndex * tabLength,
         damping: 18,

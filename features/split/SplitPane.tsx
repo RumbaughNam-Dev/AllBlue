@@ -10,11 +10,11 @@ import Colors from '@/constants/Colors';
 // is wide enough and wider than tall. Unfolded but turned upright, it reads like the folded phone.
 export const SPLIT_MIN_WIDTH = 600;
 
-export type PaneTab = 'index' | 'b' | 'c' | 'community' | 'tour';
+export type PaneTab = 'home' | 'calendar' | 'b' | 'c' | 'community' | 'tour';
 type Params = Record<string, string>;
 // 투어는 상세만 오른쪽 칸에서 (24장: 투어 목록 화면은 나누지 않고 전체 화면).
 // 커뮤니티도 글 상세만 오른쪽 칸에서, 게시판 전체보기는 전체 화면 (한 줄에 4개씩 넓게 · 2026-11-06)
-const PANE_PATHS = ['/schedule-daily', '/schedule-detail', '/profile-view', '/achievement', '/debriefing', '/community-post', '/tour-detail'] as const;
+const PANE_PATHS = ['/schedule-daily', '/schedule-detail', '/profile-view', '/achievement', '/debriefing', '/student-notes', '/community-post', '/tour-detail'] as const;
 type PanePath = typeof PANE_PATHS[number];
 type PaneRoute = { key: number; pathname: PanePath; params: Params };
 type Href = string | { pathname: string; params?: Record<string, unknown> };
@@ -29,6 +29,7 @@ const getPaneScreen = (pathname: PanePath): React.ComponentType => {
     case '/profile-view': return require('@/app/profile-view').default;
     case '/achievement': return require('@/app/achievement').default;
     case '/debriefing': return require('@/app/debriefing').default;
+    case '/student-notes': return require('@/app/student-notes').default;
     case '/community-post': return require('@/app/community-post').default;
     case '/tour-detail': return require('@/app/tour-detail').default;
   }
@@ -48,8 +49,8 @@ type SplitValue = {
 const SplitContext = createContext<SplitValue | null>(null);
 const PaneScreenContext = createContext<{ route: PaneRoute; index: number } | null>(null);
 
-const TAB_BY_PATH: Record<string, PaneTab> = { '/': 'index', '/b': 'b', '/c': 'c', '/community': 'community', '/tour': 'tour' };
-const EMPTY_STACKS: Record<PaneTab, PaneRoute[]> = { index: [], b: [], c: [], community: [], tour: [] };
+const TAB_BY_PATH: Record<string, PaneTab> = { '/': 'home', '/calendar': 'calendar', '/b': 'b', '/c': 'c', '/community': 'community', '/tour': 'tour' };
+const EMPTY_STACKS: Record<PaneTab, PaneRoute[]> = { home: [], calendar: [], b: [], c: [], community: [], tour: [] };
 
 const toParams = (params?: Record<string, unknown>): Params =>
   Object.fromEntries(Object.entries(params ?? {}).filter(([, v]) => v != null).map(([k, v]) => [k, String(v)]));
@@ -61,7 +62,7 @@ export function SplitProvider({ children, paneInScenes = false }: { children: Re
   const isSplit = width >= SPLIT_MIN_WIDTH && width > height;
   const [stacks, setStacks] = useState(EMPTY_STACKS);
   const [defaults, setDefaults] = useState<Partial<Record<PaneTab, PaneDefault>>>({});
-  const tabRef = useRef<PaneTab>('index');
+  const tabRef = useRef<PaneTab>('home');
   // Keep the last tab while a full-screen stack screen is on top.
   if (TAB_BY_PATH[pathname]) tabRef.current = TAB_BY_PATH[pathname];
   const activeTab = tabRef.current;
@@ -106,7 +107,7 @@ export function useIsInPane() {
 // The screen currently on top of the active tab's right pane (or its default screen), if any.
 export function useActivePane() {
   const split = useContext(SplitContext);
-  if (!split?.isSplit) return { activeTab: split?.activeTab ?? 'index', route: null };
+  if (!split?.isSplit) return { activeTab: split?.activeTab ?? 'home', route: null };
   const stack = split.stacks[split.activeTab];
   const fallback = split.defaults[split.activeTab];
   const route = stack.length > 0 ? stack[stack.length - 1] : fallback && 'pathname' in fallback ? fallback : null;

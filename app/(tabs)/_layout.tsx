@@ -67,8 +67,12 @@ export default function TabLayout() {
           <ProfileAvatar profileImage={user?.profileImage} nickname={user?.nickname} showLevel={false} count={adminBadgeText(adminTotal)} />
         </Pressable>
 
-        <View pointerEvents="none" style={styles.toolbarLogo}>
-          <Text style={styles.toolbarTitle}>all<Text style={{ color: '#00E5FF' }}>b</Text>lue</Text>
+        {/* 가운데 로고를 누르면 홈 (2026-11-09). 홈은 아래 탭 바에 칸이 없고 앱을 열면 처음 보임 */}
+        <View pointerEvents="box-none" style={styles.toolbarLogo}>
+          <Pressable accessibilityRole="button" accessibilityLabel="홈" hitSlop={8} onPress={() => router.navigate('/')}
+            style={({ pressed }) => pressed && { opacity: 0.6 }}>
+            <Text style={styles.toolbarTitle}>all<Text style={{ color: '#00E5FF' }}>b</Text>lue</Text>
+          </Pressable>
         </View>
 
         <View style={styles.toolbarActions}>
@@ -104,10 +108,15 @@ export default function TabLayout() {
 function DuoTabsBody({ showTour, showCommunity }: { showTour: boolean; showCommunity: boolean }) {
   const { activeTab, route } = useActivePane();
   // Where the in-screen '다이빙 만들기' buttons were: the dive list, and the day shown on the right.
-  const createDate = activeTab === 'b' ? '' : activeTab === 'index' && route?.pathname === '/schedule-daily' ? route.params.date : null;
+  const createDate = activeTab === 'b' ? '' : activeTab === 'calendar' && route?.pathname === '/schedule-daily' ? route.params.date : null;
   return (
     <NativeTabs tintColor={Colors.brand.white} iconColor="rgba(255,255,255,0.55)" backgroundColor={Colors.brand.primary}>
+      {/* 시스템 탭 바(지금은 꺼 둠)는 숨긴 탭으로 갈 수 없어서 홈을 첫 탭으로 보여 줌 — 켤 때 다시 볼 것 */}
       <NativeTabs.Trigger name="index">
+        <NativeTabs.Trigger.Icon sf="house" />
+        <NativeTabs.Trigger.Label>홈</NativeTabs.Trigger.Label>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="calendar">
         <NativeTabs.Trigger.Icon sf="calendar" />
         <NativeTabs.Trigger.Label>캘린더</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
@@ -168,7 +177,9 @@ function TabsBody({ showTour, showCommunity }: { showTour: boolean; showCommunit
           tabBar={(props) => strip ? <StripTabBarRelay {...props} onChange={setStripBar} /> : <CustomTabBar {...props} />}
           screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: '#144A84' } }}
         >
+          {/* 홈은 첫 화면이라 맨 앞 (안드로이드 뒤로가기도 홈으로). CustomTabBar에 아이콘이 없어 탭 바엔 안 보임 */}
           <Tabs.Screen name="index" />
+          <Tabs.Screen name="calendar" />
           <Tabs.Screen name="b" />
           <Tabs.Screen name="c" />
           {/* 막히면 탭 바에서 빠지고, 주소로 열어도 첫 탭으로 돌아감 */}

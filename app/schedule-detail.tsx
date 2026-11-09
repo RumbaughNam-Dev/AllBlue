@@ -3,7 +3,7 @@ import PopupBackdrop from '@/components/PopupBackdrop';
 import ProfileLink from '@/components/ProfileLink';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  View, Text, StyleSheet, Pressable, ScrollView, Alert, ActivityIndicator, Modal, Platform, Linking, AppState,
+  View, Text, StyleSheet, Pressable, ScrollView, Alert, ActivityIndicator, Modal, Platform, Linking, AppState, DeviceEventEmitter,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
@@ -14,7 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import Colors from '@/constants/Colors';
 import { useLatestRequest } from '@/hooks/useLatestRequest';
-import { api, ScheduleDetail } from '@/services/api';
+import { api, ScheduleDetail, type ScheduleParticipant } from '@/services/api';
 import Spinner from '@/components/Spinner';
 import ProfileAvatar from '@/components/ProfileAvatar';
 import MarqueeText from '@/components/MarqueeText';
@@ -23,6 +23,7 @@ import { hasInstructorAccess } from '@/utils/userRole';
 import { groupProfileCertifications } from '@/utils/profileCertifications';
 import GlassCircle from '@/components/GlassCircle';
 import StripBackSlot from '@/components/StripBackSlot';
+import { NOTE_CATEGORIES, STUDENT_NOTES_CHANGED, type StudentNotesChanged } from '@/features/schedule/studentNotes';
 
 const STUDENT_CATEGORIES = ['EXPERIENCE', 'CERTIFICATION', 'LECTURE'];
 const DOCUMENT_CATEGORIES = ['EXPERIENCE', 'CERTIFICATION', 'TRAINING'];
@@ -68,6 +69,17 @@ export default function ScheduleDetailScreen() {
   const initialLoad = useRef(true);
 
   useEffect(() => { fetchDetail(); return () => request.invalidate(); }, [fetchDetail, request]);
+
+  // 강사간 수강생 정보 공유에서 글을 쓰거나 지우면 카드의 숫자를 바로 맞춤 (펼친 화면 오른쪽 칸은 돌아와도 다시 불러오지 않음)
+  useEffect(() => {
+    const sub = DeviceEventEmitter.addListener(STUDENT_NOTES_CHANGED, ({ studentId, total }: StudentNotesChanged) => {
+      const target = (p: ScheduleParticipant) => !p.isGuest && p.id === studentId && typeof p.instructorNoteCount === 'number';
+      setSchedule(prev => (!prev?.participants.some(p => target(p) && p.instructorNoteCount !== total) ? prev : {
+        ...prev, participants: prev.participants.map(p => (target(p) ? { ...p, instructorNoteCount: total } : p)),
+      }));
+    });
+    return () => sub.remove();
+  }, []);
 
   // Undo a link made on this schedule: show what goes back first, and explain when it can't.
   const handleUnlink = async (auditId: number) => {
@@ -505,6 +517,37 @@ export default function ScheduleDetailScreen() {
                     </View>
                   );
                 })()}
+                {/* 강사간 수강생 정보 공유: 일정을 만든 강사에게만, 수락한 체험교육 · 자격증 과정 · 트레이닝 수강생(앱 사용자) 카드에.
+                    수강생에게는 보이지 않음. 글 수(instructorNoteCount)는 서버가 권한을 확인한 카드에만 옴 */}
+                {isOwner && isQualifiedInstructor && accepted && NOTE_CATEGORIES.includes(category) && !p.isGuest && !p.isTemporary
+                  && p.userId !== user?.id && typeof p.instructorNoteCount === 'number' && (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`강사간 수강생 정보 공유${p.instructorNoteCount ? `, 글 ${p.instructorNoteCount}개` : ''}`}
+                    onPress={() => router.push({
+                      pathname: '/student-notes',
+                      params: {
+                        studentId: String(p.id),
+                        scheduleId: String(schedule!.id),
+                        profileUserId: p.userId ?? undefined,
+                        studentName: p.name && p.name !== p.nickname ? `${p.nickname} (${p.name})` : p.nickname,
+                        scheduleTitle: schedule!.title,
+                        scheduleDate: schedule!.scheduleDate,
+                        categoryName: CATEGORIES_MAP[category] ?? category,
+                        // 자격증 과정이면 이 일정에서 연결한 과정 이름 (서버도 같은 값을 글에 복사해 둠)
+                        licenseNames: JSON.stringify(category === 'CERTIFICATION'
+                          ? (p.participantLicenses ?? []).map(l => l.nameKo || l.code).filter(Boolean) : []),
+                      },
+                    })}
+                    style={({ pressed }) => [styles.noteButton, pressed && { opacity: 0.6 }]}
+                  >
+                    <Ionicons name="lock-closed" size={13} color={Colors.brand.accent} />
+                    <Text style={styles.noteButtonText}>강사간 수강생 정보 공유</Text>
+                    {p.instructorNoteCount > 0 && (
+                      <View style={styles.noteCount}><Text style={styles.noteCountText}>{p.instructorNoteCount}</Text></View>
+                    )}
+                  </Pressable>
+                )}
               </View>
               );
             })
@@ -690,6 +733,20 @@ const styles = StyleSheet.create({
   },
   actionButtonText: {
     fontFamily: 'SUIT-SemiBold', fontSize: 13, color: Colors.brand.warning,
+  },
+  noteButton: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 8,
+    backgroundColor: 'rgba(0,180,216,0.15)', borderRadius: 8, paddingVertical: 8,
+  },
+  noteButtonText: {
+    fontFamily: 'SUIT-SemiBold', fontSize: 13, color: Colors.brand.accent,
+  },
+  noteCount: {
+    minWidth: 18, height: 18, paddingHorizontal: 5, borderRadius: 9,
+    backgroundColor: Colors.brand.accent, alignItems: 'center', justifyContent: 'center',
+  },
+  noteCountText: {
+    fontFamily: 'SUIT-Bold', fontSize: 11, color: '#032A36',
   },
   actionButtonDone: {
     backgroundColor: 'rgba(52,199,89,0.15)',
