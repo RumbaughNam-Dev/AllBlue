@@ -44,6 +44,9 @@ export default function NotificationBell() {
   const usableWidth = width - insets.left - insets.right;
   const centerX = insets.left + usableWidth / 2;
   const panelWidth = Math.min(usableWidth - 32, 420), panelHeight = Math.min(height * 0.76, 660);
+  // 유리 효과(iOS 26)는 판이 거의 투명할 때 붙으면 iOS가 건너뛰고 다시 그리지 않아 판이 허옇게 비침.
+  // 다른 팝업처럼 유리 판은 투명도 1 그대로 두고 종에서 커지기만 함 (유리가 없는 기기는 예전처럼 서서히)
+  const panelOpacity = LiquidGlassView ? 1 : progress;
   const commit = (next: AppNotification[]) => { rows.current = next; setItems(next); };
 
   const refreshCount = useCallback(async () => {
@@ -152,7 +155,7 @@ export default function NotificationBell() {
           <Pressable style={[StyleSheet.absoluteFill, styles.backdrop]} onPress={close} accessibilityRole="button" accessibilityLabel="알림 닫기" />
         </Animated.View>
         <Animated.View style={[styles.panel, glassClear, { width: panelWidth, height: panelHeight, left: centerX - panelWidth / 2, top: (height - panelHeight) / 2,
-          opacity: progress, transform: [
+          opacity: panelOpacity, transform: [
             { translateX: progress.interpolate({ inputRange: [0, 1], outputRange: [origin.x + 22 - centerX, 0] }) },
             { translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [origin.y + 22 - height / 2, 0] }) },
             { scale: progress.interpolate({ inputRange: [0, 1], outputRange: [0.05, 1] }) },

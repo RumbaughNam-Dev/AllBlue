@@ -12,6 +12,8 @@ type Props = {
 // Liquid Glass layer behind an existing surface (button, sheet, menu, popup) on iOS 26+.
 // Put it first inside the surface and add `glassClear` to the surface's style so its own
 // background gives way to the glass. Elsewhere it renders nothing and the surface looks as before.
+// Keep the surface itself at full opacity and animate its size or position instead: glass attached
+// while the surface is nearly transparent is skipped by iOS for good, and the panel shows through pale.
 export default function GlassBackground({ radius = 0, interactive = false, tintColor }: Props) {
   if (!LiquidGlassView) return null;
   return (
