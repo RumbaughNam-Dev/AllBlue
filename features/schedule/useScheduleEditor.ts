@@ -3,8 +3,7 @@ import { hasInstructorAccess } from '@/utils/userRole';
 import { maskPhone } from '@/utils/format';
 import { useState, useEffect, useRef } from 'react';
 import { TextInput, ScrollView, Alert, Keyboard } from 'react-native';
-import { useLocalSearchParams, useRouter, useNavigation } from 'expo-router';
-import { usePreventRemove } from 'expo-router/react-navigation';
+import { useLocalSearchParams, useRouter, usePreventRemove } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useUserSearch } from '@/hooks/useSearch';
@@ -44,7 +43,6 @@ export function useScheduleEditor() {
   const categories = CATEGORIES.filter(c => hasInstructorAccess(user?.level) || !STUDENT_CATEGORIES.includes(c.code));
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const navigation = useNavigation();
   const { date, id, prefillParticipant } = useLocalSearchParams<{ date: string; id?: string; prefillParticipant?: string }>();
   const isEditMode = !!id;
 
@@ -190,7 +188,7 @@ export function useScheduleEditor() {
   const leavePromptVisible = useRef(false);
   const hasUnsavedInput = !isEditMode && (title.trim() !== '' || selectedPool !== null || categoryCode !== '' || participants.length > 0 || currentUser !== null);
 
-  usePreventRemove(!savedDestination && (saving || step === 'participant' || hasUnsavedInput), ({ data }) => {
+  const disablePrevention = usePreventRemove(!savedDestination && (saving || step === 'participant' || hasUnsavedInput), ({ repeat }) => {
     if (saving) return;
     if (step === 'participant') {
       setStep('info');
@@ -204,7 +202,8 @@ export function useScheduleEditor() {
       '등록된 다이빙 일정 정보가 사라집니다.\n취소하시겠어요?',
       [
         { text: '아니오', style: 'cancel', onPress: dismiss },
-        { text: '예', style: 'destructive', onPress: () => { dismiss(); navigation.dispatch(data.action); } },
+        // 막아 둔 채로 다시 보내면 확인 창만 또 뜸 → 막기를 끄고 원래 뒤로가기를 다시 실행
+        { text: '예', style: 'destructive', onPress: () => { dismiss(); disablePrevention(); repeat(); } },
       ],
       { cancelable: true, onDismiss: dismiss },
     );

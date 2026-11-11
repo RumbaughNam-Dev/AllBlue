@@ -29,7 +29,7 @@ import { TOUR_FORM_LIMITS } from './tourForm';
 const SIDE = 20;
 const PROMINENT_TINT = 'rgba(255,255,255,0.85)';
 
-// 6장 투어 상세: 맨 위 등록자(인솔자가 있으면 인솔 강사), 투어 정보 · 참여자 · 사진, 하단 고정 버튼
+// 6장 투어 상세: 맨 위 등록자(인솔자가 있으면 인솔 강사), 투어 정보(모집현황은 인원 수만, 누가 참여했는지는 안 보임) · 사진, 하단 고정 버튼
 // (참여 신청 · 신청 취소 · 참여 취소 · 제안하기 · 문의하기 · 등록자의 신청 관리 / 받은 제안 · admin 승인)
 export default function TourDetailScreen() {
   const { id, inSheet } = useScreenParams<{ id: string; inSheet?: string }>();
@@ -186,7 +186,7 @@ export default function TourDetailScreen() {
   const shown = reviewingEdit
     ? withEdit(detail, reviewingEdit.payload as EditPayload, code => regionName([...continents, ...countries], code))
     : detail;
-  const { tour, registrant, leader, members, links, viewer } = shown;
+  const { tour, registrant, leader, links, viewer } = shown;
   // 문의하기: 링크가 하나면 바로 열고, 여러 개면 고르는 시트 (admin이 수정 요청을 심사할 땐 수정본의 링크)
   const inquire = () => {
     if (!links.length) return;
@@ -271,23 +271,6 @@ export default function TourDetailScreen() {
           {leader ? <InfoRow label="참가비" value={tour.fee !== null ? formatFee(tour.fee) : '강사에게 문의'} last /> : null}
           {tour.status === 'RECRUITING' ? (
             <View style={styles.bar}><View style={[styles.barFill, { width: `${Math.min(100, (tour.count / tour.capacity) * 100)}%` }]} /></View>
-          ) : null}
-        </View>
-
-        {/* 참여자: 수락된 참여자의 사진 · 닉네임, 등록할 때 모인 인원은 '함께 등록 n명' */}
-        <Text style={styles.sectionTitle}>참여자 {tour.count}{tour.companions > 0 ? ` · 함께 등록 ${tour.companions}명` : ''}</Text>
-        <View style={styles.members}>
-          {(tour.registerRole === 'PARTICIPANT' ? [{ userId: registrant.userId, nickname: registrant.nickname, profileImage: registrant.profileImage }, ...members] : members).map(m => (
-            <Pressable key={m.userId} onPress={() => openProfile(m.userId)} style={styles.member} accessibilityLabel={`${m.nickname} 프로필 보기`}>
-              <ProfileAvatar profileImage={m.profileImage} nickname={m.nickname} />
-              <Text style={styles.memberName} numberOfLines={1}>{m.nickname}</Text>
-            </Pressable>
-          ))}
-          {tour.companions > 0 ? (
-            <View style={styles.member}>
-              <View style={styles.plus}><Text style={styles.plusText}>+{tour.companions}</Text></View>
-              <Text style={styles.memberName} numberOfLines={1}>함께 등록</Text>
-            </View>
           ) : null}
         </View>
 
@@ -455,11 +438,6 @@ const styles = StyleSheet.create({
   bar: { height: 5, borderRadius: 3, backgroundColor: '#0D1B2A', marginBottom: 12, overflow: 'hidden' },
   barFill: { height: 5, backgroundColor: '#00B4D8' },
   sectionTitle: { fontFamily: 'SUIT-Bold', fontSize: 16, color: Colors.brand.white, marginTop: 24, marginBottom: 10 },
-  members: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  member: { width: 56, alignItems: 'center', gap: 4 },
-  memberName: { fontFamily: 'SUIT-Regular', fontSize: 11, color: 'rgba(255,255,255,0.6)', maxWidth: 56 },
-  plus: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: '#023E73' },
-  plusText: { fontFamily: 'SUIT-Bold', fontSize: 13, color: '#B8D4F0' },
   box: { marginTop: 16, padding: 14, borderRadius: 12, backgroundColor: 'rgba(2,62,115,0.8)' },
   boxText: { fontFamily: 'SUIT-Regular', fontSize: 13, lineHeight: 20, color: '#B8D4F0' },
   guide: { fontFamily: 'SUIT-Regular', fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 10 },

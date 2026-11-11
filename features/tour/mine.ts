@@ -92,7 +92,7 @@ export function mineCard(tab: MyTourTab, item: MyTourItem): MineCard {
   if (item.status === 'REVISION') {
     card.lines.note = { text: item.reviewNote ? `관리자: “${item.reviewNote}”` : '관리자가 보완을 요청했어요', color: SALMON };
     if (item.reviewNote) card.noteDetail = { title: '관리자 보완 요청', body: item.reviewNote };
-  } else if (item.editRequest && !ended) {
+  } else if (item.editRequest && item.status !== 'EXPIRED') {
     card.lines.note = { text: editNotice(item.editRequest) ?? '', color: item.editRequest.status === 'PENDING' ? PALE : SALMON };
     if (item.editRequest.status === 'REJECTED' && item.editRequest.reviewNote) card.noteDetail = { title: '수정 보완 요청', body: item.editRequest.reviewNote };
   }
@@ -102,13 +102,16 @@ export function mineCard(tab: MyTourTab, item: MyTourItem): MineCard {
   if (item.status === 'PENDING') card.button = { label: '수정', kind: 'dark', go: 'edit' };
   if (item.status === 'PENDING') card.menu = [{ label: '삭제', action: 'delete' }];
   if (item.status === 'REVISION') card.menu = [{ label: '등록 취소', action: 'delete' }];
-  if (OPEN.includes(item.status)) {
+  // 모집 마감 뒤에도 수정 · 삭제 가능
+  if (OPEN.includes(item.status) || item.status === 'CLOSED') {
     card.menu = [
       { label: '수정', action: 'edit' },
       ...(item.editRequest ? [{ label: '수정 취소', action: 'cancelEdit' as const }] : []),
       { label: '삭제', action: 'delete' },
     ];
   }
+  // 만료된 투어는 수정은 안 되고 삭제만
+  if (item.status === 'EXPIRED') card.menu = [{ label: '삭제', action: 'delete' }];
   return card;
 }
 

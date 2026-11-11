@@ -57,7 +57,9 @@ export default function TourRegisterScreen() {
 
   const update = <K extends keyof TourForm>(key: K, value: TourForm[K]) => setForm(prev => ({ ...prev, [key]: value }));
   const touch = (field: TourField) => setTouched(prev => (prev[field] ? prev : { ...prev, [field]: true }));
-  const errors = useMemo(() => tourFormErrors(form, today, editState?.joinedCount ?? 0), [form, today, editState]);
+  // 이미 출발한 투어(모집 마감 뒤 수정)는 원래 시작일까지 고를 수 있게 함
+  const minStart = initial?.startDate && initial.startDate < today ? initial.startDate : today;
+  const errors = useMemo(() => tourFormErrors(form, minStart, editState?.joinedCount ?? 0), [form, minStart, editState]);
   const shown = (field: TourField) => (touched[field] ? errors[field] : undefined);
 
   useEffect(() => {
@@ -73,7 +75,7 @@ export default function TourRegisterScreen() {
           // 장소가 없던 예전 수정본이면 지금 공개 중인 장소로
           const loaded = draft ? formFromTour({ place: tour.place, ...draft, ...base }, draft.links.slice(0, L.linkMax)) : formFromTour(tour, links.slice(0, L.linkMax));
           setForm(loaded); setInitial(loaded);
-          const isPublic = ['RECRUITING', 'SEEKING_LEADER'].includes(tour.status);
+          const isPublic = ['RECRUITING', 'SEEKING_LEADER', 'CLOSED'].includes(tour.status);
           const note = isPublic ? (tour.editRequest?.status === 'REJECTED' ? tour.editRequest.reviewNote : null) : tour.reviewNote;
           setEditState({ status: tour.status, joinedCount: tour.joinedCount, reviewNote: note, isPublic });
           // 이미 저장된 값이라 처음부터 검사 결과를 보여줌
@@ -313,10 +315,10 @@ export default function TourRegisterScreen() {
       <BottomSheet visible={sheet === 'country'} onClose={() => { setSheet(null); touch('region'); }} title={`나라 (${regionName(continents, form.continentCode)})`}
         items={countriesOf(form.continentCode).map(c => ({ label: c.nameKo ?? c.name, value: c.code }))} selectedValue={form.countryCode}
         searchable={countriesOf(form.continentCode).length > 8} onSelect={code => update('countryCode', code)} />
-      <DatePickerSheet visible={sheet === 'start'} onClose={() => { setSheet(null); touch('period'); }} selectedDate={form.startDate} minDate={today}
+      <DatePickerSheet visible={sheet === 'start'} onClose={() => { setSheet(null); touch('period'); }} selectedDate={form.startDate} minDate={minStart}
         onSelect={date => setForm(prev => ({ ...prev, startDate: date, endDate: prev.endDate && prev.endDate >= date ? prev.endDate : date }))} />
       <DatePickerSheet visible={sheet === 'end'} onClose={() => { setSheet(null); touch('period'); }} selectedDate={form.endDate || form.startDate}
-        minDate={form.startDate || today} onSelect={date => update('endDate', date)} />
+        minDate={form.startDate || minStart} onSelect={date => update('endDate', date)} />
       <UploadProgressPopup {...uploads.popup} />
     </View>
   );
