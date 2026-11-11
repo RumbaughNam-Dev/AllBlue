@@ -266,12 +266,15 @@ export default function TourDetailScreen() {
           <InfoRow label="지역" value={`${tour.continentName} › ${tour.countryName}${tour.place ? ` › ${tour.place}` : ''}`} />
           <InfoRow label="기간" value={`${formatTourPeriod(tour.startDate, tour.endDate)} (${formatStay(tour.startDate, tour.endDate)})`} />
           <InfoRow label="형태" value={STYLE_LABEL[tour.tourStyle]} />
-          <InfoRow label="모집현황" value={tour.status === 'SEEKING_LEADER' ? `${tour.count}명 모임` : `${tour.count} / ${tour.capacity}명${left > 0 ? `  ·  ${left}자리 남음` : ''}`}
-            accent last={!leader} />
+          {/* 모집 막대는 모집현황 바로 밑 (참가비가 있으면 막대 아래에 구분선) */}
+          <View style={leader ? styles.infoDivider : undefined}>
+            <InfoRow label="모집현황" value={tour.status === 'SEEKING_LEADER' ? `${tour.count}명 모임` : `${tour.count} / ${tour.capacity}명${left > 0 ? `  ·  ${left}자리 남음` : ''}`}
+              accent last />
+            {tour.status === 'RECRUITING' ? (
+              <View style={styles.bar}><View style={[styles.barFill, { width: `${Math.min(100, (tour.count / tour.capacity) * 100)}%` }]} /></View>
+            ) : null}
+          </View>
           {leader ? <InfoRow label="참가비" value={tour.fee !== null ? formatFee(tour.fee) : '강사에게 문의'} last /> : null}
-          {tour.status === 'RECRUITING' ? (
-            <View style={styles.bar}><View style={[styles.barFill, { width: `${Math.min(100, (tour.count / tour.capacity) * 100)}%` }]} /></View>
-          ) : null}
         </View>
 
         {tour.status === 'SEEKING_LEADER' && !tour.isRegistrant ? (
