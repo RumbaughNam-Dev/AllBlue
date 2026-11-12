@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { BAL_DEAD, BAL_FEEL, BAL_MIN, balanceOf, clamp, closeness, DiveState } from './sim';
+import { BAL_DEAD, BAL_FEEL, BAL_MIN, balanceOf, clamp, closeness, DiveState, FIN_ZONE } from './sim';
 
 // 프리다이빙 게임 한 장면 그리기 (바다 · 줄 · 다이버 · 위쪽 막대 · 아래 조작 버튼 모양).
 // 게임 화면과 게임 고르기 팝업의 미리보기가 같이 씀. 터치는 받지 않음 (게임 화면이 따로 받음)
@@ -208,9 +208,11 @@ function Hud({ s, width, insets }: { s: DiveState; width: number; insets: Insets
       <View style={styles.hudBack} />
       <View style={styles.hudTop}>
         <View style={{ width: 44 }} />
+        {/* 10 m 아래에서 차지 않고 머리를 아래로 두면 프리폴 */}
+        <View style={styles.ffSlot}>{s.freefall ? <View style={styles.ffPill}><Text style={styles.ffText}>프리폴</Text></View> : null}</View>
         <View style={{ alignItems: 'flex-end' }}>
           <Text style={styles.depth}>{s.phase === 'surface' ? '수면' : `${s.depth.toFixed(1)}m`}</Text>
-          <Text style={styles.sub}>최대 {s.maxDepth.toFixed(1)}m · 이퀄 {s.eqCount}회 · {fmtTime(s.diveTime)}</Text>
+          <Text style={styles.sub}>최대 {s.maxDepth.toFixed(1)}m · 이퀄 {s.eqCount}회 · 피닝 {s.finCount}회 · {fmtTime(s.diveTime)}</Text>
         </View>
       </View>
 
@@ -249,19 +251,26 @@ function Hud({ s, width, insets }: { s: DiveState; width: number; insets: Insets
 // 아래: 왼쪽 방향 조이스틱, 오른쪽 이퀄 버튼 (모양만, 터치는 게임 화면이 받음)
 function Controls({ s, width, height, insets, stick }: { s: DiveState; width: number; height: number; insets: Insets; stick: StickView }) {
   const { stick: st, pad } = controlsLayout(width, height, insets);
-  const knobR = st.r * 0.42;
-  const kx = st.cx + (stick?.x ?? 0) * (st.r - knobR * 0.4);
-  const ky = st.cy + (stick?.y ?? 0) * (st.r - knobR * 0.4);
+  // 손잡이 가운데가 손가락 자리 (끝까지 밀면 원 가장자리)
+  const knobR = st.r * 0.3;
+  const kx = st.cx + (stick?.x ?? 0) * st.r;
+  const ky = st.cy + (stick?.y ?? 0) * st.r;
   const noAir = s.air <= 0;
   const fill = s.eqHeld ? s.eqStrength : 0;
+  // 안쪽 원까지는 방향만, 손잡이가 원 밖으로 나가면 피닝 (sim FIN_ZONE)
+  const ring = FIN_ZONE * st.r;
+  const m = stick ? Math.hypot(stick.x, stick.y) : 0;
+  const finning = s.phase === 'dive' && !!stick && m >= FIN_ZONE;
+  const stickLabel = s.phase !== 'dive' ? '방향' : finning ? '피닝' : stick && m > 0.18 ? '방향만' : s.freefall ? '프리폴' : '방향 · 피닝';
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-      <View style={[styles.stickBase, { left: st.cx - st.r, top: st.cy - st.r, width: st.r * 2, height: st.r * 2, borderRadius: st.r }]} />
+      <View style={[styles.stickBase, { left: st.cx - st.r, top: st.cy - st.r, width: st.r * 2, height: st.r * 2, borderRadius: st.r }, finning && { borderColor: 'rgba(0,229,255,0.75)' }]} />
+      <View style={[styles.stickRing, { left: st.cx - ring, top: st.cy - ring, width: ring * 2, height: ring * 2, borderRadius: ring }]} />
       <View style={[styles.knob, {
         left: kx - knobR, top: ky - knobR, width: knobR * 2, height: knobR * 2, borderRadius: knobR,
         backgroundColor: stick ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.55)',
       }]} />
-      <Text style={[styles.controlLabel, { left: st.cx - 40, top: st.cy + st.r + 4 }]}>방향</Text>
+      <Text style={[styles.controlLabel, { left: st.cx - 40, top: st.cy + st.r + 4 }, finning && { color: '#00E5FF' }]}>{stickLabel}</Text>
 
       <View style={[styles.pad, { left: pad.x, top: pad.y, width: pad.w, height: pad.h, opacity: noAir ? 0.45 : 1 }]}>
         <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: pad.h * fill, backgroundColor: s.eqActive ? 'rgba(0,229,255,0.5)' : 'rgba(255,255,255,0.2)' }} />
@@ -318,6 +327,10 @@ const styles = StyleSheet.create({
   needle: { position: 'absolute', top: -2, width: 6, height: 26, borderRadius: 3, borderWidth: 1, borderColor: 'rgba(0,0,0,0.5)' },
   caption: { position: 'absolute', top: 1, fontFamily: 'SUIT-Regular', fontSize: 10, color: 'rgba(255,255,255,0.6)' },
   stickBase: { position: 'absolute', backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.3)' },
+  stickRing: { position: 'absolute', borderWidth: 1, borderStyle: 'dashed', borderColor: 'rgba(255,255,255,0.3)' },
+  ffSlot: { flex: 1, alignItems: 'flex-end', paddingRight: 10, paddingTop: 10 },
+  ffPill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, backgroundColor: 'rgba(0,229,255,0.25)', borderWidth: 1, borderColor: 'rgba(0,229,255,0.7)' },
+  ffText: { fontFamily: 'SUIT-Bold', fontSize: 12, color: '#FFFFFF' },
   knob: { position: 'absolute', borderWidth: 1, borderColor: 'rgba(0,0,0,0.25)' },
   controlLabel: { position: 'absolute', width: 80, textAlign: 'center', fontFamily: 'SUIT-SemiBold', fontSize: 12, color: 'rgba(255,255,255,0.7)' },
   pad: {

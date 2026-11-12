@@ -23,8 +23,15 @@ const HOLD_STRENGTH = 0.08;
 // 귀 압력이 주변보다 높으면(음압) 이관으로 조금씩 빠짐 (올라올 때 · 너무 세게 했을 때)
 const VENT = 0.5;
 // 10 m가 중성 부력: 위는 양성(가만있어도 떠오름), 아래는 음성(가라앉아서 피닝해야 올라옴)
-const NEUTRAL_LUNG = 1 / 2;
+export const NEUTRAL_DEPTH = 10;
+const NEUTRAL_LUNG = 1 / (1 + NEUTRAL_DEPTH / 10);
 const BUOYANCY = 1.4;
+// 왼쪽 조이스틱: 안쪽 원(반지름의 FIN_ZONE)까지는 방향만 바꾸고 차지 않음(프리폴 · 글라이드), 그 바깥은 피닝 (멀리 밀수록 세게)
+export const FIN_ZONE = 0.5;
+// 피닝 5번에 폐 공기 1% (한 번 = 다리를 한 번 차고 돌아오는 왕복)
+const FIN_COST = 0.002;
+// 머리가 위를 향할수록 피닝이 더 잘 먹음 (올라오는 속도를 내려갈 때보다 빠르게)
+const ASCENT_BOOST = 1.15;
 const SURFACE_SPEED = 1.1;
 const NECK_MAX = 1.0;
 
@@ -51,6 +58,11 @@ export type DiveState = {
   arm: number;
   kick: number;
   kickPower: number;
+  // 피닝 횟수 (물속에서 실제로 찬 왕복 수) · 다음 한 번까지 쌓인 다리 움직임
+  finCount: number;
+  finPhase: number;
+  // 10 m 아래에서 안 차고 머리를 아래로 둔 채 내려가는 중 (위쪽 표시용)
+  freefall: boolean;
   // 배가 어느 쪽인지 (1: 머리가 오른쪽일 때 배가 아래). 수면에서 가는 방향으로 정해지고 물속에선 그대로
   facing: 1 | -1;
   earP: number;
@@ -83,7 +95,7 @@ export function createGame(seed = Math.random() * 100): DiveState {
   return {
     phase: 'surface', time: 0, diveTime: 0, seed,
     x: -3, depth: 0, vx: 0, vy: 0,
-    phi: 0, omega: 0, neck: 0, hip: 0, arm: 0.1, kick: 0, kickPower: 0, facing: 1,
+    phi: 0, omega: 0, neck: 0, hip: 0, arm: 0.1, kick: 0, kickPower: 0, finCount: 0, finPhase: 0, freefall: false, facing: 1,
     earP: 1, air: 1, eqCount: 0, eqHeld: false, eqActive: false, eqStrength: 0.5,
     maxDepth: 0, zoneSum: 0, zoneTime: 0, shallowAt: null,
   };
@@ -147,6 +159,7 @@ function surface(s: DiveState, input: GameInput, dt: number) {
   s.depth = 0;
   s.vy = 0;
   s.omega = 0;
+  s.freefall = false;
   // 수면에 엎드려 가로로 뜬 자세, 머리는 가는 쪽
   const target = s.facing > 0 ? 0 : Math.PI;
   s.phi = wrap(s.phi + wrap(target - s.phi) * Math.min(1, 6 * dt));
@@ -182,51 +195,71 @@ function dive(s: DiveState, input: GameInput, dt: number) {
   const lung = lungAt(d);
   const f = s.facing;
   const m = Math.min(1, Math.hypot(input.jx, input.jy));
-  const active = m > 0.18;
+  const steering = m > 0.18; // 방향을 가리키는 중
+  const finning = m >= FIN_ZONE; // 바깥 원까지 밀면 피닝
   const speed = Math.hypot(s.vx, s.vy);
   const psi = Math.atan2(s.vy, s.vx);
+  // 프리폴: 10 m 아래에서 차지 않고(손을 떼거나 안쪽 원만) 머리가 아래(±60°)를 향함 → 곧은 자세로 가라앉음
+  const headingDown = Math.cos(wrap(s.phi - Math.PI / 2)) > 0.5;
+  const freefall = !finning && d > NEUTRAL_DEPTH && headingDown;
+  s.freefall = freefall && s.vy > 0.1;
+  const streamline = steering || freefall; // 곧은 자세 (안 그러면 올드맨)
+  const glide = streamline && !finning; // 차지 않고 미끄러지는 중 — 물의 저항이 적음
 
   // 머리: 조이스틱 방향으로 돌림. 목이 꺾이는 데는 한계가 있고, 빠를수록 물에 밀려 덜 꺾임
   // 거의 반대쪽을 가리키면 이미 돌기 시작한 쪽으로 계속 (좌우를 오가며 멈칫하지 않게)
   let turn = f * wrap(Math.atan2(input.jy, input.jx) - s.phi);
   if (Math.abs(turn) > 2.5 && Math.abs(s.neck) > 0.25 && Math.sign(turn) !== Math.sign(s.neck)) turn = -turn;
-  const want = active ? clamp(turn, -NECK_MAX, NECK_MAX) / (1 + 0.5 * speed) : 0.1;
+  const want = steering ? clamp(turn, -NECK_MAX, NECK_MAX) / (1 + 0.5 * speed) : freefall ? 0 : 0.1;
   s.neck = approach(s.neck, want, 6, dt);
 
-  // 조이스틱을 멀리 밀수록 세게 찬다
-  s.kickPower = approach(s.kickPower, active ? m : 0, 2.5, dt);
-  s.kick += dt * (3.5 + 5 * s.kickPower);
+  // 바깥 원부터 피닝, 멀리 밀수록 세게 찬다
+  s.kickPower = approach(s.kickPower, finning ? 0.3 + 0.7 * (m - FIN_ZONE) / (1 - FIN_ZONE) : 0, 2.5, dt);
+  const stroke = dt * (3.5 + 5 * s.kickPower);
+  s.kick += stroke;
+  // 피닝 5번에 폐 공기 1%: 실제로 차는 동안 다리 왕복(2π)마다 한 번
+  if (s.kickPower > 0.15) {
+    s.finPhase += stroke;
+    while (s.finPhase >= TWO_PI) {
+      s.finPhase -= TWO_PI;
+      s.finCount += 1;
+      s.air = Math.max(0, s.air - FIN_COST);
+    }
+  }
 
   // 몸통 회전: 관성이 커서 넘치고, 부력 · 물살 · 발차기가 계속 흔듦 → 아래만 가리킨다고 곧게 내려가지 않음
   let tau = 2.4 * f * s.neck * (0.3 + s.kickPower); // 몸은 머리를 따라 돈다
-  tau += 1.4 * lung * Math.sin(wrap(-Math.PI / 2 - s.phi)); // 얕을수록 폐(가슴)가 떠서 머리가 들림 — 거꾸로 서 있기가 불안정
+  tau += 1.4 * clamp((lung - 0.3) / 0.7, 0, 1) * Math.sin(wrap(-Math.PI / 2 - s.phi)); // 얕을수록 폐(가슴)가 떠서 머리가 들림 — 거꾸로 서 있기가 불안정, 깊으면 폐가 눌려 거의 없음
   if (speed > 0.05) tau += 1.1 * speed * speed * Math.sin(wrap(psi - s.phi)); // 핀이 물살에 끌려 가는 방향으로 정렬 (뒤로 가면 뒤집힘)
-  tau += current(s.time + s.seed) * (0.45 + 0.9 * s.kickPower + 0.5 * speed); // 물살
+  if (freefall && !steering) tau += 0.8 * Math.sin(wrap(Math.PI / 2 - s.phi)); // 프리폴: 손을 떼면 몸을 곧게 펴 아래로 떨어짐
+  tau += current(s.time + s.seed) * ((glide ? 0.25 : 0.45) + 0.9 * s.kickPower + (glide ? 0.3 : 0.5) * speed); // 물살 (곧게 미끄러질 땐 덜 흔들림)
   tau += 0.8 * s.kickPower * Math.sin(s.kick); // 발차기마다 몸이 흔들림
   tau -= 0.8 * s.omega;
   s.omega += tau * dt;
   s.phi = wrap(s.phi + s.omega * dt);
 
   // 다리: 가만히 있으면 올드맨(엉덩이를 접어 다리가 앞으로), 움직이면 물에 밀려 가는 반대쪽으로 끌려감, 몸이 돌면 늦게 따라옴
-  const restHip = active ? 0.08 : 0.55;
+  const restHip = streamline ? 0.08 : 0.55;
   const flow = clamp(speed, 0, 1);
   const trail = clamp(f * wrap(s.phi - psi), -0.9, 0.9);
   s.hip += 0.5 * f * s.omega * dt;
   s.hip = approach(s.hip, restHip + (trail - restHip) * flow * 0.6, 3, dt);
-  s.arm = approach(s.arm, active ? 0.12 : 0.7, 2, dt);
+  s.arm = approach(s.arm, streamline ? 0.12 : 0.7, 2, dt);
 
   // 추진: 몸통 방향으로, 몸이 꺾여 있으면 힘이 샘
   const bend = Math.abs(s.neck) * 0.6 + Math.abs(s.hip);
   const eff = Math.max(0, Math.cos(Math.min(1.5, bend)));
-  const thrust = 1.3 * s.kickPower * (0.55 + 0.45 * Math.abs(Math.sin(s.kick))) * eff;
+  const up = Math.max(0, -Math.sin(s.phi)); // 머리가 위를 향한 정도
+  const thrust = 1.3 * (1 + ASCENT_BOOST * up) * s.kickPower * (0.55 + 0.45 * Math.abs(Math.sin(s.kick))) * eff;
   let ax = thrust * Math.cos(s.phi);
   let ay = thrust * Math.sin(s.phi);
   ay -= BUOYANCY * (lung - NEUTRAL_LUNG);
   // 물의 저항: 몸이 옆으로 물을 맞거나 꺾여 있으면 커짐
   const side = Math.abs(Math.sin(wrap(psi - s.phi)));
-  const cd = 0.5 * (1 + 2.5 * side + 1.2 * bend);
-  ax -= cd * speed * s.vx + 0.2 * s.vx;
-  ay -= cd * speed * s.vy + 0.2 * s.vy;
+  const cd = (glide ? 0.35 : 0.5) * (1 + 2.5 * side + 1.2 * bend);
+  const lin = glide ? 0.12 : 0.2;
+  ax -= cd * speed * s.vx + lin * s.vx;
+  ay -= cd * speed * s.vy + lin * s.vy;
   s.vx += ax * dt;
   s.vy += ay * dt;
   s.x += s.vx * dt;
