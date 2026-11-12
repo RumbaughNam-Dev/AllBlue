@@ -28,6 +28,8 @@ export default function TabLayout() {
   const [gamesVisible, setGamesVisible] = useState(false);
   const newGame = useNewGameBadge();
   const { user, updateUser } = useAuth();
+  // 게임은 지금 admin에게만 보임 (2026-11-12 사용자 지시) — 모두에게 열 땐 true로
+  const showGames = user?.level === 'A';
   // 투어 · 커뮤니티 탭은 만드는 동안 admin에게만 보였음 (그동안 다른 사용자는 탭 3개)
   const showTour = true; // 2026-11-09 모두에게 공개 (그 전엔 admin만) — 백엔드 TOURS_OPEN_TO_ALL과 함께
   const showCommunity = true; // 2026-11-06 모두에게 공개 (그 전엔 admin만)
@@ -73,7 +75,7 @@ export default function TabLayout() {
             <ProfileAvatar profileImage={user?.profileImage} nickname={user?.nickname} showLevel={false} count={adminBadgeText(adminTotal)} />
           </Pressable>
           {/* 프로필 사진 오른쪽 게임 아이콘 → 게임 고르기 팝업. 새 게임은 팝업을 한 번 열 때까지 NEW */}
-          <Pressable
+          {showGames && <Pressable
             accessibilityRole="button"
             accessibilityLabel={newGame.isNew ? '게임, 새 게임 있음' : '게임'}
             onPress={() => { newGame.markSeen(); setGamesVisible(true); }}
@@ -83,7 +85,7 @@ export default function TabLayout() {
               <Ionicons name="game-controller-outline" size={LiquidGlassView ? 21 : 25} color="white" />
             </GlassCircle>
             {newGame.isNew ? <View style={styles.newBadge}><Text style={styles.newBadgeText}>NEW</Text></View> : null}
-          </Pressable>
+          </Pressable>}
         </View>
 
         {/* 가운데 로고를 누르면 홈 (2026-11-09). 홈은 아래 탭 바에 칸이 없고 앱을 열면 처음 보임 */}
@@ -117,7 +119,7 @@ export default function TabLayout() {
 
       {/* Side Sheet */}
       <SideSheet visible={sheetVisible} onClose={() => setSheetVisible(false)} />
-      <GamePickerPopup visible={gamesVisible} onClose={() => setGamesVisible(false)} />
+      {showGames && <GamePickerPopup visible={gamesVisible} onClose={() => setGamesVisible(false)} />}
     </View>
     </SplitProvider>
   );
