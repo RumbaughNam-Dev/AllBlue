@@ -20,11 +20,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { DUO_SYSTEM_TABS } from '@/utils/foldable';
 import { LiquidGlassView } from '@/utils/liquidGlass';
 import GamePickerPopup from '@/features/games/GamePickerPopup';
+import { useNewGameBadge } from '@/features/games/newBadge';
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
   const [sheetVisible, setSheetVisible] = useState(false);
   const [gamesVisible, setGamesVisible] = useState(false);
+  const newGame = useNewGameBadge();
   const { user, updateUser } = useAuth();
   // 투어 · 커뮤니티 탭은 만드는 동안 admin에게만 보였음 (그동안 다른 사용자는 탭 3개)
   const showTour = true; // 2026-11-09 모두에게 공개 (그 전엔 admin만) — 백엔드 TOURS_OPEN_TO_ALL과 함께
@@ -70,16 +72,17 @@ export default function TabLayout() {
             {/* 홈 왼쪽 위 프로필 사진: 레벨 배지 없이 (2026-11-08), admin은 처리할 건수만 */}
             <ProfileAvatar profileImage={user?.profileImage} nickname={user?.nickname} showLevel={false} count={adminBadgeText(adminTotal)} />
           </Pressable>
-          {/* 프로필 사진 오른쪽 게임 아이콘 → 게임 고르기 팝업 */}
+          {/* 프로필 사진 오른쪽 게임 아이콘 → 게임 고르기 팝업. 새 게임은 팝업을 한 번 열 때까지 NEW */}
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="게임"
-            onPress={() => setGamesVisible(true)}
-            style={({ pressed }) => pressed && { opacity: 0.6 }}
+            accessibilityLabel={newGame.isNew ? '게임, 새 게임 있음' : '게임'}
+            onPress={() => { newGame.markSeen(); setGamesVisible(true); }}
+            style={({ pressed }) => [styles.gameButton, pressed && { opacity: 0.6 }]}
           >
             <GlassCircle size={38} fallbackStyle={styles.gameIcon}>
               <Ionicons name="game-controller-outline" size={LiquidGlassView ? 21 : 25} color="white" />
             </GlassCircle>
+            {newGame.isNew ? <View style={styles.newBadge}><Text style={styles.newBadgeText}>NEW</Text></View> : null}
           </Pressable>
         </View>
 
@@ -262,7 +265,11 @@ const styles = StyleSheet.create({
   },
   toolbarLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   profileButton: { width: 40, height: 40 },
+  gameButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   gameIcon: { width: 38, height: 38, alignItems: 'center', justifyContent: 'center' },
+  // 알림 종의 건수 배지와 같은 빨강
+  newBadge: { position: 'absolute', right: -6, top: 0, height: 16, paddingHorizontal: 4, borderRadius: 8, backgroundColor: '#EF4444', alignItems: 'center', justifyContent: 'center' },
+  newBadgeText: { color: 'white', fontSize: 9, fontWeight: '800', letterSpacing: 0.3 },
   toolbarLogo: {
     position: 'absolute',
     top: 0,
