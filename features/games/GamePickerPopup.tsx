@@ -7,13 +7,14 @@ import PopupBackdrop from '@/components/PopupBackdrop';
 import GlassBackground, { glassClear, PANEL_TINT } from '@/components/GlassBackground';
 import FreedivingView from './freediving/FreedivingView';
 import { ambientAt, createGame, DiveState } from './freediving/sim';
+import { GAME_NAMES } from './games';
 
 // 게임 고르기: 위쪽 막대 프로필 사진 옆 게임 아이콘을 누르면 열림.
 // 게임 화면(미리보기)과 이름을 가로로 넘겨 고르고, 누르면 그 게임으로
 type Game = { key: string; name: string; route: '/game-freediving'; Preview: React.ComponentType<{ width: number; height: number }> };
 
 const GAMES: Game[] = [
-  { key: 'freediving', name: '프리다이빙', route: '/game-freediving', Preview: FreedivingPreview },
+  { key: 'freediving', name: GAME_NAMES.freediving, route: '/game-freediving', Preview: FreedivingPreview },
 ];
 
 // 미리보기 화면은 이 크기로 그린 뒤 카드에 맞게 줄임 (실제 게임 화면과 같은 그림)

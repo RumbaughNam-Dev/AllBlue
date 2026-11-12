@@ -284,6 +284,20 @@ export type DebriefingItem = {
   createdAt: string;
 };
 
+// 미니 게임 기록: 사용자별 · 게임별 판마다 시각 · 총점 · 세부 점수 (서버 game-records.service.ts)
+export type FreedivingRecordDetails = {
+  wasted: boolean;
+  maxDepth: number; // m
+  air: number; // 남은 폐 공기 0 ~ 1
+  eqCount: number;
+  idealEq: number;
+  zoneRate: number; // 두 번째 선 유지 0 ~ 1
+  diveTime: number; // 초
+  points: { depth: number; air: number; eq: number; zone: number }; // 40 · 20 · 15 · 25점 만점
+};
+export type GameRecord = { id: number; game: string; score: number; details: FreedivingRecordDetails; playedAt: string };
+export type GameRecordSaved = { record: GameRecord; best: number; isBest: boolean; count: number };
+
 // 강사간 수강생 정보 공유 (일정 상세 교육생 카드). 강사끼리만 보고 수강생에게는 어디에도 보이지 않음.
 // 쓴 일정의 제목 · 날짜 · 다이빙 구분, 자격증 과정이면 그때의 과정 이름이 함께 남음
 export type StudentNote = {
@@ -848,6 +862,16 @@ export const api = {
   getStudentNotes(studentId: number, cursor: { before?: number; after?: number } = {}) {
     const query = cursor.after ? `?after=${cursor.after}` : cursor.before ? `?before=${cursor.before}` : '';
     return request<{ notes: StudentNote[]; total: number; hasMore: boolean }>(`/students/${studentId}/notes${query}`);
+  },
+
+  // 미니 게임: 판이 끝나면 저장 (내 최고 점수 · 새 최고 기록인지 돌려받음), 내 기록은 최근순 10개씩
+  saveGameRecord(game: string, record: { score: number; details: FreedivingRecordDetails }) {
+    return request<GameRecordSaved>(`/games/${game}/records`, { method: 'POST', body: JSON.stringify(record) });
+  },
+
+  getGameRecords(game: string, cursor: { before?: number; after?: number } = {}) {
+    const query = cursor.after ? `?after=${cursor.after}` : cursor.before ? `?before=${cursor.before}` : '';
+    return request<{ records: GameRecord[]; hasMore: boolean; total: number; best: number | null }>(`/games/${game}/records${query}`);
   },
 
   addStudentNote(studentId: number, scheduleId: number, content: string) {

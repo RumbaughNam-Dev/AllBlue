@@ -6,12 +6,16 @@ import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { api } from '@/services/api';
 import FreedivingView, { Camera, controlsLayout, StickView } from './FreedivingView';
-import { BAL_DEAD, BAL_FEEL, balanceOf, clamp, createGame, DiveState, GameInput, scoreOf, stepGame, TARGET_DEPTH } from './sim';
+import { BAL_DEAD, BAL_FEEL, balanceOf, clamp, createGame, DiveState, GameInput, recordOf, scoreOf, stepGame, TARGET_DEPTH } from './sim';
 
-// 프리다이빙 게임 화면: 화면 갱신 · 두 손가락 터치(왼쪽 방향 · 오른쪽 이퀄) · 시작 안내 · WASTED · 점수
+// 프리다이빙 게임 화면: 화면 갱신 · 두 손가락 터치(왼쪽 방향 · 오른쪽 이퀄) · 시작 안내 · WASTED · 점수 · 기록 저장
 type Ended = 'wasted' | 'done' | null;
 type TouchKind = 'stick' | 'eq';
+// 판이 끝나면 서버에 저장 (내 기록 화면에서 시각 · 점수 · 세부 점수를 봄)
+type Saved = { status: 'saving' } | { status: 'saved'; best: number; isBest: boolean; count: number } | { status: 'error' } | null;
+const GAME = 'freediving';
 
 export default function FreedivingGame() {
   const router = useRouter();
@@ -25,7 +29,10 @@ export default function FreedivingGame() {
   const [started, setStarted] = useState(false);
   const [ended, setEnded] = useState<Ended>(null);
   const [showResult, setShowResult] = useState(false);
+  const [saved, setSaved] = useState<Saved>(null);
+  const play = useRef(0); // 다시 하기마다 늘어남 — 저장 응답이 늦게 와도 지난 판 결과를 새 판에 붙이지 않게
   const wasted = useRef(new Animated.Value(0)).current;
+  const openRecords = () => router.push({ pathname: '/game-records', params: { game: GAME } });
 
   // 터치: 화면 하나가 모든 손가락을 받고, 처음 닿은 쪽(왼쪽 아래 · 오른쪽 아래)으로 나눔
   // 그리기와 터치 판정 모두 실제 화면 크기(onLayout)를 씀 — 안드로이드는 창 크기와 다를 수 있음
@@ -93,10 +100,12 @@ export default function FreedivingGame() {
 
   const reset = () => {
     releaseAll();
+    play.current += 1;
     sim.current = createGame();
     cam.current = { x: sim.current.x, y: 0 };
     wasted.setValue(0);
     setShowResult(false);
+    setSaved(null);
     setEnded(null);
     setFrame(f => f + 1);
   };
@@ -137,8 +146,21 @@ export default function FreedivingGame() {
     return () => cancelAnimationFrame(raf);
   }, [started, ended]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // 끝났을 때: WASTED 연출 뒤 점수, 수면에 올라오면 바로 점수
+  // 한 판 기록 저장 (WASTED 0점도 남김). 실패하면 점수 창에서 다시 저장
+  const save = async () => {
+    const id = play.current;
+    setSaved({ status: 'saving' });
+    try {
+      const res = await api.saveGameRecord(GAME, recordOf(sim.current));
+      if (id === play.current) setSaved({ status: 'saved', best: res.best, isBest: res.isBest, count: res.count });
+    } catch {
+      if (id === play.current) setSaved({ status: 'error' });
+    }
+  };
+
+  // 끝났을 때: 기록 저장, WASTED 연출 뒤 점수, 수면에 올라오면 바로 점수
   useEffect(() => {
+    if (ended) void save();
     if (ended === 'wasted') {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Animated.timing(wasted, { toValue: 1, duration: 900, useNativeDriver: true }).start();
@@ -149,7 +171,7 @@ export default function FreedivingGame() {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setShowResult(true);
     }
-  }, [ended, wasted]);
+  }, [ended, wasted]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const s = sim.current;
   const playing = started && !ended;
@@ -199,7 +221,7 @@ export default function FreedivingGame() {
         </View>
       ) : null}
 
-      {!started ? <Intro onStart={() => setStarted(true)} onExit={() => router.back()} /> : null}
+      {!started ? <Intro onStart={() => setStarted(true)} onRecords={openRecords} onExit={() => router.back()} /> : null}
 
       {ended === 'wasted' ? (
         <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.wastedDim, { opacity: wasted, paddingTop: box.h * 0.22 }]}>
@@ -209,12 +231,14 @@ export default function FreedivingGame() {
         </Animated.View>
       ) : null}
 
-      {showResult ? <Result state={s} bottom={insets.bottom} onRetry={reset} onExit={() => router.back()} /> : null}
+      {showResult ? (
+        <Result state={s} saved={saved} bottom={insets.bottom} onRetry={reset} onSave={() => void save()} onRecords={openRecords} onExit={() => router.back()} />
+      ) : null}
     </View>
   );
 }
 
-function Intro({ onStart, onExit }: { onStart: () => void; onExit: () => void }) {
+function Intro({ onStart, onRecords, onExit }: { onStart: () => void; onRecords: () => void; onExit: () => void }) {
   return (
     <View style={[StyleSheet.absoluteFill, styles.overlay]}>
       <View style={styles.card}>
@@ -229,12 +253,39 @@ function Intro({ onStart, onExit }: { onStart: () => void; onExit: () => void })
         <Pressable accessibilityRole="button" onPress={onStart} style={({ pressed }) => [styles.primary, pressed && { opacity: 0.7 }]}>
           <Text style={styles.primaryText}>시작</Text>
         </Pressable>
-        <Pressable accessibilityRole="button" onPress={onExit} style={({ pressed }) => [styles.secondary, pressed && { opacity: 0.6 }]}>
-          <Text style={styles.secondaryText}>나가기</Text>
-        </Pressable>
+        <SubButtons onRecords={onRecords} onExit={onExit} />
       </View>
     </View>
   );
+}
+
+// 아래 줄: 내 기록 · 나가기
+function SubButtons({ onRecords, onExit }: { onRecords: () => void; onExit: () => void }) {
+  return (
+    <View style={styles.subRow}>
+      <Pressable accessibilityRole="button" onPress={onRecords} style={({ pressed }) => [styles.secondary, styles.subButton, pressed && { opacity: 0.6 }]}>
+        <Text style={styles.secondaryText}>내 기록</Text>
+      </Pressable>
+      <Pressable accessibilityRole="button" onPress={onExit} style={({ pressed }) => [styles.secondary, styles.subButton, pressed && { opacity: 0.6 }]}>
+        <Text style={styles.secondaryText}>나가기</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+// 저장 결과 한 줄: 새 최고 기록 · 내 최고 점수 · 실패하면 다시 저장
+function SavedLine({ saved, onSave }: { saved: Saved; onSave: () => void }) {
+  if (!saved || saved.status === 'saving') return <Text style={styles.savedText}>기록 저장 중…</Text>;
+  if (saved.status === 'error') {
+    return (
+      <Pressable accessibilityRole="button" onPress={onSave} hitSlop={8}>
+        <Text style={[styles.savedText, { color: '#FFB4AC' }]}>기록을 저장하지 못했어요 · <Text style={styles.savedLink}>다시 저장</Text></Text>
+      </Pressable>
+    );
+  }
+  if (saved.count === 1) return <Text style={styles.savedText}>첫 기록이 저장됐어요</Text>;
+  if (saved.isBest) return <Text style={[styles.savedText, styles.savedBest]}>새 최고 기록이에요! · {saved.count}번째 판</Text>;
+  return <Text style={styles.savedText}>내 최고 {saved.best}점 · {saved.count}번째 판</Text>;
 }
 
 function Step({ n, text }: { n: number; text: string }) {
@@ -246,7 +297,9 @@ function Step({ n, text }: { n: number; text: string }) {
   );
 }
 
-function Result({ state, bottom, onRetry, onExit }: { state: DiveState; bottom: number; onRetry: () => void; onExit: () => void }) {
+function Result({ state, saved, bottom, onRetry, onSave, onRecords, onExit }: {
+  state: DiveState; saved: Saved; bottom: number; onRetry: () => void; onSave: () => void; onRecords: () => void; onExit: () => void;
+}) {
   const sc = scoreOf(state);
   const dead = state.phase === 'wasted';
   const rows: [string, string, number, number][] = [
@@ -261,6 +314,7 @@ function Result({ state, bottom, onRetry, onExit }: { state: DiveState; bottom: 
       <View style={styles.card}>
         <Text style={styles.resultLabel}>{dead ? '고막이 버티지 못했어요' : '수면으로 돌아왔어요'}</Text>
         <Text style={[styles.score, dead && { color: '#FF5A4E' }]}>{sc.total}<Text style={styles.scoreUnit}>점</Text></Text>
+        <SavedLine saved={saved} onSave={onSave} />
         {dead ? (
           <Text style={styles.lead}>압력 바늘이 오른쪽 끝까지 갔어요.{'\n'}두 번째 선을 넘기 전에 이퀄해 주세요.</Text>
         ) : (
@@ -278,9 +332,7 @@ function Result({ state, bottom, onRetry, onExit }: { state: DiveState; bottom: 
         <Pressable accessibilityRole="button" onPress={onRetry} style={({ pressed }) => [styles.primary, pressed && { opacity: 0.7 }]}>
           <Text style={styles.primaryText}>다시 하기</Text>
         </Pressable>
-        <Pressable accessibilityRole="button" onPress={onExit} style={({ pressed }) => [styles.secondary, pressed && { opacity: 0.6 }]}>
-          <Text style={styles.secondaryText}>나가기</Text>
-        </Pressable>
+        <SubButtons onRecords={onRecords} onExit={onExit} />
       </View>
     </View>
   );
@@ -307,6 +359,11 @@ const styles = StyleSheet.create({
   primaryText: { fontFamily: 'SUIT-Bold', fontSize: 16, color: '#FFFFFF' },
   secondary: { height: 46, marginTop: 8, borderRadius: 14, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)' },
   secondaryText: { fontFamily: 'SUIT-SemiBold', fontSize: 15, color: '#FFFFFF' },
+  subRow: { flexDirection: 'row', gap: 8 },
+  subButton: { flex: 1 },
+  savedText: { fontFamily: 'SUIT-SemiBold', fontSize: 13, color: 'rgba(255,255,255,0.75)', textAlign: 'center', marginTop: 2 },
+  savedBest: { color: '#00E5FF' },
+  savedLink: { textDecorationLine: 'underline', color: '#FFFFFF' },
   wastedDim: { backgroundColor: 'rgba(40,40,40,0.6)', alignItems: 'center' },
   wastedText: {
     fontFamily: 'SUIT-Bold', fontSize: 64, letterSpacing: 4, color: '#E0263B',

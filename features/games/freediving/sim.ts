@@ -278,3 +278,21 @@ export function scoreOf(s: DiveState): Score {
   const zonePts = 25 * zoneRate * f;
   return { total: clamp(Math.round(depthPts + airPts + eqPts + zonePts), 0, 100), depthPts, airPts, eqPts, zonePts, idealEq, zoneRate };
 }
+
+// 서버에 남길 한 판 기록 (총점 + 세부 점수). 서버가 범위와 '총점 = 세부 점수 합'을 확인함
+export function recordOf(s: DiveState) {
+  const sc = scoreOf(s);
+  return {
+    score: sc.total,
+    details: {
+      wasted: s.phase === 'wasted',
+      maxDepth: clamp(s.maxDepth, 0, MAX_DEPTH),
+      air: clamp(s.air, 0, 1),
+      eqCount: s.eqCount,
+      idealEq: sc.idealEq,
+      zoneRate: clamp(sc.zoneRate, 0, 1),
+      diveTime: s.diveTime,
+      points: { depth: clamp(sc.depthPts, 0, 40), air: clamp(sc.airPts, 0, 20), eq: clamp(sc.eqPts, 0, 15), zone: clamp(sc.zonePts, 0, 25) },
+    },
+  };
+}

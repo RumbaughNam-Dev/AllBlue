@@ -58,7 +58,7 @@ function RootLayoutNav() {
       router.replace('/onboarding');
     } else if (hasSeenOnboarding && !isLoggedIn && !inLogin && !inRegister) {
       router.replace('/login');
-    } else if (isLoggedIn && !inApp && !['notices','notice-detail','notice-edit','profile','profile-edit','profile-view','cert-upload','cert-manage','schedule-daily','schedule-detail','schedule-add','achievement','debriefing','student-notes','blocked-users','inquiry','inquiry-write','inquiry-detail','inquiry-manage','inquiry-answer','withdraw','schedule-settings','organization-register','organization-manage','organization-members','community-posts','community-post','community-essay-write','community-free-write','community-promo-edit','community-greetings','community-reports','tour-register','tour-detail','tour-list','tour-search','tour-mine','tour-applications','tour-propose','tour-proposals','tour-proposal','tour-requests','tour-reports','tour-banners','tour-banner-edit','game-freediving'].includes(segments[0] as string)) {
+    } else if (isLoggedIn && !inApp && !['notices','notice-detail','notice-edit','profile','profile-edit','profile-view','cert-upload','cert-manage','schedule-daily','schedule-detail','schedule-add','achievement','debriefing','student-notes','blocked-users','inquiry','inquiry-write','inquiry-detail','inquiry-manage','inquiry-answer','withdraw','schedule-settings','organization-register','organization-manage','organization-members','community-posts','community-post','community-essay-write','community-free-write','community-promo-edit','community-greetings','community-reports','tour-register','tour-detail','tour-list','tour-search','tour-mine','tour-applications','tour-propose','tour-proposals','tour-proposal','tour-requests','tour-reports','tour-banners','tour-banner-edit','game-freediving','game-records'].includes(segments[0] as string)) {
       router.replace('/(tabs)');
     }
 
@@ -164,6 +164,7 @@ function RootLayoutNav() {
           <Stack.Screen name="tour-banner-edit" options={{ gestureEnabled: true }} />
           {/* 게임: 왼쪽 아래 조이스틱과 겹치지 않게 밀어서 뒤로가기 없음, 화면 전체를 씀 */}
           <Stack.Screen name="game-freediving" options={{ animation: 'fade', contentStyle: { backgroundColor: '#062A4D' } }} />
+          <Stack.Screen name="game-records" options={{ gestureEnabled: true }} />
         </Stack>
       </StripTabBarHost>
     </View>
