@@ -22,9 +22,9 @@ const HOLD_BASE = 0.015;
 const HOLD_STRENGTH = 0.08;
 // 귀 압력이 주변보다 높으면(음압) 이관으로 조금씩 빠짐 (올라올 때 · 너무 세게 했을 때)
 const VENT = 0.5;
-// 12 m 근처에서 중성 부력: 위는 뜨고 아래는 가라앉음
-const NEUTRAL_LUNG = 1 / 2.2;
-const BUOYANCY = 1.2;
+// 10 m가 중성 부력: 위는 양성(가만있어도 떠오름), 아래는 음성(가라앉아서 피닝해야 올라옴)
+const NEUTRAL_LUNG = 1 / 2;
+const BUOYANCY = 1.4;
 const SURFACE_SPEED = 1.1;
 const NECK_MAX = 1.0;
 
@@ -264,7 +264,8 @@ export type Score = {
   zoneRate: number;
 };
 
-// 0 ~ 100점: 수심 40 + 남은 공기 20 + 이퀄 횟수 15 + 두 번째 선 유지 25
+// 0 ~ 100점: 수심 40 + 폐 공기 사용 20 + 이퀄 횟수 15 + 두 번째 선 유지 25
+// 폐 공기는 남김없이 다 쓰는 게 잘한 것 (아껴 써서 끝까지 쓰고 깊이 내려가기) — 쓴 만큼 점수
 // 수심 말고는 20 m 미만이면 깊이만큼만 쳐 줌 (얕게 다녀와서 점수 받기 방지). WASTED는 0점
 export function scoreOf(s: DiveState): Score {
   const d = s.maxDepth;
@@ -273,7 +274,7 @@ export function scoreOf(s: DiveState): Score {
   if (s.phase === 'wasted') return { total: 0, depthPts: 0, airPts: 0, eqPts: 0, zonePts: 0, idealEq, zoneRate };
   const f = Math.min(1, d / 20);
   const depthPts = 40 * Math.min(1, d / TARGET_DEPTH);
-  const airPts = 20 * s.air * f;
+  const airPts = 20 * (1 - s.air) * f;
   const eqPts = 15 * Math.min(1, idealEq / Math.max(1, s.eqCount)) * f;
   const zonePts = 25 * zoneRate * f;
   return { total: clamp(Math.round(depthPts + airPts + eqPts + zonePts), 0, 100), depthPts, airPts, eqPts, zonePts, idealEq, zoneRate };

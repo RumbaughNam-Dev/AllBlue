@@ -57,7 +57,7 @@ export default function GameRecordsScreen() {
           <Text style={styles.summaryValue}>{summary?.total ?? 0}<Text style={styles.summaryUnit}>판</Text></Text>
         </View>
       </View>
-      {game === 'freediving' ? <Text style={styles.legend}>점수 = 수심 40 + 남은 폐 공기 20 + 이퀄 횟수 15 + 두 번째 선 유지 25</Text> : null}
+      {game === 'freediving' ? <Text style={styles.legend}>점수 = 수심 40 + 폐 공기 사용 20 + 이퀄 횟수 15 + 두 번째 선 유지 25</Text> : null}
       {list.more === 'newer' ? spinner : null}
     </View>
   );
@@ -114,7 +114,7 @@ function RecordCard({ record }: { record: GameRecord }) {
   const wasted = !!d?.wasted;
   const cells = d?.points ? [
     { label: '최대 수심', value: `${d.maxDepth.toFixed(1)}m`, pts: d.points.depth, max: 40 },
-    { label: '남은 공기', value: `${Math.round(d.air * 100)}%`, pts: d.points.air, max: 20 },
+    { label: '공기 사용', value: `${Math.round((1 - d.air) * 100)}%`, pts: d.points.air, max: 20 },
     { label: '이퀄', value: `${d.eqCount}회`, pts: d.points.eq, max: 15 },
     { label: '선 유지', value: `${Math.round(d.zoneRate * 100)}%`, pts: d.points.zone, max: 25 },
   ] : [];

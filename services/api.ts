@@ -288,12 +288,12 @@ export type DebriefingItem = {
 export type FreedivingRecordDetails = {
   wasted: boolean;
   maxDepth: number; // m
-  air: number; // 남은 폐 공기 0 ~ 1
+  air: number; // 남은 폐 공기 0 ~ 1 (점수는 쓴 만큼: 1 - air)
   eqCount: number;
   idealEq: number;
   zoneRate: number; // 두 번째 선 유지 0 ~ 1
   diveTime: number; // 초
-  points: { depth: number; air: number; eq: number; zone: number }; // 40 · 20 · 15 · 25점 만점
+  points: { depth: number; air: number; eq: number; zone: number }; // 수심 40 · 공기 사용 20 · 이퀄 15 · 선 유지 25점 만점
 };
 export type GameRecord = { id: number; game: string; score: number; details: FreedivingRecordDetails; playedAt: string };
 export type GameRecordSaved = { record: GameRecord; best: number; isBest: boolean; count: number };

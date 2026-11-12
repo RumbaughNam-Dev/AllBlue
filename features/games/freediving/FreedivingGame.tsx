@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, GestureResponderEvent, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Animated, GestureResponderEvent, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import type { ViewInstance } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -239,8 +239,10 @@ export default function FreedivingGame() {
 }
 
 function Intro({ onStart, onRecords, onExit }: { onStart: () => void; onRecords: () => void; onExit: () => void }) {
+  // 작은 화면에서 안내가 넘치면 스크롤
   return (
-    <View style={[StyleSheet.absoluteFill, styles.overlay]}>
+    <View style={[StyleSheet.absoluteFill, styles.overlay, { paddingHorizontal: 0 }]}>
+      <ScrollView contentContainerStyle={styles.introScroll} showsVerticalScrollIndicator={false}>
       <View style={styles.card}>
         <Text style={styles.title}>프리다이빙</Text>
         <Text style={styles.lead}>압력평형과 릴렉스가 전부예요.{'\n'}수면 아래로 들어가면 시작, 다시 올라오면 끝이에요.</Text>
@@ -248,13 +250,15 @@ function Intro({ onStart, onRecords, onExit }: { onStart: () => void; onRecords:
           <Step n={1} text="오른쪽 이퀄 버튼을 누르고 있으면 귀 압력이 올라가요. 수면에서 미리 누르면 프리 이퀄 (바늘이 왼쪽으로)" />
           <Step n={2} text="왼쪽 조이스틱으로 옆으로 헤엄치다가 아래로 당기면 덕다이브. 물속에서는 머리가 향할 방향, 멀리 밀수록 세게 차요" />
           <Step n={3} text="내려가면 바늘이 오른쪽으로 가요. 두 번째 선(느낌) 근처를 지키세요. 오른쪽 끝까지 가면 고막이 버티지 못해요" />
-          <Step n={4} text="이퀄은 누를 때마다, 세게 할수록 폐 공기를 많이 써요. 공기가 없으면 이퀄이 안 돼요" />
+          <Step n={4} text="이퀄은 누를 때마다, 세게 할수록 폐 공기를 많이 써요. 공기가 없으면 이퀄이 안 돼요. 아껴 쓰면서 남김없이 다 쓰고 깊이 갈수록 점수가 높아요" />
+          <Step n={5} text="10m 위에서는 가만있어도 떠오르고, 10m 아래에서는 가라앉아요. 깊은 곳에서는 조이스틱을 위로 밀어 피닝해야 올라와요" />
         </View>
         <Pressable accessibilityRole="button" onPress={onStart} style={({ pressed }) => [styles.primary, pressed && { opacity: 0.7 }]}>
           <Text style={styles.primaryText}>시작</Text>
         </Pressable>
         <SubButtons onRecords={onRecords} onExit={onExit} />
       </View>
+      </ScrollView>
     </View>
   );
 }
@@ -304,7 +308,7 @@ function Result({ state, saved, bottom, onRetry, onSave, onRecords, onExit }: {
   const dead = state.phase === 'wasted';
   const rows: [string, string, number, number][] = [
     ['최대 수심', `${state.maxDepth.toFixed(1)}m`, sc.depthPts, 40],
-    ['남은 폐 공기', `${Math.round(state.air * 100)}%`, sc.airPts, 20],
+    ['폐 공기 사용', `${Math.round((1 - state.air) * 100)}%`, sc.airPts, 20],
     ['이퀄 횟수', `${state.eqCount}회 (알맞게 ${sc.idealEq}회)`, sc.eqPts, 15],
     ['두 번째 선 유지', `${Math.round(sc.zoneRate * 100)}%`, sc.zonePts, 25],
   ];
@@ -360,6 +364,7 @@ const styles = StyleSheet.create({
   secondary: { height: 46, marginTop: 8, borderRadius: 14, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)' },
   secondaryText: { fontFamily: 'SUIT-SemiBold', fontSize: 15, color: '#FFFFFF' },
   subRow: { flexDirection: 'row', gap: 8 },
+  introScroll: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 20, paddingVertical: 24 },
   subButton: { flex: 1 },
   savedText: { fontFamily: 'SUIT-SemiBold', fontSize: 13, color: 'rgba(255,255,255,0.75)', textAlign: 'center', marginTop: 2 },
   savedBest: { color: '#00E5FF' },
