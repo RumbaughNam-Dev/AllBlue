@@ -2,8 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // 게임 아이콘의 NEW 배지: 게임 고르기 팝업을 한 번 열면 사라짐 (이 기기 기준).
-// 게임이 새로 늘면 LATEST_GAME만 바꾸면 다시 보임
-export const LATEST_GAME = 'freediving';
+// 게임이 새로 늘면 LATEST_GAME만 바꾸면 다시 보임 (2026-11-12 A-Tap 추가로 'freediving' → 'atap')
+export const LATEST_GAME = 'atap';
 const KEY = 'games-new-seen';
 
 export function useNewGameBadge() {
