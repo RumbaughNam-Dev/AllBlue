@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { BAL_DEAD, BAL_FEEL, BAL_MIN, balanceOf, clamp, closeness, DiveState, FIN_ZONE } from './sim';
+import { BAL_DEAD, BAL_FEEL, balanceOf, clamp, closeness, DiveState, FIN_ZONE } from './sim';
 
 // 프리다이빙 게임 한 장면 그리기 (바다 · 줄 · 다이버 · 위쪽 막대 · 아래 조작 버튼 모양).
 // 게임 화면과 게임 고르기 팝업의 미리보기가 같이 씀. 터치는 받지 않음 (게임 화면이 따로 받음)
@@ -194,13 +194,13 @@ const fmtTime = (t: number) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60
 function Hud({ s, width, insets }: { s: DiveState; width: number; insets: Insets }) {
   const barW = width - 32 - insets.left - insets.right;
   const bal = balanceOf(s);
-  const pos = (b: number) => ((clamp(b, BAL_MIN, BAL_DEAD) - BAL_MIN) / (BAL_DEAD - BAL_MIN)) * barW;
-  const zero = pos(0);
+  // 막대는 평형(왼쪽 끝)에서 시작해 통증 쪽으로만 감 (음압 없음)
+  const pos = (b: number) => (clamp(b, 0, BAL_DEAD) / BAL_DEAD) * barW;
   const feel = pos(BAL_FEEL);
   const pain = bal > BAL_FEEL;
   const needleColor = pain ? (bal > BAL_FEEL + 0.25 ? '#FF3B30' : '#FF9F0A') : closeness(bal) > 0.7 ? '#00E5FF' : '#FFFFFF';
   const air = Math.round(s.air * 100);
-  const airColor = s.air <= 0 ? '#FF3B30' : s.air < 0.2 ? '#FF9F0A' : '#00E5FF';
+  const airColor = s.air < 0.1 ? '#FF3B30' : s.air < 0.2 ? '#FF9F0A' : '#00E5FF';
   const painW = barW - feel;
   return (
     <View pointerEvents="none" style={[styles.hud, { top: insets.top + 6, left: 16 + insets.left, right: 16 + insets.right }]}>
@@ -218,7 +218,7 @@ function Hud({ s, width, insets }: { s: DiveState; width: number; insets: Insets
 
       <View style={styles.labelRow}>
         <Text style={styles.label}>폐 공기</Text>
-        <Text style={[styles.label, { color: airColor }]}>{s.air <= 0 ? '없음 · 이퀄 안 됨' : `${air}%`}</Text>
+        <Text style={[styles.label, { color: airColor }]}>{s.phase === 'dive' && s.air < 0.2 ? `${air}% · 블랙아웃 주의` : `${air}%`}</Text>
       </View>
       <View style={[styles.airBar, { width: barW }]}>
         <View style={{ width: barW * s.air, height: '100%', borderRadius: 4, backgroundColor: airColor }} />
@@ -230,17 +230,16 @@ function Hud({ s, width, insets }: { s: DiveState; width: number; insets: Insets
       </View>
       <View style={{ width: barW, height: 22, justifyContent: 'center' }}>
         <View style={[styles.balBar, { width: barW }]}>
-          <View style={{ width: zero, backgroundColor: 'rgba(110,170,255,0.35)' }} />
-          <View style={{ width: feel - zero, backgroundColor: 'rgba(0,229,255,0.32)' }} />
+          <View style={{ width: feel, backgroundColor: 'rgba(0,229,255,0.32)' }} />
           <View style={{ width: painW, backgroundImage: 'linear-gradient(to right, rgba(255,170,60,0.55), rgba(255,40,40,0.9))' }} />
         </View>
-        <View style={[styles.markLine, { left: zero - 1 }]} />
+        {/* 첫 번째 선 = 평형 (막대가 시작하는 곳), 두 번째 선 = 느낌 */}
+        <View style={[styles.markLine, { left: 0 }]} />
         <View style={[styles.markLine, { left: feel - 1 }]} />
         <View style={[styles.needle, { left: pos(bal) - 3, backgroundColor: needleColor }]} />
       </View>
       <View style={{ width: barW, height: 14 }}>
-        <Text style={[styles.caption, { left: 0, width: zero, textAlign: 'center' }]}>음압</Text>
-        <Text style={[styles.caption, { left: zero - 20, width: 40, textAlign: 'center' }]}>평형</Text>
+        <Text style={[styles.caption, { left: 0, width: 40, textAlign: 'left' }]}>평형</Text>
         <Text style={[styles.caption, { left: feel - 20, width: 40, textAlign: 'center', color: '#00E5FF' }]}>느낌</Text>
         <Text style={[styles.caption, { left: feel + 20, width: painW - 20, textAlign: 'center' }]}>통증</Text>
       </View>
@@ -255,7 +254,6 @@ function Controls({ s, width, height, insets, stick }: { s: DiveState; width: nu
   const knobR = st.r * 0.3;
   const kx = st.cx + (stick?.x ?? 0) * st.r;
   const ky = st.cy + (stick?.y ?? 0) * st.r;
-  const noAir = s.air <= 0;
   const fill = s.eqHeld ? s.eqStrength : 0;
   // 안쪽 원까지는 방향만, 손잡이가 원 밖으로 나가면 피닝 (sim FIN_ZONE)
   const ring = FIN_ZONE * st.r;
@@ -272,10 +270,11 @@ function Controls({ s, width, height, insets, stick }: { s: DiveState; width: nu
       }]} />
       <Text style={[styles.controlLabel, { left: st.cx - 40, top: st.cy + st.r + 4 }, finning && { color: '#00E5FF' }]}>{stickLabel}</Text>
 
-      <View style={[styles.pad, { left: pad.x, top: pad.y, width: pad.w, height: pad.h, opacity: noAir ? 0.45 : 1 }]}>
+      {/* 수면에서는 숨을 쉬는 중이라 이퀄할 게 없음 (흐리게) */}
+      <View style={[styles.pad, { left: pad.x, top: pad.y, width: pad.w, height: pad.h, opacity: s.phase === 'surface' ? 0.6 : 1 }]}>
         <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: pad.h * fill, backgroundColor: s.eqActive ? 'rgba(0,229,255,0.5)' : 'rgba(255,255,255,0.2)' }} />
         <Text style={styles.padHint}>세게</Text>
-        <Text style={styles.padText}>{noAir ? '공기\n없음' : '이퀄'}</Text>
+        <Text style={styles.padText}>이퀄</Text>
         <Text style={styles.padHint}>약하게</Text>
       </View>
       <Text style={[styles.controlLabel, { left: pad.x + pad.w / 2 - 40, top: pad.y + pad.h + 4 }]}>{s.eqHeld ? `세기 ${Math.round(s.eqStrength * 100)}%` : '누르고 있기'}</Text>
@@ -288,9 +287,16 @@ export default function FreedivingView({ state, cam, width, height, insets, stic
 }) {
   const bal = balanceOf(state);
   const pain = state.phase === 'dive' && bal > BAL_FEEL ? clamp((bal - BAL_FEEL) / (BAL_DEAD - BAL_FEEL), 0, 1) : 0;
+  // 폐 공기가 25%보다 적으면 눈앞이 점점 어두워짐 (블랙아웃이 가까움)
+  const dark = state.phase === 'dive' ? clamp((0.25 - state.air) / 0.25, 0, 1) : 0;
   return (
     <View style={{ width, height, overflow: 'hidden' }}>
       <Scene s={state} cam={cam} width={width} height={height} />
+      {dark > 0 ? (
+        <View pointerEvents="none" style={[StyleSheet.absoluteFill, {
+          boxShadow: `inset 0 0 ${Math.round(60 + 100 * dark)}px ${Math.round(10 + 70 * dark)}px rgba(0,0,0,${(0.3 + 0.55 * dark).toFixed(3)})`,
+        }]} />
+      ) : null}
       {/* 귀가 아플수록 화면 가장자리가 붉게, 끝에 가까울수록 빨리 맥박침 */}
       {pain > 0 ? (
         <View pointerEvents="none" style={[StyleSheet.absoluteFill, {

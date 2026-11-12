@@ -112,6 +112,8 @@ export default function GameRecordsScreen() {
 function RecordCard({ record }: { record: GameRecord }) {
   const d = record.details;
   const wasted = !!d?.wasted;
+  const blackout = !!d?.blackout; // 2026-11-12부터 (예전 기록엔 없음)
+  const failed = wasted || blackout;
   const cells = d?.points ? [
     { label: '최대 수심', value: `${d.maxDepth.toFixed(1)}m`, pts: d.points.depth, max: 40 },
     { label: '공기 사용', value: `${Math.round((1 - d.air) * 100)}%`, pts: d.points.air, max: 20 },
@@ -124,13 +126,18 @@ function RecordCard({ record }: { record: GameRecord }) {
         <View style={styles.cardTopText}>
           <Text style={styles.when}>{playedLabel(record.playedAt)}</Text>
           {d?.points ? (
-            <Text style={[styles.meta, wasted && { color: '#FFB4AC' }]} numberOfLines={1}>
-              {wasted ? `${d.maxDepth.toFixed(1)}m에서 고막이 버티지 못했어요` : `다이빙 ${diveTime(d.diveTime)} · 알맞은 이퀄 ${d.idealEq}회`}
+            <Text style={[styles.meta, failed && { color: '#FFB4AC' }]} numberOfLines={1}>
+              {wasted
+                ? `${d.maxDepth.toFixed(1)}m에서 고막이 버티지 못했어요`
+                : blackout
+                  ? `${d.maxDepth.toFixed(1)}m까지 내려갔다가 블랙아웃됐어요`
+                  : `다이빙 ${diveTime(d.diveTime)} · 알맞은 이퀄 ${d.idealEq}회`}
             </Text>
           ) : null}
         </View>
         {wasted ? <View style={styles.wastedTag}><Text style={styles.wastedTagText}>WASTED</Text></View> : null}
-        <Text style={[styles.score, wasted && { color: '#FF5A4E' }]}>{record.score}<Text style={styles.scoreUnit}>점</Text></Text>
+        {blackout ? <View style={styles.blackoutTag}><Text style={styles.wastedTagText}>BLACKOUT</Text></View> : null}
+        <Text style={[styles.score, failed && { color: '#FF5A4E' }]}>{record.score}<Text style={styles.scoreUnit}>점</Text></Text>
       </View>
       {cells.length ? (
         <View style={styles.cells}>
@@ -178,6 +185,7 @@ const styles = StyleSheet.create({
   meta: { fontFamily: 'SUIT-Regular', fontSize: 12, color: 'rgba(255,255,255,0.5)' },
   wastedTag: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, backgroundColor: 'rgba(224,38,59,0.85)' },
   wastedTagText: { fontFamily: 'SUIT-Bold', fontSize: 10, color: '#FFFFFF', letterSpacing: 0.5 },
+  blackoutTag: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, backgroundColor: 'rgba(0,0,0,0.8)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.35)' },
   score: { fontFamily: 'SUIT-Bold', fontSize: 26, color: '#00E5FF' },
   scoreUnit: { fontFamily: 'SUIT-SemiBold', fontSize: 13, color: 'rgba(255,255,255,0.7)' },
   cells: { flexDirection: 'row', gap: 6 },

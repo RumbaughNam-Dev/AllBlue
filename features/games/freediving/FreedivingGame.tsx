@@ -10,8 +10,8 @@ import { api } from '@/services/api';
 import FreedivingView, { Camera, controlsLayout, StickView } from './FreedivingView';
 import { BAL_DEAD, BAL_FEEL, balanceOf, clamp, createGame, DiveState, GameInput, recordOf, scoreOf, stepGame, TARGET_DEPTH } from './sim';
 
-// 프리다이빙 게임 화면: 화면 갱신 · 두 손가락 터치(왼쪽 방향 · 오른쪽 이퀄) · 시작 안내 · WASTED · 점수 · 기록 저장
-type Ended = 'wasted' | 'done' | null;
+// 프리다이빙 게임 화면: 화면 갱신 · 두 손가락 터치(왼쪽 방향 · 오른쪽 이퀄) · 시작 안내 · WASTED · 블랙아웃 · 점수 · 기록 저장
+type Ended = 'wasted' | 'blackout' | 'done' | null;
 type TouchKind = 'stick' | 'eq';
 // 판이 끝나면 서버에 저장 (내 기록 화면에서 시각 · 점수 · 세부 점수를 봄)
 type Saved = { status: 'saving' } | { status: 'saved'; best: number; isBest: boolean; count: number } | { status: 'error' } | null;
@@ -31,7 +31,7 @@ export default function FreedivingGame() {
   const [showResult, setShowResult] = useState(false);
   const [saved, setSaved] = useState<Saved>(null);
   const play = useRef(0); // 다시 하기마다 늘어남 — 저장 응답이 늦게 와도 지난 판 결과를 새 판에 붙이지 않게
-  const wasted = useRef(new Animated.Value(0)).current;
+  const fail = useRef(new Animated.Value(0)).current; // WASTED · 블랙아웃 글자 연출
   const openRecords = () => router.push({ pathname: '/game-records', params: { game: GAME } });
 
   // 터치: 화면 하나가 모든 손가락을 받고, 처음 닿은 쪽(왼쪽 아래 · 오른쪽 아래)으로 나눔
@@ -103,7 +103,7 @@ export default function FreedivingGame() {
     play.current += 1;
     sim.current = createGame();
     cam.current = { x: sim.current.x, y: 0 };
-    wasted.setValue(0);
+    fail.setValue(0);
     setShowResult(false);
     setSaved(null);
     setEnded(null);
@@ -135,7 +135,7 @@ export default function FreedivingGame() {
         }
       }
       setFrame(f => f + 1);
-      if (s.phase === 'wasted' || s.phase === 'done') {
+      if (s.phase === 'wasted' || s.phase === 'blackout' || s.phase === 'done') {
         releaseAll();
         setEnded(s.phase);
         return;
@@ -146,7 +146,7 @@ export default function FreedivingGame() {
     return () => cancelAnimationFrame(raf);
   }, [started, ended]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // 한 판 기록 저장 (WASTED 0점도 남김). 실패하면 점수 창에서 다시 저장
+  // 한 판 기록 저장 (WASTED · 블랙아웃 0점도 남김). 실패하면 점수 창에서 다시 저장
   const save = async () => {
     const id = play.current;
     setSaved({ status: 'saving' });
@@ -158,20 +158,22 @@ export default function FreedivingGame() {
     }
   };
 
-  // 끝났을 때: 기록 저장, WASTED 연출 뒤 점수, 수면에 올라오면 바로 점수
+  // 끝났을 때: 기록 저장, WASTED · 블랙아웃 연출 뒤 점수, 수면에 올라오면 바로 점수
   useEffect(() => {
     if (ended) void save();
-    if (ended === 'wasted') {
+    if (ended === 'wasted' || ended === 'blackout') {
+      // 블랙아웃은 눈앞이 천천히 까매지게
+      const slow = ended === 'blackout';
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Animated.timing(wasted, { toValue: 1, duration: 900, useNativeDriver: true }).start();
-      const timer = setTimeout(() => setShowResult(true), 1600);
+      Animated.timing(fail, { toValue: 1, duration: slow ? 1400 : 900, useNativeDriver: true }).start();
+      const timer = setTimeout(() => setShowResult(true), slow ? 2000 : 1600);
       return () => clearTimeout(timer);
     }
     if (ended === 'done') {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setShowResult(true);
     }
-  }, [ended, wasted]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [ended, fail]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const s = sim.current;
   const playing = started && !ended;
@@ -223,10 +225,13 @@ export default function FreedivingGame() {
 
       {!started ? <Intro onStart={() => setStarted(true)} onRecords={openRecords} onExit={() => router.back()} /> : null}
 
-      {ended === 'wasted' ? (
-        <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.wastedDim, { opacity: wasted, paddingTop: box.h * 0.22 }]}>
-          <Animated.Text style={[styles.wastedText, { transform: [{ scale: wasted.interpolate({ inputRange: [0, 1], outputRange: [1.6, 1] }) }] }]}>
-            WASTED
+      {ended === 'wasted' || ended === 'blackout' ? (
+        <Animated.View
+          pointerEvents="none"
+          style={[StyleSheet.absoluteFill, ended === 'wasted' ? styles.wastedDim : styles.blackoutDim, { opacity: fail, paddingTop: box.h * 0.22 }]}
+        >
+          <Animated.Text style={[ended === 'wasted' ? styles.wastedText : styles.blackoutText, { transform: [{ scale: fail.interpolate({ inputRange: [0, 1], outputRange: [1.6, 1] }) }] }]}>
+            {ended === 'wasted' ? 'WASTED' : 'BLACKOUT'}
           </Animated.Text>
         </Animated.View>
       ) : null}
@@ -247,11 +252,11 @@ function Intro({ onStart, onRecords, onExit }: { onStart: () => void; onRecords:
         <Text style={styles.title}>프리다이빙</Text>
         <Text style={styles.lead}>압력평형과 릴렉스가 전부예요.{'\n'}수면 아래로 들어가면 시작, 다시 올라오면 끝이에요.</Text>
         <View style={styles.steps}>
-          <Step n={1} text="오른쪽 이퀄 버튼을 누르고 있으면 귀 압력이 올라가요. 수면에서 미리 누르면 프리 이퀄 (바늘이 왼쪽으로)" />
+          <Step n={1} text="물속에서 오른쪽 이퀄 버튼을 누르고 있으면 귀 압력이 올라가 바늘이 평형(왼쪽 끝) 쪽으로 돌아와요" />
           <Step n={2} text="왼쪽 조이스틱으로 옆으로 헤엄치다가 아래로 당기면 덕다이브. 물속에서는 조이스틱 방향이 머리 방향이에요. 점선 원 안은 방향만 바꾸고, 원 밖으로 밀면 피닝 (멀리 밀수록 세게)" />
           <Step n={3} text="내려가면 바늘이 오른쪽으로 가요. 두 번째 선(느낌) 근처를 지키세요. 오른쪽 끝까지 가면 고막이 버티지 못해요" />
-          <Step n={4} text="이퀄은 누를 때마다, 세게 할수록 폐 공기를 많이 써요. 피닝도 5번에 1%씩 써요. 공기가 없으면 이퀄이 안 돼요. 아껴 쓰면서 남김없이 다 쓰고 깊이 갈수록 점수가 높아요" />
-          <Step n={5} text="10m 위에서는 가만있어도 떠오르고, 10m 아래에서는 가라앉아요. 10m 아래에서 머리를 아래로 두고 손을 떼면 프리폴 (공기를 안 써요). 올라올 땐 위로 원 밖까지 밀어 피닝" />
+          <Step n={4} text="폐 공기는 물속에 있는 동안 계속 줄어요 (올라올 때도). 이퀄은 누를 때마다, 세게 할수록 더 쓰고 피닝은 5번에 1%씩 더 써요. 다 떨어지면 블랙아웃이에요. 아껴 쓰면서 남김없이 다 쓰고 깊이 갈수록 점수가 높아요" />
+          <Step n={5} text="10m 위에서는 가만있어도 떠오르고, 10m 아래에서는 가라앉아요. 10m 아래에서 머리를 아래로 두고 손을 떼면 프리폴 (힘을 빼서 공기가 천천히 줄어요). 올라올 땐 위로 원 밖까지 밀어 피닝" />
         </View>
         <Pressable accessibilityRole="button" onPress={onStart} style={({ pressed }) => [styles.primary, pressed && { opacity: 0.7 }]}>
           <Text style={styles.primaryText}>시작</Text>
@@ -305,22 +310,26 @@ function Result({ state, saved, bottom, onRetry, onSave, onRecords, onExit }: {
   state: DiveState; saved: Saved; bottom: number; onRetry: () => void; onSave: () => void; onRecords: () => void; onExit: () => void;
 }) {
   const sc = scoreOf(state);
-  const dead = state.phase === 'wasted';
+  const wastedEnd = state.phase === 'wasted';
+  const blackoutEnd = state.phase === 'blackout';
+  const dead = wastedEnd || blackoutEnd;
   const rows: [string, string, number, number][] = [
     ['최대 수심', `${state.maxDepth.toFixed(1)}m`, sc.depthPts, 40],
     ['폐 공기 사용', `${Math.round((1 - state.air) * 100)}%`, sc.airPts, 20],
     ['이퀄 횟수', `${state.eqCount}회 (알맞게 ${sc.idealEq}회)`, sc.eqPts, 15],
     ['두 번째 선 유지', `${Math.round(sc.zoneRate * 100)}%`, sc.zonePts, 25],
   ];
-  // WASTED는 글자가 위에 남아 있게 결과 창을 아래쪽에 (이미 화면이 어두워져 있어 덮개 없이)
+  // WASTED · 블랙아웃은 글자가 위에 남아 있게 결과 창을 아래쪽에 (이미 화면이 어두워져 있어 덮개 없이)
   return (
     <View style={[StyleSheet.absoluteFill, styles.overlay, dead && { justifyContent: 'flex-end', paddingBottom: bottom + 24, backgroundColor: 'transparent' }]}>
       <View style={styles.card}>
-        <Text style={styles.resultLabel}>{dead ? '고막이 버티지 못했어요' : '수면으로 돌아왔어요'}</Text>
+        <Text style={styles.resultLabel}>{wastedEnd ? '고막이 버티지 못했어요' : blackoutEnd ? '폐 공기가 다 떨어졌어요' : '수면으로 돌아왔어요'}</Text>
         <Text style={[styles.score, dead && { color: '#FF5A4E' }]}>{sc.total}<Text style={styles.scoreUnit}>점</Text></Text>
         <SavedLine saved={saved} onSave={onSave} />
-        {dead ? (
+        {wastedEnd ? (
           <Text style={styles.lead}>압력 바늘이 오른쪽 끝까지 갔어요.{'\n'}두 번째 선을 넘기 전에 이퀄해 주세요.</Text>
+        ) : blackoutEnd ? (
+          <Text style={styles.lead}>{state.maxDepth.toFixed(1)}m까지 내려갔다가 블랙아웃됐어요.{'\n'}공기가 남아 있을 때 돌아서 올라오세요.</Text>
         ) : (
           <View style={styles.rows}>
             {rows.map(([label, value, pts, max]) => (
@@ -373,6 +382,12 @@ const styles = StyleSheet.create({
   wastedText: {
     fontFamily: 'SUIT-Bold', fontSize: 64, letterSpacing: 4, color: '#E0263B',
     textShadowColor: 'rgba(0,0,0,0.9)', textShadowOffset: { width: 0, height: 3 }, textShadowRadius: 6,
+  },
+  // 블랙아웃: 눈앞이 까매지고 흐린 흰 글자
+  blackoutDim: { backgroundColor: 'rgba(0,0,0,0.9)', alignItems: 'center' },
+  blackoutText: {
+    fontFamily: 'SUIT-Bold', fontSize: 50, letterSpacing: 4, color: 'rgba(235,240,247,0.92)',
+    textShadowColor: 'rgba(120,160,255,0.35)', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 12,
   },
   resultLabel: { fontFamily: 'SUIT-SemiBold', fontSize: 15, color: 'rgba(255,255,255,0.8)', textAlign: 'center' },
   score: { fontFamily: 'SUIT-Bold', fontSize: 56, color: '#00E5FF', textAlign: 'center', marginTop: 4 },

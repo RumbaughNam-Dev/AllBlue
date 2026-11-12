@@ -2,13 +2,12 @@
 // 단위: m, 초, 기압(atm), 각도는 라디안. 화면 좌표와 같게 x는 오른쪽, 수심(y)은 아래가 +.
 // 각도 0 = 오른쪽, +π/2 = 아래(깊은 쪽).
 //
-// 압력평형(balance) = 주변 수압 − 귀(중이) 압력.
-//   BAL_MIN ~ 0     : 음압 (프리 이퀄로 귀 압력이 더 높음) — 막대의 첫 번째 선 왼쪽
+// 압력평형(balance) = 주변 수압 − 귀(중이) 압력. 막대는 평형(0, 왼쪽 끝의 첫 번째 선)에서 시작해 통증 쪽으로만 감
+// (음압 없음 — 2026-11-12 사용자가 전해 준 피드백: 수심이 깊어질수록 중이 압력이 통증 쪽으로 가는 것만 보여 주면 됨)
 //   0 ~ BAL_FEEL    : 내려가면서 수압이 오르면 이쪽으로 — 첫 번째와 두 번째 선 사이
 //   BAL_FEEL ~ DEAD : 귀에 통증 — 두 번째 선 오른쪽, 끝까지 가면 WASTED
 // 내려갈 때 두 번째 선(살짝 느낌이 오는 때) 근처를 지키는 게 핵심.
 
-export const BAL_MIN = -0.3;
 export const BAL_FEEL = 0.3;
 export const BAL_DEAD = 0.75;
 export const MAX_DEPTH = 120;
@@ -16,12 +15,14 @@ export const TARGET_DEPTH = 40; // 수심 점수 만점 (공기를 아껴 써야
 
 // 이퀄라이징: 누르고 있는 동안 귀 압력이 오름 (세기 1이면 초당 0.7기압)
 const EQ_RATE = 0.7;
-// 공기: 한 번 누를 때마다 + 누르고 있는 동안 (세게 할수록 제곱으로 더 듦), 깊을수록 폐가 줄어 더 듦
-const PRESS_COST = 0.012;
-const HOLD_BASE = 0.015;
-const HOLD_STRENGTH = 0.08;
-// 귀 압력이 주변보다 높으면(음압) 이관으로 조금씩 빠짐 (올라올 때 · 너무 세게 했을 때)
-const VENT = 0.5;
+// 폐 공기 (2026-11-12 사용자가 전해 준 피드백): 물속에 있는 동안 계속 줄고(숨 참는 동안, 올라올 때도), 이퀄 · 피닝을 하면 더 줆. 0이 되면 블랙아웃
+// 프리폴처럼 힘을 빼고 있으면 덜 줆 (프리폴이 피닝보다 느려도 손해가 아니게)
+const BREATH = 0.004; // 초당 0.4%
+const BREATH_FF = 0.0015; // 프리폴 중 초당 0.15%
+// 이퀄 공기: 한 번 누를 때마다 + 누르고 있는 동안 (세게 할수록 제곱으로 더 듦), 깊을수록 폐가 줄어 더 듦
+const PRESS_COST = 0.006;
+const HOLD_BASE = 0.008;
+const HOLD_STRENGTH = 0.04;
 // 10 m가 중성 부력: 위는 양성(가만있어도 떠오름), 아래는 음성(가라앉아서 피닝해야 올라옴)
 export const NEUTRAL_DEPTH = 10;
 const NEUTRAL_LUNG = 1 / (1 + NEUTRAL_DEPTH / 10);
@@ -35,7 +36,8 @@ const ASCENT_BOOST = 1.15;
 const SURFACE_SPEED = 1.1;
 const NECK_MAX = 1.0;
 
-export type Phase = 'surface' | 'dive' | 'wasted' | 'done';
+// wasted: 압력 바늘이 오른쪽 끝(고막) · blackout: 물속에서 폐 공기가 다 떨어짐 — 둘 다 0점
+export type Phase = 'surface' | 'dive' | 'wasted' | 'blackout' | 'done';
 
 // jx · jy: 왼쪽 조이스틱 (-1 ~ 1, y는 아래가 +). eq: 오른쪽 이퀄 버튼을 누르고 있음, strength: 누른 위치의 세기 (0 ~ 1)
 export type GameInput = { jx: number; jy: number; eq: boolean; strength: number };
@@ -123,32 +125,34 @@ function tick(s: DiveState, input: GameInput, dt: number) {
   if (s.phase === 'surface') surface(s, input, dt);
   else dive(s, input, dt);
   if (s.phase === 'dive' && balanceOf(s) >= BAL_DEAD) s.phase = 'wasted';
+  else if (s.phase === 'dive' && s.air <= 0) s.phase = 'blackout';
 }
 
 function equalize(s: DiveState, input: GameInput, dt: number) {
+  const amb = ambientAt(s.depth);
+  s.eqStrength = clamp(input.strength, 0.1, 1);
+  // 수면: 숨을 쉬는 중이라 평형 그대로 — 눌러도 아무 일 없고 횟수 · 공기도 안 셈
+  if (s.phase !== 'dive') {
+    s.eqHeld = input.eq;
+    s.eqActive = false;
+    s.earP = amb;
+    return;
+  }
   const depthCost = 1 + Math.max(0, s.depth) / 40;
-  // 새로 누를 때마다 한 번 (공기가 없으면 누른 것도 안 셈)
+  // 새로 누를 때마다 한 번
   if (input.eq && !s.eqHeld && s.air > 0) {
     s.eqCount += 1;
     s.air = Math.max(0, s.air - PRESS_COST * depthCost);
   }
   s.eqHeld = input.eq;
-  s.eqStrength = clamp(input.strength, 0.1, 1);
   s.eqActive = input.eq && s.air > 0;
   if (s.eqActive) {
     const k = s.eqStrength;
     s.earP += EQ_RATE * k * dt;
     s.air = Math.max(0, s.air - (HOLD_BASE + HOLD_STRENGTH * k * k) * depthCost * dt);
   }
-  const amb = ambientAt(s.depth);
-  if (s.phase === 'surface') {
-    // 수면: 떼면 다시 완전한 평형(첫 번째 선)으로
-    if (!s.eqActive) s.earP = approach(s.earP, amb, 3, dt);
-  } else if (s.earP > amb && !s.eqActive) {
-    s.earP = approach(s.earP, amb, VENT, dt);
-  }
-  // 막대 왼쪽 끝보다 더는 못 밀어 넣음 (그 이상 누르는 건 공기만 씀)
-  s.earP = Math.min(s.earP, amb - BAL_MIN);
+  // 음압 없음: 귀 압력은 주변 수압보다 높아지지 않음 — 평형에서 더 누르는 건 공기만 쓰고, 올라오면 저절로 빠짐
+  s.earP = Math.min(s.earP, amb);
 }
 
 function surface(s: DiveState, input: GameInput, dt: number) {
@@ -203,6 +207,8 @@ function dive(s: DiveState, input: GameInput, dt: number) {
   const headingDown = Math.cos(wrap(s.phi - Math.PI / 2)) > 0.5;
   const freefall = !finning && d > NEUTRAL_DEPTH && headingDown;
   s.freefall = freefall && s.vy > 0.1;
+  // 숨 참는 동안 폐 공기가 계속 줆 (프리폴로 힘을 빼면 덜). 피닝 · 이퀄은 따로 더 씀
+  s.air = Math.max(0, s.air - (s.freefall ? BREATH_FF : BREATH) * dt);
   const streamline = steering || freefall; // 곧은 자세 (안 그러면 올드맨)
   const glide = streamline && !finning; // 차지 않고 미끄러지는 중 — 물의 저항이 적음
 
@@ -299,12 +305,12 @@ export type Score = {
 
 // 0 ~ 100점: 수심 40 + 폐 공기 사용 20 + 이퀄 횟수 15 + 두 번째 선 유지 25
 // 폐 공기는 남김없이 다 쓰는 게 잘한 것 (아껴 써서 끝까지 쓰고 깊이 내려가기) — 쓴 만큼 점수
-// 수심 말고는 20 m 미만이면 깊이만큼만 쳐 줌 (얕게 다녀와서 점수 받기 방지). WASTED는 0점
+// 수심 말고는 20 m 미만이면 깊이만큼만 쳐 줌 (얕게 다녀와서 점수 받기 방지). WASTED · 블랙아웃은 0점
 export function scoreOf(s: DiveState): Score {
   const d = s.maxDepth;
   const idealEq = Math.max(1, Math.round(d / 4));
   const zoneRate = s.zoneTime > 0 ? s.zoneSum / s.zoneTime : 0;
-  if (s.phase === 'wasted') return { total: 0, depthPts: 0, airPts: 0, eqPts: 0, zonePts: 0, idealEq, zoneRate };
+  if (s.phase === 'wasted' || s.phase === 'blackout') return { total: 0, depthPts: 0, airPts: 0, eqPts: 0, zonePts: 0, idealEq, zoneRate };
   const f = Math.min(1, d / 20);
   const depthPts = 40 * Math.min(1, d / TARGET_DEPTH);
   const airPts = 20 * (1 - s.air) * f;
@@ -320,6 +326,7 @@ export function recordOf(s: DiveState) {
     score: sc.total,
     details: {
       wasted: s.phase === 'wasted',
+      blackout: s.phase === 'blackout',
       maxDepth: clamp(s.maxDepth, 0, MAX_DEPTH),
       air: clamp(s.air, 0, 1),
       eqCount: s.eqCount,

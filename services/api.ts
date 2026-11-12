@@ -287,6 +287,7 @@ export type DebriefingItem = {
 // 미니 게임 기록: 사용자별 · 게임별 판마다 시각 · 총점 · 세부 점수 (서버 game-records.service.ts)
 export type FreedivingRecordDetails = {
   wasted: boolean;
+  blackout?: boolean; // 물속에서 폐 공기가 다 떨어짐 (2026-11-12부터, 예전 기록엔 없음)
   maxDepth: number; // m
   air: number; // 남은 폐 공기 0 ~ 1 (점수는 쓴 만큼: 1 - air)
   eqCount: number;
