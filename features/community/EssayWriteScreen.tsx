@@ -19,6 +19,7 @@ import { CenterMessage, CommunityHeader, LIMITS, TextHeaderButton, styles as ui 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const SIZES: { value: 'S' | 'M' | 'L'; label: string }[] = [{ value: 'S', label: '작게' }, { value: 'M', label: '보통' }, { value: 'L', label: '크게' }];
 type Selection = { start: number; end: number };
+type CaretInput = TextInputInstance & { setSelection?: (start: number, end: number) => void };
 
 // 사진 피커는 결과를 넘긴 뒤에 닫히기 시작해서 다 닫히기까지 0.6초쯤 걸림 (여유 있게 1초).
 // 그 전에는 업로드 팝업을 띄우거나 입력칸에 포커스를 주지 않음 (2026-11-13): iOS에서 피커가 닫히는 중에
@@ -54,7 +55,9 @@ export default function EssayWriteScreen() {
   blocksRef.current = blocks;
   // 한국어 키보드에서는 글자가 같으면 서식만 바뀐 건 입력칸이 무시함 (React Native가 한글 조합을 지키려고).
   // 그래서 서식을 바꾸면 보이지 않는 글자(폭 0 공백)를 잠깐 붙였다 떼어 입력칸이 서식을 새로 입히게 하고,
-  // 그 사이 풀린 선택 범위(블록)를 다시 잡아 줌
+  // 그 사이 풀린 선택 범위(블록)를 다시 잡아 줌.
+  // 사진을 넣고 빼며 JS가 문단 글을 바꿀 때도 씀 (2026-11-13): RN은 입력칸 높이를 바뀌기 전 글로 재서(한 박자 늦음)
+  // 두 번 더 그려야 높이가 맞고, iOS가 글 끝 기준으로 옮긴 커서도 제자리로 돌려놓아야 함
   const [nudge, setNudge] = useState<{ key: string; phase: 1 | 2; sel: Selection } | null>(null);
   const restyle = (key: string, keep: Selection) => setNudge({ key, phase: 1, sel: keep });
   useEffect(() => {
@@ -62,11 +65,11 @@ export default function EssayWriteScreen() {
     const timer = setTimeout(() => {
       if (nudge.phase === 1) { setNudge({ ...nudge, phase: 2 }); return; }
       setNudge(null);
-      const input = inputs.current.get(nudge.key) as (TextInputInstance & { setSelection?: (start: number, end: number) => void }) | undefined;
-      if (input?.isFocused?.()) {
-        input.setSelection?.(nudge.sel.start, nudge.sel.end);
-        setSelection(nudge.sel);
-      }
+      const input = inputs.current.get(nudge.key) as CaretInput | undefined;
+      // 쓰는 중이 아닌 문단도 커서를 맞춰 둠 (나중에 눌러 들어올 때 커서 자리를 알도록)
+      input?.setSelection?.(nudge.sel.start, nudge.sel.end);
+      carets.current.set(nudge.key, nudge.sel);
+      if (input?.isFocused?.()) setSelection(nudge.sel);
     }, 16);
     return () => clearTimeout(timer);
   }, [nudge]);
@@ -84,6 +87,17 @@ export default function EssayWriteScreen() {
   const submittingRef = useRef(false);
   const uploads = useUploadProgress();
   const inputs = useRef(new Map<string, TextInputInstance>());
+  // 문단마다 iOS 입력칸의 커서 자리. JS가 글을 넣거나 바꾸면 iOS는 커서를 (글 끝 기준으로) 옮기면서 알려 주지 않고,
+  // 그 뒤 같은 자리를 누르면 커서 이벤트도 안 옴 → 문단 끝을 눌러 쓰던 중에 사진을 넣으면 JS는 커서를 0으로 알아
+  // 문단 맨 앞에 넣었음 (2026-11-13). 커서 이벤트마다 기억하고, 모르는 문단은 iOS처럼 글 끝으로 봄
+  const carets = useRef(new Map<string, Selection>());
+  const caretOf = (key: string): Selection => {
+    const known = carets.current.get(key);
+    if (known) return known;
+    const block = blocksRef.current.find(b => b.key === key);
+    const end = block?.type === 'p' ? spansText(block.spans).length : 0;
+    return { start: end, end };
+  };
   const expectedCaret = useRef<number | null>(null);
   const styledWhileTyping = useRef(new Set<string>());
   // 키보드가 올라오면 툴바가 키보드 바로 위에 붙도록 아래 여백(홈 바 자리)을 뺌
@@ -138,11 +152,32 @@ export default function EssayWriteScreen() {
   };
 
   const onSelectionChange = (key: string, next: Selection) => {
+    carets.current.set(key, next);
     setFocusKey(key);
     setSelection(next);
     // 글자를 친 뒤의 커서 이동이 아니면, 커서만 두고 바꾼 서식을 풂
     if (next.start !== next.end || next.start !== expectedCaret.current) setPending(null);
     expectedCaret.current = null;
+  };
+
+  // 문단에 들어오면 그 문단의 커서 자리를 JS도 알게 함 (커서 이벤트가 안 올 수 있어서)
+  const onFocusParagraph = (key: string) => {
+    if (key !== focusKey) setPending(null);
+    setFocusKey(key);
+    setSelection(caretOf(key));
+  };
+
+  // 사진 빼기: 쓰던 문단이 사진 뒤 문단이면 그 입력칸을 남기고 앞 문단을 그 앞에 붙임 (입력칸이 사라지면 키보드가 내려감).
+  // 이어 붙인 문단은 두 번 더 그려 높이를 맞추고, 커서는 쓰던 자리에 둠
+  const removePhoto = (imageKey: string) => {
+    const next = removeImage(blocksRef.current, imageKey, focusKey);
+    const was = next.key ? caretOf(next.key) : null;
+    setBlocks(next.blocks);
+    setDirty(true);
+    if (!next.key || !was) return;
+    const keep = { start: was.start + next.shift, end: was.end + next.shift };
+    if (next.key === focusKey) setSelection(keep);
+    restyle(next.key, keep);
   };
 
   const applyPatch = (patch: StylePatch) => {
@@ -176,8 +211,22 @@ export default function EssayWriteScreen() {
       const next = insertImage(current, key, caret, { url, ...(asset.width && asset.height ? { w: asset.width, h: asset.height } : {}) });
       setBlocks(next.blocks);
       setDirty(true);
-      const focusKey = next.focusKey;
-      if (focusKey) setTimeout(() => inputs.current.get(focusKey)?.focus(), Math.max(100, settledAt - Date.now()));
+      // 사진 앞에 남은 문단은 두 번 더 그려 높이를 맞추고 커서를 그 끝에 둠
+      const left = next.blocks.find(b => b.key === key);
+      if (left?.type === 'p') {
+        const end = spansText(left.spans).length;
+        restyle(key, { start: end, end });
+      }
+      // 사진 뒤 문단의 맨 앞(사진을 넣은 자리)에 커서를 둠
+      const afterKey = next.focusKey;
+      if (afterKey) {
+        carets.current.set(afterKey, { start: 0, end: 0 });
+        setTimeout(() => {
+          const input = inputs.current.get(afterKey) as CaretInput | undefined;
+          input?.focus();
+          input?.setSelection?.(0, 0);
+        }, Math.max(100, settledAt - Date.now()));
+      }
     } catch (e: any) {
       if (!e?._handled) Alert.alert('사진을 올리지 못했어요', e?.message ?? '다시 시도해 주세요.');
     } finally {
@@ -224,8 +273,7 @@ export default function EssayWriteScreen() {
               {blocks.map(block => block.type === 'img' ? (
                 <View key={block.key} style={styles.imageWrap}>
                   <Image source={{ uri: block.url }} style={[styles.image, { aspectRatio: block.w && block.h ? block.w / block.h : 4 / 3 }]} />
-                  <Pressable accessibilityLabel="사진 빼기" hitSlop={6} style={styles.imageRemove}
-                    onPress={() => { setBlocks(removeImage(blocks, block.key)); setDirty(true); }}>
+                  <Pressable accessibilityLabel="사진 빼기" hitSlop={6} style={styles.imageRemove} onPress={() => removePhoto(block.key)}>
                     <Ionicons name="close" size={16} color="white" />
                   </Pressable>
                 </View>
@@ -237,7 +285,7 @@ export default function EssayWriteScreen() {
                   scrollEnabled={false}
                   onChangeText={text => onChangeText(block.key, text)}
                   onSelectionChange={e => onSelectionChange(block.key, e.nativeEvent.selection)}
-                  onFocus={() => setFocusKey(block.key)}
+                  onFocus={() => onFocusParagraph(block.key)}
                   onBlur={() => { if (styledWhileTyping.current.delete(block.key)) restyle(block.key, selection); }}
                   placeholder={block.key === paragraphs[0]?.key ? '본문을 입력하세요' : paragraphs.length > 1 && block.key === paragraphs[paragraphs.length - 1].key ? '이어서 쓰기' : undefined}
                   placeholderTextColor="rgba(255,255,255,0.35)"

@@ -141,15 +141,22 @@ export function insertImage(blocks: EditorBlock[], paragraphKey: string, caret: 
   };
 }
 
-// 사진을 빼면 앞뒤 문단을 줄바꿈으로 이어 붙임
-export function removeImage(blocks: EditorBlock[], imageKey: string) {
+// 사진을 빼면 앞뒤 문단을 줄바꿈으로 이어 붙임. 이어 붙인 문단은 keepKey 쪽(쓰고 있던 문단)의 key를 이어받아
+// 그 입력칸이 그대로 남음 (기본은 앞 문단). key: 이어 붙인 문단, shift: 뒤 문단을 이어받았을 때 그 글자 위치가 밀린 만큼
+export function removeImage(blocks: EditorBlock[], imageKey: string, keepKey?: string | null) {
   const index = blocks.findIndex(b => b.key === imageKey);
   const before = blocks[index - 1], after = blocks[index + 1];
   if (before?.type === 'p' && after?.type === 'p') {
-    const joined = before.spans.length && after.spans.length ? [...before.spans, { t: '\n' }, ...after.spans] : [...before.spans, ...after.spans];
-    return [...blocks.slice(0, index - 1), { ...before, spans: normalize(joined) }, ...blocks.slice(index + 2)];
+    const newline = before.spans.length > 0 && after.spans.length > 0;
+    const spans = normalize([...before.spans, ...(newline ? [{ t: '\n' }] : []), ...after.spans]);
+    const key = keepKey === after.key ? after.key : before.key;
+    return {
+      blocks: [...blocks.slice(0, index - 1), { key, type: 'p' as const, spans }, ...blocks.slice(index + 2)],
+      key,
+      shift: key === after.key ? spansText(before.spans).length + (newline ? 1 : 0) : 0,
+    };
   }
-  return blocks.filter(b => b.key !== imageKey);
+  return { blocks: blocks.filter(b => b.key !== imageKey), key: null, shift: 0 };
 }
 
 export function essayHasContent(blocks: EditorBlock[]) {

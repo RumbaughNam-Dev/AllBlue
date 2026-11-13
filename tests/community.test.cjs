@@ -37,7 +37,25 @@ test('a photo splits the paragraph at the caret and removing it joins them again
   ]);
   assert.equal(focusKey, withImage[2].key);
   const image = withImage.find(b => b.type === 'img');
-  assert.deepEqual(plain(toBody(removeImage(withImage, image.key))), [{ type: 'p', spans: [{ t: '첫 줄\n둘째 줄' }] }]);
+  const joined = removeImage(withImage, image.key);
+  assert.deepEqual(plain(toBody(joined.blocks)), [{ type: 'p', spans: [{ t: '첫 줄\n둘째 줄' }] }]);
+  // 기본은 앞 문단의 입력칸이 남고 그 글자 위치는 그대로
+  assert.deepEqual([joined.key, joined.shift], [withImage[0].key, 0]);
+});
+
+test('removing a photo while writing below it keeps that text box, and its caret moves past the text joined in front', () => {
+  const blocks = fromBody([{ type: 'p', spans: [{ t: '위 글' }] }, { type: 'img', url: 'u' }, { type: 'p', spans: [{ t: '아래 글', b: true }] }]);
+  const below = blocks[2].key;
+  const joined = removeImage(blocks, blocks[1].key, below);
+  assert.deepEqual(plain(joined.blocks), [{ key: below, type: 'p', spans: [{ t: '위 글\n' }, { t: '아래 글', b: true }] }]);
+  // '위 글' 3자 + 줄바꿈 1자만큼 밀림
+  assert.deepEqual([joined.key, joined.shift], [below, 4]);
+  // 빈 문단과 붙이면 줄바꿈 없이 붙음
+  const empty = fromBody([{ type: 'img', url: 'u' }, { type: 'p', spans: [{ t: '글' }] }]);
+  const merged = removeImage(empty, empty[1].key, empty[2].key);
+  assert.deepEqual([spansText(merged.blocks[0].spans), merged.shift], ['글', 0]);
+  // 문단 사이가 아닌 사진은 그냥 빠짐
+  assert.deepEqual(plain(removeImage([blocks[0], blocks[1]], blocks[1].key)), { blocks: plain([blocks[0]]), key: null, shift: 0 });
 });
 
 test('loading a saved essay puts a text box around every photo', () => {
