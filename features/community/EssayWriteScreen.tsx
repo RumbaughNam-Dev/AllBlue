@@ -20,6 +20,26 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const SIZES: { value: 'S' | 'M' | 'L'; label: string }[] = [{ value: 'S', label: '작게' }, { value: 'M', label: '보통' }, { value: 'L', label: '크게' }];
 type Selection = { start: number; end: number };
 
+// 사진 피커는 결과를 넘긴 뒤에 닫히기 시작해서 다 닫히기까지 0.6초쯤 걸림 (여유 있게 1초).
+// 그 전에는 업로드 팝업을 띄우거나 입력칸에 포커스를 주지 않음 (2026-11-13): iOS에서 피커가 닫히는 중에
+// 팝업이 뜨고 닫히고 키보드가 오르내리면, 화면을 덮는 투명한 층이 남아 터치는 안 되고 키보드만 되는 일이 생김
+const PICKER_SETTLE_MS = 1000;
+
+// 키보드를 내리고, 올라와 있었으면 다 내려갈 때까지 기다림 (최대 0.6초).
+// 올라온 채로 피커를 열면 iOS가 피커를 닫으면서 키보드를 되살려서 뒤이은 팝업 · 포커스와 겹침
+function dismissKeyboard() {
+  if (!Keyboard.isVisible()) {
+    Keyboard.dismiss();
+    return Promise.resolve();
+  }
+  return new Promise<void>(resolve => {
+    const finish = () => { sub.remove(); clearTimeout(timer); resolve(); };
+    const sub = Keyboard.addListener('keyboardDidHide', finish);
+    const timer = setTimeout(finish, 600);
+    Keyboard.dismiss();
+  });
+}
+
 // 5장 에세이 쓰기: 제목 아래 에디터. 글자를 고르거나 커서를 둔 채 굵게 · 기울임 · 밑줄 · 크기 · 색을 입히고,
 // 커서 자리에 사진을 넣으면 글이 나뉘어 그 사이에 들어감 (강사 · admin만)
 export default function EssayWriteScreen() {
@@ -137,20 +157,27 @@ export default function EssayWriteScreen() {
     if (imageCount >= LIMITS.essayImageMax) { Alert.alert(`사진은 ${LIMITS.essayImageMax}장까지 넣을 수 있어요.`); return; }
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') { Alert.alert('권한 필요', '사진 라이브러리 접근 권한이 필요합니다.'); return; }
+    await dismissKeyboard();
     const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.85 });
+    const settledAt = Date.now() + PICKER_SETTLE_MS;
     const asset = result.assets?.[0];
     if (result.canceled || !asset) return;
     if (asset.fileSize && asset.fileSize > MAX_FILE_SIZE) { Alert.alert('알림', '10MB가 넘는 사진은 넣을 수 없어요.'); return; }
     setUploading(true);
     try {
+      // 피커가 다 닫힌 뒤에만 팝업이 뜨고, run은 팝업이 다 닫힌 뒤에 끝남
       const [{ url }] = await uploads.run([{ label: '사진', uri: asset.uri, mimeType: asset.mimeType ?? 'image/jpeg' }],
-        (file, onProgress) => api.uploadCommunityImage(file.uri, file.mimeType, onProgress));
-      const key = focused?.key ?? blocks.filter(b => b.type === 'p').pop()!.key;
-      const caret = focused ? selection.end : spansText((blocks.find(b => b.key === key) as Extract<EditorBlock, { type: 'p' }>).spans).length;
-      const next = insertImage(blocks, key, caret, { url, ...(asset.width && asset.height ? { w: asset.width, h: asset.height } : {}) });
+        (file, onProgress) => api.uploadCommunityImage(file.uri, file.mimeType, onProgress), { showAfterMs: PICKER_SETTLE_MS });
+      // 팝업이 뜨기 전에는 글을 고칠 수 있으므로 지금 블록에 넣음
+      const current = blocksRef.current;
+      const target = focused && current.some(b => b.key === focused.key) ? focused.key : null;
+      const key = target ?? current.filter(b => b.type === 'p').pop()!.key;
+      const caret = target ? selection.end : spansText((current.find(b => b.key === key) as Extract<EditorBlock, { type: 'p' }>).spans).length;
+      const next = insertImage(current, key, caret, { url, ...(asset.width && asset.height ? { w: asset.width, h: asset.height } : {}) });
       setBlocks(next.blocks);
       setDirty(true);
-      if (next.focusKey) setTimeout(() => inputs.current.get(next.focusKey!)?.focus(), 100);
+      const focusKey = next.focusKey;
+      if (focusKey) setTimeout(() => inputs.current.get(focusKey)?.focus(), Math.max(100, settledAt - Date.now()));
     } catch (e: any) {
       if (!e?._handled) Alert.alert('사진을 올리지 못했어요', e?.message ?? '다시 시도해 주세요.');
     } finally {

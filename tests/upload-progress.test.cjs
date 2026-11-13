@@ -5,14 +5,17 @@ const { hookDriver } = require('./notice-test-helpers.cjs');
 
 const flush = () => new Promise(setImmediate);
 
-// 업로드 진행 팝업 (components/UploadProgress.tsx): 타이머는 가짜로 돌려 '0.4초 뒤에 뜸'을 확인
-function harness() {
+// 업로드 진행 팝업 (components/UploadProgress.tsx): 타이머는 가짜로 돌려 '0.4초 뒤에 뜸'을 확인.
+// 팝업(Modal)이 다 떴다 · 다 닫혔다는 알림은 테스트가 popup.onShow() · popup.onDismiss()로 대신 보냄
+function harness(os = 'ios') {
   const h = hookDriver();
   const timers = [];
   const native = Object.fromEntries(['Image', 'Modal', 'ScrollView', 'Text', 'View'].map(name => [name, name]));
   const mod = loadModule('components/UploadProgress.tsx', {
     react: { ...h.react, createElement: (type, props, ...children) => ({ type, props: props || {}, children }) },
-    'react-native': { ...native, StyleSheet: { create: value => value }, useWindowDimensions: () => ({ width: 390, height: 844 }) },
+    'react-native': {
+      ...native, Platform: { OS: os }, StyleSheet: { create: value => value }, useWindowDimensions: () => ({ width: 390, height: 844 }),
+    },
     '@expo/vector-icons': { Ionicons: 'Ionicons' },
     'react-native-safe-area-context': { useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }) },
     '@/constants/Colors': { __esModule: true, default: { brand: { accent: '#00B4D8', deep: '#023E73', white: '#FFFFFF' } } },
@@ -49,6 +52,7 @@ test('upload progress: files go one by one with their own progress, the popup wa
   timers[0].fn();
   state = render();
   assert.equal(state.popup.visible, true);
+  state.popup.onShow();
 
   progress[0]({ bytesSent: 50, totalBytes: 100 });
   state = render();
@@ -69,11 +73,71 @@ test('upload progress: files go one by one with their own progress, the popup wa
   state = render();
   assert.deepEqual(state.popup.items.map(i => i.status), ['done', 'uploading']);
   finish[1]();
-  // 결과 배열은 모듈 쪽에서 만들어져서 펼쳐서 비교
-  assert.deepEqual([...await running], ['url-a', 'url-b']);
+  await flush();
   state = render();
   assert.equal(state.popup.visible, false);
   assert.deepEqual(state.popup.items.map(i => i.status), ['done', 'done']);
+  // 팝업이 다 닫힌 뒤에 끝남 (부르는 쪽의 포커스 · 화면 이동이 닫히는 애니메이션과 겹치지 않게)
+  let ended = false;
+  running.then(() => { ended = true; });
+  await flush();
+  assert.equal(ended, false);
+  state.popup.onDismiss();
+  // 결과 배열은 모듈 쪽에서 만들어져서 펼쳐서 비교
+  assert.deepEqual([...await running], ['url-a', 'url-b']);
+});
+
+test('upload progress: a popup still opening closes only after it has opened, and run ends after it has closed', async () => {
+  const { timers, render } = harness();
+  let finish;
+  const running = render().run([{ label: '사진', uri: 'a' }], () => new Promise(resolve => { finish = () => resolve('url'); }), { showAfterMs: 1000 });
+  // 사진 피커를 닫자마자 올릴 때: 피커가 다 닫힌 뒤에만 뜸
+  assert.equal(timers[0].ms, 1000);
+  timers[0].fn();
+  assert.equal(render().popup.visible, true);
+  // 다 뜨기 전에 업로드가 끝나도 뜨는 도중에는 닫지 않음
+  finish();
+  await flush();
+  assert.equal(render().popup.visible, true);
+  render().popup.onShow();
+  await flush();
+  assert.equal(render().popup.visible, false);
+  let ended = false;
+  running.then(() => { ended = true; });
+  await flush();
+  assert.equal(ended, false);
+  render().popup.onDismiss();
+  assert.deepEqual([...await running], ['url']);
+});
+
+test('upload progress: without open / close reports from the popup, each wait gives up after 1s', async () => {
+  const { timers, render } = harness();
+  let finish;
+  const running = render().run([{ label: '사진', uri: 'a' }], () => new Promise(resolve => { finish = () => resolve('url'); }));
+  timers[0].fn();
+  finish();
+  await flush();
+  const opening = timers[timers.length - 1];
+  assert.equal(opening.ms, 1000);
+  opening.fn();
+  await flush();
+  assert.equal(render().popup.visible, false);
+  const closing = timers[timers.length - 1];
+  assert.notEqual(closing, opening);
+  assert.equal(closing.ms, 1000);
+  closing.fn();
+  assert.deepEqual([...await running], ['url']);
+});
+
+test('upload progress: on Android run ends as soon as the popup is told to close (no close report there)', async () => {
+  const { timers, render } = harness('android');
+  let finish;
+  const running = render().run([{ label: '사진', uri: 'a' }], () => new Promise(resolve => { finish = () => resolve('url'); }));
+  timers[0].fn();
+  render().popup.onShow();
+  finish();
+  assert.deepEqual([...await running], ['url']);
+  assert.equal(render().popup.visible, false);
 });
 
 test('upload progress: a quick upload never shows the popup, a failure closes it and passes the error on', async () => {
