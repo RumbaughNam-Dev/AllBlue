@@ -28,8 +28,7 @@ export default function TabLayout() {
   const [gamesVisible, setGamesVisible] = useState(false);
   const newGame = useNewGameBadge();
   const { user, updateUser } = useAuth();
-  // 게임은 지금 admin에게만 보임 (2026-11-12 사용자 지시) — 모두에게 열 땐 true로
-  const showGames = user?.level === 'A';
+  const showGames = true; // 2026-11-20 모두에게 공개 (그 전엔 admin만)
   // 투어 · 커뮤니티 탭은 만드는 동안 admin에게만 보였음 (그동안 다른 사용자는 탭 3개)
   const showTour = true; // 2026-11-09 모두에게 공개 (그 전엔 admin만) — 백엔드 TOURS_OPEN_TO_ALL과 함께
   const showCommunity = true; // 2026-11-06 모두에게 공개 (그 전엔 admin만)
