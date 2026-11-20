@@ -16,6 +16,9 @@ import BottomSheet from '@/components/BottomSheet';
 import LinkChips from '@/components/LinkChips';
 import { useAdminPendingCounts } from '@/hooks/useAdminPendingCounts';
 import ProfileTours from '@/features/tour/ProfileTours';
+import { useUserGrade } from '@/features/grade/store';
+import { gradeColor } from '@/features/grade/grade';
+import GradePill from '@/features/grade/GradePill';
 
 function formatRecord(val: number | null, unit?: string): string {
   if (val === null || val === undefined) return '--';
@@ -26,6 +29,7 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user, updateUser } = useAuth();
+  const myGrade = useUserGrade(user?.id);
   const [certificateImage, setCertificateImage] = useState<string | null>(null);
   const [certifications, setCertifications] = useState<Certification[]>([]);
   const [certificationOptions, setCertificationOptions] = useState<CertificationOption[]>([]);
@@ -115,7 +119,9 @@ export default function ProfileScreen() {
           <View style={styles.fixedHeader}>
             {/* Profile Header */}
             <View style={styles.profileRow}>
-              <View style={styles.avatarWrap}>
+              {/* 활동 등급: 테두리 등급 색 + 오른쪽 위 '프린이 Lv 1' (2026-11-20) */}
+              <View style={[styles.avatarWrap, myGrade && { borderColor: gradeColor(myGrade), borderWidth: 3, padding: 1 }]}>
+                {myGrade ? <GradePill grade={myGrade} size={12} style={styles.gradePill} /> : null}
                 {user?.profileImage ? (
                   <Image source={{ uri: user.profileImage }} style={styles.avatar} />
                 ) : (
@@ -324,6 +330,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: 20,
   },
+  gradePill: { position: 'absolute', top: -10, right: -18, zIndex: 1 },
   avatarWrap: {
     marginRight: 16,
     borderWidth: 2,

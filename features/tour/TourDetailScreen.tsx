@@ -248,7 +248,7 @@ export default function TourDetailScreen() {
         {/* 맨 위: 인솔자가 있으면 인솔 강사, 없으면 등록자. 사진을 누르면 프로필 */}
         <Pressable accessibilityRole="link" accessibilityLabel={`${person.nickname} 프로필 보기`} onPress={() => openProfile(person.userId)}
           style={({ pressed }) => [styles.person, pressed && { opacity: 0.7 }]}>
-          <ProfileAvatar profileImage={person.profileImage} nickname={person.nickname} level={person.badgeLevel} />
+          <ProfileAvatar userId={person.userId} profileImage={person.profileImage} nickname={person.nickname} level={person.badgeLevel} />
           <View style={styles.personBody}>
             <Text style={styles.personName} numberOfLines={1}>{person.nickname}{person.name ? ` (${person.name})` : ''}</Text>
             <Text style={styles.personMeta} numberOfLines={1}>

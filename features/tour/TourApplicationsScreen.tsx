@@ -93,7 +93,7 @@ export default function TourApplicationsScreen() {
             <View style={styles.card}>
               <Pressable accessibilityRole="link" accessibilityLabel={`${item.user.nickname} 프로필 보기`} onPress={() => router.push(profileHref(item.user.userId, user?.id))}
                 style={({ pressed }) => [styles.who, pressed && { opacity: 0.7 }]}>
-                <Avatar uri={item.user.profileImage} nickname={item.user.nickname} size={56} level={item.user.badgeLevel} />
+                <Avatar userId={item.user.userId} uri={item.user.profileImage} nickname={item.user.nickname} size={56} level={item.user.badgeLevel} />
                 <View style={styles.whoBody}>
                   <Text style={styles.name} numberOfLines={1}>{item.user.nickname}</Text>
                   <Text style={styles.sub} numberOfLines={1}>{item.user.licenses.join(' · ') || '자격증 없음'}</Text>

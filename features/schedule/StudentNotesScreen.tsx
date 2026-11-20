@@ -267,7 +267,7 @@ function NoteCard({ note, editing, onEdit, onDelete }: {
     <View style={[styles.card, editing && styles.cardEditing]}>
       <View style={styles.cardHeader}>
         <ProfileLink userId={author?.userId ?? null} label={authorName}>
-          <ProfileAvatar profileImage={author?.profileImage ?? null} nickname={author?.nickname ?? ''} level={author?.badgeLevel ?? author?.level} />
+          <ProfileAvatar userId={author?.userId ?? null} profileImage={author?.profileImage ?? null} nickname={author?.nickname ?? ''} level={author?.badgeLevel ?? author?.level} />
         </ProfileLink>
         <View style={styles.cardHeaderText}>
           <Text style={styles.author} numberOfLines={1}>{authorName}{note.isMine ? ' · 나' : ''}</Text>

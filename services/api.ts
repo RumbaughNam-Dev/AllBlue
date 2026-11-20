@@ -45,6 +45,14 @@ async function parseResponse<T>(status: number, body: string, token: string | nu
   return data as T;
 }
 
+// 활동 등급 퀘스트가 걸린 요청: 성공하면 받은 경험치를 가져와 애니메이션 (features/grade/store가 등록)
+const QUEST_PATHS = [
+  /^\/community\/greetings$/, /^\/community\/posts\/\d+\/comments$/, /^\/community\/posts\/\d+\/like$/,
+  /^\/games\/[a-z]+\/records$/, /^\/schedule$/,
+];
+let questActionHandler: (() => void) | null = null;
+export function setQuestActionHandler(fn: (() => void) | null) { questActionHandler = fn; }
+
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const { authToken, ignoreUnauthorized = false, ...fetchOptions } = options;
   const token = authToken ?? await AsyncStorage.getItem('authToken');
@@ -60,7 +68,9 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
         ...fetchOptions.headers,
       },
     });
-    return await parseResponse<T>(res.status, await res.text(), token, ignoreUnauthorized);
+    const data = await parseResponse<T>(res.status, await res.text(), token, ignoreUnauthorized);
+    if (fetchOptions.method === 'POST' && QUEST_PATHS.some(re => re.test(path))) questActionHandler?.();
+    return data;
   } catch (error) {
     if (controller.signal.aborted) {
       throw { message: '서버 응답이 지연되고 있습니다. 다시 시도해주세요.' };
@@ -872,6 +882,12 @@ export const api = {
     return request<GameRecordSaved<D>>(`/games/${game}/records`, { method: 'POST', body: JSON.stringify(record) });
   },
 
+  // 프로필 활동 등급 · 퀘스트 (2026-11-20)
+  getQuests() { return request<QuestStatusResponse>('/quests'); },
+  claimQuestAwards() { return request<QuestAwardsResponse>('/quests/awards', { method: 'POST' }); },
+  markGradeIntroSeen() { return request<{ ok: boolean }>('/quests/intro-seen', { method: 'POST' }); },
+  getGrades(userIds: string[]) { return request<{ grades: Record<string, number> }>('/grades', { method: 'POST', body: JSON.stringify({ userIds }) }); },
+
   // ApneaTap 기록 화면: 내 세션 최근순 전부(최대 1000개) · 하나 지우기
   getAllApneaTapRecords() {
     return request<{ records: GameRecord<ApneaTapRecordDetails>[] }>('/games/apneatap/records/all');
@@ -1270,4 +1286,17 @@ export const api = {
       body: JSON.stringify(data),
     });
   },
+};
+
+// ── 프로필 활동 등급 · 퀘스트 ──
+export type GradeInfo = { totalXp: number; gradeIndex: number; grade: string; level: number; xp: number; maxed: boolean };
+export type QuestItem = { quest: string; name: string; xp: number; done: boolean; progress?: { count: number; goal: number } };
+export type QuestStatusResponse = GradeInfo & {
+  introSeen: boolean;
+  daily: { quests: QuestItem[]; bonus: QuestItem; resetAt: string };
+  weekly: { quests: QuestItem[]; bonus: QuestItem; weeklyDone: number; resetAt: string };
+};
+export type QuestAwardsResponse = {
+  awards: { id: number; quest: string; name: string; xp: number; createdAt: string }[];
+  before: GradeInfo; after: GradeInfo;
 };

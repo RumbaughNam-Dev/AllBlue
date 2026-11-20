@@ -5,6 +5,7 @@ import Colors from '@/constants/Colors';
 import LevelBadge from '@/components/LevelBadge';
 import type { TourCard } from '@/services/api';
 import { CYAN, GRID_GAP, TOUR_STATUS, cardLines, cardWidthFor } from './ui';
+import GradeFrame from '@/features/grade/GradeFrame';
 
 export function Badge({ label, color, text, small }: { label: string; color: string; text: string; small?: boolean }) {
   return (
@@ -112,16 +113,18 @@ export function CardButton({ label, kind = 'primary', onPress, disabled }: {
 }
 
 // 크기를 고를 수 있는 프로필 사진 (참여 신청 카드는 크게, 제안 카드의 강사 줄은 작게). 사진이 없으면 닉네임 첫 글자
-export function Avatar({ uri, nickname, size, level }: { uri: string | null; nickname: string; size: number; level?: string }) {
+export function Avatar({ uri, nickname, size, level, userId }: { uri: string | null; nickname: string; size: number; level?: string; userId?: string | null }) {
   const [failed, setFailed] = useState(false);
   const round = { width: size, height: size, borderRadius: size / 2 };
   return (
+    <GradeFrame userId={userId} size={size}>
     <View style={round}>
       {uri && !failed ? <Image source={{ uri }} style={[round, styles.avatarImage]} onError={() => setFailed(true)} /> : (
         <View style={[round, styles.avatarEmpty]}><Text style={[styles.avatarInitial, { fontSize: Math.max(9, size * 0.4) }]}>{nickname.charAt(0) || '?'}</Text></View>
       )}
       {level ? <View style={styles.avatarBadge}><LevelBadge level={level} size={Math.max(14, size * 0.3)} /></View> : null}
     </View>
+    </GradeFrame>
   );
 }
 

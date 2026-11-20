@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import Colors from '@/constants/Colors';
 import { api, type CommunityMention, type MentionUser } from '@/services/api';
+import GradeFrame from '@/features/grade/GradeFrame';
 
 // 커서 바로 앞의 '@검색어' (띄어쓰기 전까지). 없으면 null
 export function mentionQuery(text: string, caret: number) {
@@ -77,9 +78,11 @@ export function MentionSuggestions({ users, loading, onPick }: { users: MentionU
         : !users.length ? <Text style={styles.empty}>닉네임을 입력해 보세요</Text>
         : users.slice(0, 6).map(user => (
           <Pressable key={user.userId} onPress={() => onPick(user)} style={({ pressed }) => [styles.row, pressed && { backgroundColor: 'rgba(255,255,255,0.08)' }]}>
-            {user.profileImage ? <Image source={{ uri: user.profileImage }} style={styles.avatar} /> : (
-              <View style={[styles.avatar, styles.placeholder]}><Text style={styles.initial}>{user.nickname.charAt(0)}</Text></View>
-            )}
+            <GradeFrame userId={user.userId} size={28}>
+              {user.profileImage ? <Image source={{ uri: user.profileImage }} style={styles.avatar} /> : (
+                <View style={[styles.avatar, styles.placeholder]}><Text style={styles.initial}>{user.nickname.charAt(0)}</Text></View>
+              )}
+            </GradeFrame>
             <Text style={styles.name} numberOfLines={1}>{user.nickname}</Text>
             {user.isFriend && <Text style={styles.friend}>친구</Text>}
           </Pressable>

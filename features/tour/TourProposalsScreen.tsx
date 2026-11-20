@@ -86,7 +86,7 @@ export default function TourProposalsScreen() {
                     <Text style={styles.title} numberOfLines={1}>{item.title}</Text>
                     <Text style={styles.fee}>{formatFee(item.fee)}</Text>
                     <View style={styles.who}>
-                      <Avatar uri={item.instructor.profileImage} nickname={item.instructor.nickname} size={18} />
+                      <Avatar userId={item.instructor.userId} uri={item.instructor.profileImage} nickname={item.instructor.nickname} size={18} />
                       <Text style={styles.whoText} numberOfLines={1}>{item.instructor.nickname} · {item.instructor.licenses[0] ?? '강사'}</Text>
                     </View>
                     {item.message ? <Text style={styles.message} numberOfLines={1}>{item.message}</Text> : null}

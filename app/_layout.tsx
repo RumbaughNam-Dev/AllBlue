@@ -17,6 +17,7 @@ import { StatusBar } from 'expo-status-bar';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import SplashView from '@/components/SplashView';
 import { useScheduleLinkResume } from '@/hooks/useScheduleLinkResume';
+import GradeOverlay from '@/features/grade/GradeOverlay';
 
 export { ErrorBoundary } from 'expo-router';
 
@@ -173,6 +174,8 @@ function RootLayoutNav() {
           <Stack.Screen name="game-records" options={{ gestureEnabled: true }} />
         </Stack>
       </StripTabBarHost>
+      {/* 활동 등급: 경험치 · 배지 애니메이션은 모든 화면 위에 (게임 화면 포함) */}
+      {isLoggedIn ? <GradeOverlay /> : null}
     </View>
   );
 }

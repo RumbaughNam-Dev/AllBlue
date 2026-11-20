@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import type { CommunityCard, CommunityGreeting } from '@/services/api';
 import { MentionText } from './mentions';
 import { clockTime, Counts, styles as ui, timeAgo } from './ui';
+import GradeFrame from '@/features/grade/GradeFrame';
 
 // 에세이 카드: 대표 사진(본문 첫 사진, 없으면 기본 그림) · 제목 · 강사 · 좋아요 수
 export function EssayCard({ post, onPress, width }: { post: CommunityCard; onPress: (post: CommunityCard) => void; width: number }) {
@@ -80,9 +81,11 @@ export function GreetingRow({ greeting, onPress, onLongPress, onOpenUser, showTi
   return (
     <Pressable onPress={onPress && (() => onPress(greeting))} onLongPress={onLongPress && (() => onLongPress(greeting))} delayLongPress={350}
       accessibilityRole={onPress ? 'button' : undefined} style={({ pressed }) => [ui.card, styles.greeting, onPress && pressed && { opacity: 0.7 }]}>
-      {greeting.author.profileImage ? <Image source={{ uri: greeting.author.profileImage }} style={styles.greetingAvatar} /> : (
-        <View style={[styles.greetingAvatar, styles.essayPlaceholder]}><Text style={styles.initial}>{greeting.author.nickname.charAt(0)}</Text></View>
-      )}
+      <GradeFrame userId={greeting.author.userId} size={32}>
+        {greeting.author.profileImage ? <Image source={{ uri: greeting.author.profileImage }} style={styles.greetingAvatar} /> : (
+          <View style={[styles.greetingAvatar, styles.essayPlaceholder]}><Text style={styles.initial}>{greeting.author.nickname.charAt(0)}</Text></View>
+        )}
+      </GradeFrame>
       <View style={{ flex: 1 }}>
         <View style={styles.rowMeta}>
           <Text style={ui.metaStrong} numberOfLines={1}>{greeting.author.nickname}</Text>

@@ -79,7 +79,7 @@ export default function TourProposalScreen() {
       <TourHeader title="제안 보기" onBack={() => router.back()} />
       <ScrollView contentContainerStyle={styles.scroll}>
         <Pressable accessibilityRole="link" onPress={() => router.push(profileHref(p.instructor.userId, user?.id))} style={({ pressed }) => [styles.person, pressed && { opacity: 0.7 }]}>
-          <ProfileAvatar profileImage={p.instructor.profileImage} nickname={p.instructor.nickname} level={p.instructor.badgeLevel} />
+          <ProfileAvatar userId={p.instructor.userId} profileImage={p.instructor.profileImage} nickname={p.instructor.nickname} level={p.instructor.badgeLevel} />
           <View style={styles.personBody}>
             <Text style={styles.personName} numberOfLines={1}>{p.instructor.nickname}{p.instructor.name ? ` (${p.instructor.name})` : ''}</Text>
             <Text style={styles.personMeta} numberOfLines={1}>{[...p.instructor.licenses.slice(0, 1), `투어 ${p.instructor.ledCount}`].join('  ·  ')}</Text>

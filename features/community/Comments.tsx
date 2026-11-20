@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Colors from '@/constants/Colors';
 import { api, type CommunityComment, type CommunityThread } from '@/services/api';
 import { MentionSuggestions, MentionText, useMentions } from './mentions';
-import { LIMITS, LikeButton, styles as ui, timeAgo } from './ui';
+import { LIMITS, LikeButton, styles as ui, timeAgo, AuthorGrade } from './ui';
 import type { MenuTarget } from './useContentMenu';
 
 type Handlers = {
@@ -57,6 +57,7 @@ function CommentRow({ comment, onReply, onMenu, onOpenUser, onChanged }: { comme
       <Pressable onPress={() => onOpenUser(author.userId)} hitSlop={4} style={styles.nameRow}>
         <Text style={ui.metaStrong}>{author.nickname}</Text>
         {author.badgeLevel === '5' && <Text style={ui.instructorTag}>강사</Text>}
+        <AuthorGrade userId={author.userId} />
       </Pressable>
       <MentionText text={comment.content ?? ''} mentions={comment.mentions ?? []} style={styles.content} onOpenUser={onOpenUser} />
       <View style={styles.meta}>

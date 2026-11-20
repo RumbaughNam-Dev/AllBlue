@@ -9,6 +9,8 @@ import StripBackSlot from '@/components/StripBackSlot';
 import { LiquidGlassView } from '@/utils/liquidGlass';
 import { useAppRouter, useIsPaneRoot } from '@/features/split/SplitPane';
 import type { CommunityAuthor, CommunityBoard } from '@/services/api';
+import { useUserGrade } from '@/features/grade/store';
+import GradePill from '@/features/grade/GradePill';
 
 export const BOARD_NAME: Record<CommunityBoard | 'GREETING', string> = {
   ESSAY: '에세이', FREE: '자유게시판', PROMO: '교육단체 홍보', GREETING: '출석인사',
@@ -100,16 +102,23 @@ export function ActionChip({ icon, label, onPress, active }: { icon?: keyof type
 export function AuthorLine({ author, meta, onPress, size = 'small' }: { author: CommunityAuthor; meta?: string; onPress?: () => void; size?: 'small' | 'large' }) {
   return (
     <Pressable disabled={!onPress} onPress={onPress} accessibilityRole={onPress ? 'button' : undefined} style={styles.authorLine}>
-      {size === 'large' && <ProfileAvatar profileImage={author.profileImage} nickname={author.nickname} level={author.badgeLevel} />}
+      {size === 'large' && <ProfileAvatar userId={author.userId} profileImage={author.profileImage} nickname={author.nickname} level={author.badgeLevel} />}
       <View style={{ flexShrink: 1 }}>
         <View style={styles.authorNameRow}>
           <Text style={styles.authorName} numberOfLines={1}>{author.nickname}</Text>
           {author.badgeLevel === '5' && <Text style={styles.instructorTag}>강사</Text>}
+          {size === 'small' && <AuthorGrade userId={author.userId} />}
         </View>
         {!!meta && <Text style={styles.meta}>{meta}</Text>}
       </View>
     </Pressable>
   );
+}
+
+// 사진 없는 작성자 줄: 닉네임 옆에 활동 등급 '프린이 Lv 1' (사진이 있는 큰 줄은 사진 위에)
+export function AuthorGrade({ userId }: { userId: string }) {
+  const grade = useUserGrade(userId);
+  return grade ? <GradePill grade={grade} size={9} /> : null;
 }
 
 export function LikeButton({ liked, count, onPress, small }: { liked: boolean; count: number; onPress: () => void; small?: boolean }) {

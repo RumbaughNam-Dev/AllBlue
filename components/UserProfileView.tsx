@@ -14,6 +14,9 @@ import GlassBackground, { glassClear } from '@/components/GlassBackground';
 import GlassCircle from '@/components/GlassCircle';
 import LinkChips from '@/components/LinkChips';
 import ProfileTours from '@/features/tour/ProfileTours';
+import { useUserGrade } from '@/features/grade/store';
+import { gradeColor } from '@/features/grade/grade';
+import GradePill from '@/features/grade/GradePill';
 
 // Main actions stay white (prominent glass) so the navy label keeps its contrast.
 const PROMINENT_TINT = 'rgba(255,255,255,0.85)';
@@ -35,6 +38,7 @@ export default function UserProfileView({ userId, onClose, onOpenLog }: Props) {
   const certificationGroups = groupProfileCertifications(certifications);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [userInfo, setUserInfo] = useState<{ id: number; isTemporary?: boolean; nickname: string; name?: string; profileImage?: string } | null>(null);
+  const grade = useUserGrade(userInfo && !userInfo.isTemporary ? userId : null);
   const [isMyStudent, setIsMyStudent] = useState(false);
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [loading, setLoading] = useState(true);
@@ -83,7 +87,9 @@ export default function UserProfileView({ userId, onClose, onOpenLog }: Props) {
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           {/* Profile Header */}
           <View style={styles.profileRow}>
-            <View style={styles.avatarWrap}>
+            {/* 활동 등급: 테두리 등급 색 + 오른쪽 위 '프린이 Lv 1' (2026-11-20), 임시 사용자는 없음 */}
+            <View style={[styles.avatarWrap, grade && { borderColor: gradeColor(grade), borderWidth: 3, padding: 1 }]}>
+              {grade ? <GradePill grade={grade} size={12} style={styles.gradePill} /> : null}
               {userInfo?.profileImage ? (
                 <Image source={{ uri: userInfo.profileImage }} style={styles.avatar} />
               ) : (
@@ -224,6 +230,7 @@ const styles = StyleSheet.create({
   loadingClose: { position: 'absolute', top: 0, right: 24, padding: 10 },
   scrollContent: { paddingHorizontal: 24, paddingBottom: 16 },
   profileRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 20 },
+  gradePill: { position: 'absolute', top: -10, right: -18, zIndex: 1 },
   avatarWrap: {
     marginRight: 16, borderWidth: 2, borderColor: 'rgba(255,255,255,0.25)',
     borderRadius: 42, padding: 2,

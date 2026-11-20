@@ -11,6 +11,7 @@ import { api, PendingMember } from '@/services/api';
 import Spinner from '@/components/Spinner';
 import GlassCircle from '@/components/GlassCircle';
 import StripBackSlot from '@/components/StripBackSlot';
+import GradeFrame from '@/features/grade/GradeFrame';
 
 export default function OrganizationMembersScreen() {
   const insets = useSafeAreaInsets();
@@ -92,13 +93,13 @@ export default function OrganizationMembersScreen() {
           {members.map((member) => (
             <View key={member.userId} style={styles.card}>
               <View style={styles.cardTop}>
-                <ProfileLink userId={member.userId} label={member.nickname}>{member.profileImage ? (
+                <ProfileLink userId={member.userId} label={member.nickname}><GradeFrame userId={member.userId} size={44}>{member.profileImage ? (
                   <Image source={{ uri: member.profileImage }} style={styles.avatar} />
                 ) : (
                   <View style={[styles.avatar, styles.avatarEmpty]}>
                     <Text style={styles.avatarText}>{member.nickname?.charAt(0) ?? '?'}</Text>
                   </View>
-                )}</ProfileLink>
+                )}</GradeFrame></ProfileLink>
                 <View style={{ flex: 1 }}>
                   <ProfileLink userId={member.userId} label={member.nickname}><Text style={styles.memberName}>
                     {member.nickname}{member.name ? ` (${member.name})` : ''}

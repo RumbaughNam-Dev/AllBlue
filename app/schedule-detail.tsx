@@ -279,7 +279,7 @@ export default function ScheduleDetailScreen() {
               </View>
               <View style={styles.participantCard}>
                 <View style={styles.participantHeader}>
-                  <ProfileLink userId={schedule.creator.userId} label={schedule.creator.nickname}><ProfileAvatar profileImage={schedule.creator.profileImage} nickname={schedule.creator.nickname} level={schedule.creator.badgeLevel ?? schedule.creator.level} /></ProfileLink>
+                  <ProfileLink userId={schedule.creator.userId} label={schedule.creator.nickname}><ProfileAvatar userId={schedule.creator.userId} profileImage={schedule.creator.profileImage} nickname={schedule.creator.nickname} level={schedule.creator.badgeLevel ?? schedule.creator.level} /></ProfileLink>
                   <View style={styles.participantInfo}>
                     <ProfileLink userId={schedule.creator.userId} label={schedule.creator.nickname} style={styles.participantNameRow}>
                       <Text style={styles.participantName}>
@@ -350,7 +350,7 @@ export default function ScheduleDetailScreen() {
               return (
               <View key={`${p.isGuest ? 'g' : 'u'}_${p.id}`} style={styles.participantCard}>
                 <View style={styles.participantHeader}>
-                  <ProfileLink userId={p.isGuest || (p.isTemporary && !isOwner) ? null : p.userId} label={p.nickname}><ProfileAvatar profileImage={p.isGuest ? null : p.profileImage} nickname={p.nickname} level={p.badgeLevel ?? p.level} /></ProfileLink>
+                  <ProfileLink userId={p.isGuest || (p.isTemporary && !isOwner) ? null : p.userId} label={p.nickname}><ProfileAvatar userId={p.isGuest || p.isTemporary ? null : p.userId} profileImage={p.isGuest ? null : p.profileImage} nickname={p.nickname} level={p.badgeLevel ?? p.level} /></ProfileLink>
                   <View style={styles.participantInfo}>
                     <ProfileLink userId={p.isGuest || (p.isTemporary && !isOwner) ? null : p.userId} label={p.nickname} style={styles.participantNameRow}>
                       <Text style={styles.participantName}>

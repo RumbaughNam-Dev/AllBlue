@@ -1,7 +1,8 @@
 import StartupPopups from '@/features/notices/StartupPopups';
 import NotificationBell from '@/features/notifications/NotificationBell';
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { AppState, View, Text, StyleSheet, Pressable, Platform } from 'react-native';
+import type { ViewInstance } from 'react-native';
 import { Tabs, useRouter, useFocusEffect } from 'expo-router';
 import { hasSideTabStrip } from '@/utils/tabBarLayout';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -21,6 +22,10 @@ import { DUO_SYSTEM_TABS } from '@/utils/foldable';
 import { LiquidGlassView } from '@/utils/liquidGlass';
 import GamePickerPopup from '@/features/games/GamePickerPopup';
 import { useNewGameBadge } from '@/features/games/newBadge';
+import QuestButton from '@/features/grade/QuestButton';
+import QuestPopup from '@/features/grade/QuestPopup';
+import GradeStartup from '@/features/grade/GradeStartup';
+import { registerAvatarTarget, useGamePickerRequests } from '@/features/grade/store';
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
@@ -33,6 +38,19 @@ export default function TabLayout() {
   const showTour = true; // 2026-11-09 모두에게 공개 (그 전엔 admin만) — 백엔드 TOURS_OPEN_TO_ALL과 함께
   const showCommunity = true; // 2026-11-06 모두에게 공개 (그 전엔 admin만)
   const router = useRouter();
+  // 경험치 · 배지가 빨려 들어갈 프로필 사진 자리
+  const avatarRef = useRef<ViewInstance>(null);
+  useEffect(() => {
+    registerAvatarTarget(() => new Promise(resolve => {
+      const node = avatarRef.current;
+      if (!node) return resolve(null);
+      node.measureInWindow((x, y, width, height) => resolve(width ? { x, y, width, height } : null));
+    }));
+    return () => registerAvatarTarget(null);
+  }, []);
+  // 퀘스트 '게임 한 판 하기' → 게임 고르기 팝업
+  const gameRequests = useGamePickerRequests();
+  useEffect(() => { if (gameRequests) { newGame.markSeen(); setGamesVisible(true); } }, [gameRequests]); // eslint-disable-line react-hooks/exhaustive-deps
   const updateUserRef = useRef(updateUser);
   updateUserRef.current = updateUser;
   // 16장: admin이면 프로필 사진에 관리자 기능의 처리할 건수 합계 (프로필 '관리자 기능' 버튼과 같은 숫자)
@@ -70,8 +88,8 @@ export default function TabLayout() {
             style={({ pressed }) => [styles.profileButton, pressed && { opacity: 0.6 }]}
             onPress={() => router.push('/profile')}
           >
-            {/* 홈 왼쪽 위 프로필 사진: 레벨 배지 없이 (2026-11-08), admin은 처리할 건수만 */}
-            <ProfileAvatar profileImage={user?.profileImage} nickname={user?.nickname} showLevel={false} count={adminBadgeText(adminTotal)} />
+            {/* 홈 왼쪽 위 프로필 사진: 자격증 배지 없이 (2026-11-08), admin은 처리할 건수, 활동 등급 테두리 · 레벨 (2026-11-20) */}
+            <View ref={avatarRef} collapsable={false}><ProfileAvatar userId={user?.id} profileImage={user?.profileImage} nickname={user?.nickname} showLevel={false} count={adminBadgeText(adminTotal)} /></View>
           </Pressable>
           {/* 프로필 사진 오른쪽 게임 아이콘 → 게임 고르기 팝업. 새 게임은 팝업을 한 번 열 때까지 NEW */}
           {showGames && <Pressable
@@ -96,6 +114,8 @@ export default function TabLayout() {
         </View>
 
         <View style={styles.toolbarActions}>
+          {/* 종 왼쪽 퀘스트 아이콘 (2026-11-20) */}
+          {user && <QuestButton />}
           <NotificationBell key={user?.id} />
           <Pressable
             style={({ pressed }) => pressed && { opacity: 0.6 }}
@@ -115,6 +135,8 @@ export default function TabLayout() {
       {DUO_SYSTEM_TABS ? <DuoTabsBody showTour={showTour} showCommunity={showCommunity} /> : <TabsBody showTour={showTour} showCommunity={showCommunity} />}
 
       {user && <StartupPopups key={user.id} userId={user.id} />}
+      {user && <GradeStartup key={`grade-${user.id}`} userId={user.id} />}
+      <QuestPopup />
 
       {/* Side Sheet */}
       <SideSheet visible={sheetVisible} onClose={() => setSheetVisible(false)} />
@@ -264,7 +286,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
   },
-  toolbarLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  toolbarLeft: { flexDirection: 'row', alignItems: 'center', gap: 14 }, // 프로필 오른쪽 위 레벨 알약 자리
   profileButton: { width: 40, height: 40 },
   gameButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   gameIcon: { width: 38, height: 38, alignItems: 'center', justifyContent: 'center' },

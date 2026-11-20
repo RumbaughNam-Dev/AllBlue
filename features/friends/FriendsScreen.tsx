@@ -56,7 +56,7 @@ export default function FriendsScreen() {
       style={styles.friendCard}
       onPress={() => { if (!dragging) handleLongPress(item); }}
     >
-      <ProfileLink userId={item.userId} label={item.nickname}><ProfileAvatar profileImage={item.profileImage} nickname={item.nickname} level={item.badgeLevel ?? item.level} /></ProfileLink>
+      <ProfileLink userId={item.userId} label={item.nickname}><ProfileAvatar userId={item.userId} profileImage={item.profileImage} nickname={item.nickname} level={item.badgeLevel ?? item.level} /></ProfileLink>
 
       <View style={styles.friendInfo}>
         <View style={styles.friendNameRow}>
@@ -393,7 +393,7 @@ export default function FriendsScreen() {
                     onPress={() => handleSearchAdd(user)}
                     disabled={addingId !== null}
                   >
-                    <ProfileLink userId={user.userId} label={user.nickname} beforeOpen={closeSearchModal}><ProfileAvatar profileImage={user.profileImage} nickname={user.nickname} level={user.badgeLevel ?? user.level} /></ProfileLink>
+                    <ProfileLink userId={user.userId} label={user.nickname} beforeOpen={closeSearchModal}><ProfileAvatar userId={user.userId} profileImage={user.profileImage} nickname={user.nickname} level={user.badgeLevel ?? user.level} /></ProfileLink>
                     <View style={styles.searchResultInfo}>
                       <View style={styles.searchResultNameRow}>
                         <Text style={styles.searchResultName}>
