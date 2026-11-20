@@ -3,6 +3,7 @@ import { useFonts } from 'expo-font';
 import { Stack, useRouter, useSegments, useGlobalSearchParams } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import * as SystemUI from 'expo-system-ui';
+import * as ScreenOrientation from 'expo-screen-orientation';
 import { useEffect, useRef, useState } from 'react';
 import { View, DeviceEventEmitter, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -21,6 +22,9 @@ export { ErrorBoundary } from 'expo-router';
 
 SplashScreen.preventAutoHideAsync();
 SystemUI.setBackgroundColorAsync('#144A84');
+// 앱은 세로 고정. app.json orientation을 'default'로 연 건 ApneaTap 기록 차트 전체 화면(가로)만을 위해서라
+// 시작하자마자 세로로 잠금 (iOS는 expo-screen-orientation 플러그인의 PORTRAIT_UP으로 첫 화면부터 세로)
+ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {});
 
 // 편집 화면(글쓰기 · 투어 등록 · 제안): 왼쪽 끝에서 밀어서 닫기 (2026-11-08).
 // 작성 중이면 화면의 나가기 확인(usePreventRemove)이 스와이프를 멈추고 '나갈까요?'를 물음.
@@ -58,7 +62,7 @@ function RootLayoutNav() {
       router.replace('/onboarding');
     } else if (hasSeenOnboarding && !isLoggedIn && !inLogin && !inRegister) {
       router.replace('/login');
-    } else if (isLoggedIn && !inApp && !['notices','notice-detail','notice-edit','profile','profile-edit','profile-view','cert-upload','cert-manage','schedule-daily','schedule-detail','schedule-add','achievement','debriefing','student-notes','blocked-users','inquiry','inquiry-write','inquiry-detail','inquiry-manage','inquiry-answer','withdraw','schedule-settings','organization-register','organization-manage','organization-members','community-posts','community-post','community-essay-write','community-free-write','community-promo-edit','community-greetings','community-reports','tour-register','tour-detail','tour-list','tour-search','tour-mine','tour-applications','tour-propose','tour-proposals','tour-proposal','tour-requests','tour-reports','tour-banners','tour-banner-edit','game-freediving','game-records'].includes(segments[0] as string)) {
+    } else if (isLoggedIn && !inApp && !['notices','notice-detail','notice-edit','profile','profile-edit','profile-view','cert-upload','cert-manage','schedule-daily','schedule-detail','schedule-add','achievement','debriefing','student-notes','blocked-users','inquiry','inquiry-write','inquiry-detail','inquiry-manage','inquiry-answer','withdraw','schedule-settings','organization-register','organization-manage','organization-members','community-posts','community-post','community-essay-write','community-free-write','community-promo-edit','community-greetings','community-reports','tour-register','tour-detail','tour-list','tour-search','tour-mine','tour-applications','tour-propose','tour-proposals','tour-proposal','tour-requests','tour-reports','tour-banners','tour-banner-edit','game-freediving','game-apneatap','game-records'].includes(segments[0] as string)) {
       router.replace('/(tabs)');
     }
 
@@ -164,6 +168,8 @@ function RootLayoutNav() {
           <Stack.Screen name="tour-banner-edit" options={{ gestureEnabled: true }} />
           {/* 게임: 왼쪽 아래 조이스틱과 겹치지 않게 밀어서 뒤로가기 없음, 화면 전체를 씀 */}
           <Stack.Screen name="game-freediving" options={{ animation: 'fade', contentStyle: { backgroundColor: '#062A4D' } }} />
+          {/* 기록 패널을 왼쪽 끝에서 밀어 닫으므로 화면 스와이프 닫기는 끔 (나가기는 홈의 X) */}
+          <Stack.Screen name="game-apneatap" options={{ animation: 'fade', gestureEnabled: false, contentStyle: { backgroundColor: '#0B1929' } }} />
           <Stack.Screen name="game-records" options={{ gestureEnabled: true }} />
         </Stack>
       </StripTabBarHost>

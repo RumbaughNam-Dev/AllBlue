@@ -2,8 +2,8 @@
   "expo": {
     "name": "AllBlue",
     "slug": "allblue",
-    "version": "1.0.3",
-    "orientation": "portrait",
+    "version": "1.0.4",
+    "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "allblue",
     "userInterfaceStyle": "automatic",
@@ -81,6 +81,21 @@
           "ios": {
             "useFrameworks": "dynamic"
           }
+        }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": false,
+          "recordAudioAndroid": false,
+          "enableBackgroundPlayback": false,
+          "enableBackgroundRecording": false
+        }
+      ],
+      [
+        "expo-screen-orientation",
+        {
+          "initialOrientation": "PORTRAIT_UP"
         }
       ]
     ],

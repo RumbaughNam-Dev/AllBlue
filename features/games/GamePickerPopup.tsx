@@ -9,21 +9,18 @@ import GlassBackground, { glassClear } from '@/components/GlassBackground';
 import FreedivingView from './freediving/FreedivingView';
 import { ambientAt, createGame, DiveState } from './freediving/sim';
 import { GAME_NAMES } from './games';
-import { openExternalApp, type ExternalApp } from './externalApp';
 
 // 게임 고르기 (전체 화면): 위쪽 막대 프로필 사진 옆 게임 아이콘을 누르면 열림.
 // 상자 없이 게임 화면(캡처)과 이름만 가로로 넘겨 고르고, 누르면 그 게임으로. 닫기는 오른쪽 위 X 하나 (사용자 2026-11-12)
-// route = 앱 안 게임 화면, app = 따로 출시한 우리 앱 (깔려 있으면 열고, 없으면 스토어)
-type Game = { key: string; name: string; Preview: React.ComponentType<{ width: number; height: number }> }
-  & ({ route: '/game-freediving' } | { app: ExternalApp });
+type Game = {
+  key: string; name: string; route: '/game-freediving' | '/game-apneatap';
+  Preview: React.ComponentType<{ width: number; height: number }>;
+};
 
 const GAMES: Game[] = [
   { key: 'freediving', name: GAME_NAMES.freediving, route: '/game-freediving', Preview: FreedivingPreview },
-  // ApneaTap (ApneaTapExpo, 홈 화면 이름 A-Tap): 스태틱 무호흡 기록 앱. 안드로이드 빌드엔 아직 앱 주소가 없어서 지금은 플레이 스토어 화면으로 감
-  {
-    key: 'atap', name: 'ApneaTap', Preview: ATapPreview,
-    app: { url: 'com.rumbaugh.apneatap://', appStoreId: '6791470716', androidPackage: 'com.rumbaugh.apneatap' },
-  },
+  // ApneaTap: 따로 출시한 A-Tap 앱(ApneaTapExpo)을 앱 안으로 통째로 옮김 (2026-11-20, 그 전엔 A-Tap 앱을 열거나 스토어로 감)
+  { key: 'atap', name: 'ApneaTap', route: '/game-apneatap', Preview: ATapPreview },
 ];
 
 // 미리보기 화면은 이 크기로 그린 뒤 카드에 맞게 줄임 (실제 게임 화면과 같은 그림)
@@ -44,8 +41,7 @@ export default function GamePickerPopup({ visible, onClose }: { visible: boolean
 
   const open = (game: Game) => {
     onClose();
-    if ('route' in game) router.push(game.route);
-    else void openExternalApp(game.app);
+    router.push(game.route);
   };
 
   return (
@@ -64,7 +60,7 @@ export default function GamePickerPopup({ visible, onClose }: { visible: boolean
             <Pressable
               key={game.key}
               accessibilityRole="button"
-              accessibilityLabel={`${game.name} ${'route' in game ? '시작' : '열기'}`}
+              accessibilityLabel={`${game.name} 시작`}
               onPress={() => open(game)}
               style={({ pressed }) => [{ width: cardW }, pressed && styles.pressed]}
             >
