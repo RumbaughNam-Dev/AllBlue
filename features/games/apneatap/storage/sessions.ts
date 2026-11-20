@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {api} from '@/services/api';
 
 export interface Session {
   id: string;
@@ -7,23 +8,22 @@ export interface Session {
   duration: number;
 }
 
-const KEY = '@atap_sessions';
+// 세션 기록은 서버(game_record, game 'apneatap')에 저장 (2026-11-20, A-Tap 앱은 기기에만 저장했음).
+// 설정(시간 표시 · 진동 및 사운드)만 이 기기에 남김
+type NewSession = Omit<Session, 'id'>;
 
 export async function loadSessions(): Promise<Session[]> {
-  const json = await AsyncStorage.getItem(KEY);
-  return json ? JSON.parse(json) : [];
+  const {records} = await api.getAllApneaTapRecords();
+  return records.map(r => ({id: String(r.id), ...r.details}));
 }
 
-export async function saveSession(session: Session): Promise<void> {
-  const sessions = await loadSessions();
-  sessions.unshift(session);
-  await AsyncStorage.setItem(KEY, JSON.stringify(sessions));
+export async function saveSession(session: NewSession): Promise<Session> {
+  const {record} = await api.saveGameRecord('apneatap', {score: 0, details: session});
+  return {id: String(record.id), ...record.details};
 }
 
 export async function deleteSession(id: string): Promise<void> {
-  const sessions = await loadSessions();
-  const filtered = sessions.filter(s => s.id !== id);
-  await AsyncStorage.setItem(KEY, JSON.stringify(filtered));
+  await api.deleteApneaTapRecord(Number(id));
 }
 
 // Settings

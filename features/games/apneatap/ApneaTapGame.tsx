@@ -1,5 +1,6 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {
+  Alert,
   Animated,
   BackHandler,
   Dimensions,
@@ -29,7 +30,8 @@ import {
 
 // ApneaTap (따로 출시한 A-Tap 앱, ApneaTapExpo의 App.tsx)을 AllBlue 게임으로 옮김 (2026-11-20 사용자 요청).
 // 바뀐 점: 3초 스플래시 없이 바로 홈, 홈 왼쪽 위 X로 AllBlue로 돌아감, 안드로이드 뒤로 버튼 처리.
-// 기록은 이 기기에만 저장 (AsyncStorage '@atap_sessions' — A-Tap 앱의 기록은 다른 앱이라 가져올 수 없음)
+// 기록은 서버에 저장 (2026-11-20, 사용자별 game_record 'apneatap') — A-Tap 앱의 기기 기록은 다른 앱이라 가져올 수 없음.
+// 저장 · 지우기가 안 되면 알림만 띄우고 화면은 그대로 진행
 
 const {width: SCREEN_W} = Dimensions.get('window');
 const SWIPE_THRESHOLD = SCREEN_W * 0.3;
@@ -60,7 +62,9 @@ export default function ApneaTapGame() {
       useNativeDriver: true,
     }).start();
     ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {});
-    loadSessions().then(setSessions).catch(() => {});
+    loadSessions().then(setSessions).catch(() => {
+      Alert.alert('기록을 불러오지 못했어요', '인터넷 연결을 확인한 뒤 기록조회를 다시 열어 주세요.');
+    });
     loadSettings().then(setSettings).catch(() => {});
   }, [homeOpacity]);
 
@@ -74,24 +78,28 @@ export default function ApneaTapGame() {
   }, []);
 
   const handleSessionComplete = useCallback(async (data: SessionData) => {
-    const session: Session = {
-      id: Date.now().toString(),
+    const draft = {
       startTime: data.startTime,
       lapTimes: data.lapTimes,
       duration: data.duration,
     };
+    let session: Session = {id: `local-${data.startTime}`, ...draft};
     try {
-      await saveSession(session);
+      session = await saveSession(draft);
       setSessions(prev => [session, ...prev]);
     } catch {
-      // Storage save failed — continue to complete screen anyway
+      Alert.alert('기록을 저장하지 못했어요', '인터넷 연결을 확인해 주세요. 이번 결과는 화면에만 보여요.');
     }
     setLastSession(session);
     setScreen('complete');
   }, []);
 
+  // 기록조회를 열 때마다 서버에서 다시 받아 옴 (다른 기기에서 한 세션도 보이게)
   const openRecords = useCallback(() => {
     setRecordsVisible(true);
+    loadSessions().then(setSessions).catch(() => {
+      Alert.alert('기록을 불러오지 못했어요', '인터넷 연결을 확인해 주세요.');
+    });
   }, []);
 
   const closeRecords = useCallback(() => {
@@ -131,7 +139,7 @@ export default function ApneaTapGame() {
       await deleteSession(id);
       setSessions(prev => prev.filter(s => s.id !== id));
     } catch {
-      // Storage delete failed
+      Alert.alert('기록을 지우지 못했어요', '인터넷 연결을 확인한 뒤 다시 해 주세요.');
     }
   }, []);
 

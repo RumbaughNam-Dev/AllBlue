@@ -296,8 +296,10 @@ export type FreedivingRecordDetails = {
   diveTime: number; // 초
   points: { depth: number; air: number; eq: number; zone: number }; // 수심 40 · 공기 사용 20 · 이퀄 15 · 선 유지 25점 만점
 };
-export type GameRecord = { id: number; game: string; score: number; details: FreedivingRecordDetails; playedAt: string };
-export type GameRecordSaved = { record: GameRecord; best: number; isBest: boolean; count: number };
+// ApneaTap 세션 (2026-11-20부터 서버 저장, 점수 없음 — score는 늘 0). 시간은 ms
+export type ApneaTapRecordDetails = { startTime: number; lapTimes: number[]; duration: number };
+export type GameRecord<D = FreedivingRecordDetails> = { id: number; game: string; score: number; details: D; playedAt: string };
+export type GameRecordSaved<D = FreedivingRecordDetails> = { record: GameRecord<D>; best: number; isBest: boolean; count: number };
 
 // 강사간 수강생 정보 공유 (일정 상세 교육생 카드). 강사끼리만 보고 수강생에게는 어디에도 보이지 않음.
 // 쓴 일정의 제목 · 날짜 · 다이빙 구분, 자격증 과정이면 그때의 과정 이름이 함께 남음
@@ -866,8 +868,17 @@ export const api = {
   },
 
   // 미니 게임: 판이 끝나면 저장 (내 최고 점수 · 새 최고 기록인지 돌려받음), 내 기록은 최근순 10개씩
-  saveGameRecord(game: string, record: { score: number; details: FreedivingRecordDetails }) {
-    return request<GameRecordSaved>(`/games/${game}/records`, { method: 'POST', body: JSON.stringify(record) });
+  saveGameRecord<D = FreedivingRecordDetails>(game: string, record: { score: number; details: D }) {
+    return request<GameRecordSaved<D>>(`/games/${game}/records`, { method: 'POST', body: JSON.stringify(record) });
+  },
+
+  // ApneaTap 기록 화면: 내 세션 최근순 전부(최대 1000개) · 하나 지우기
+  getAllApneaTapRecords() {
+    return request<{ records: GameRecord<ApneaTapRecordDetails>[] }>('/games/apneatap/records/all');
+  },
+
+  deleteApneaTapRecord(id: number) {
+    return request<{ ok: boolean }>(`/games/apneatap/records/${id}`, { method: 'DELETE' });
   },
 
   getGameRecords(game: string, cursor: { before?: number; after?: number } = {}) {
