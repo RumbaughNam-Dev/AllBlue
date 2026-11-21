@@ -228,7 +228,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.brand.primary },
   loadingArea: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16 },
   loadingClose: { position: 'absolute', top: 0, right: 24, padding: 10 },
-  scrollContent: { paddingHorizontal: 24, paddingBottom: 16 },
+  scrollContent: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 16 }, // 위 12: 사진 오른쪽 위 등급 알약이 잘리지 않게
   profileRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 20 },
   gradePill: { position: 'absolute', top: -10, right: -18, zIndex: 1 },
   avatarWrap: {
