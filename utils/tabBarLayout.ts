@@ -25,3 +25,10 @@ export const SIDE_STRIP_CENTER_SHIFT = 6;
 export function hasSideTabStrip(rightInset: number, platform: string): boolean {
   return platform === 'ios' && rightInset >= SIDE_TAB_STRIP_MIN;
 }
+
+// 접은 아이폰 듀오: 오른쪽 여백 맨 위에 카메라 · 시계 · 배터리가 세로로 있음 (폭 약 466pt).
+// 펼친 화면(폭 약 669pt)의 오른쪽 칸은 비어 있는 탭 바 자리라, 위에 닫기 버튼을 둬도 가리지 않음 (2026-11-21 사용자)
+const FOLDED_DUO_MAX_WIDTH = 560;
+export function hasStatusSideStrip(rightInset: number, windowWidth: number, platform: string): boolean {
+  return hasSideTabStrip(rightInset, platform) && windowWidth < FOLDED_DUO_MAX_WIDTH;
+}

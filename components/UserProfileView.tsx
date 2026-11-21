@@ -1,6 +1,6 @@
 import { formatSta } from '@/utils/sta';
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, Image, ScrollView, Platform } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Image, ScrollView, Platform, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import Colors from '@/constants/Colors';
@@ -18,7 +18,7 @@ import { useUserGrade } from '@/features/grade/store';
 import { gradeColor } from '@/features/grade/grade';
 import GradePill from '@/features/grade/GradePill';
 import StripBackSlot from '@/components/StripBackSlot';
-import { hasSideTabStrip } from '@/utils/tabBarLayout';
+import { hasStatusSideStrip } from '@/utils/tabBarLayout';
 
 // Main actions stay white (prominent glass) so the navy label keeps its contrast.
 const PROMINENT_TINT = 'rgba(255,255,255,0.85)';
@@ -34,8 +34,9 @@ type Props = { userId: string; onClose: () => void; onOpenLog?: (params: Profile
 
 export default function UserProfileView({ userId, onClose, onOpenLog }: Props) {
   const insets = useSafeAreaInsets();
-  // 아이폰 듀오: 시트가 오른쪽 여백까지 덮어서 닫기 버튼이 카메라 밑으로 감 → 내용은 여백을 피하고, 닫기는 여백의 상태 표시 아래 (뒤로가기 자리)
-  const strip = hasSideTabStrip(insets.right, Platform.OS);
+  // 접은 아이폰 듀오: 전체 화면으로 열리고(내용은 여백을 피함, app/_layout) 닫기는 여백의 상태 표시 아래 (뒤로가기 자리)
+  const { width: windowWidth } = useWindowDimensions();
+  const strip = hasStatusSideStrip(insets.right, windowWidth, Platform.OS); // 접은 듀오만 (펼친 화면은 제자리)
   const closeButton = (
     <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="프로필 닫기" hitSlop={8}
       style={({ pressed }) => pressed && { opacity: 0.6 }}>
@@ -81,7 +82,7 @@ export default function UserProfileView({ userId, onClose, onOpenLog }: Props) {
 
 
   return (
-    <View style={[styles.container, { paddingTop: Platform.OS === 'ios' ? 16 : insets.top + 16, paddingBottom: insets.bottom, paddingRight: strip ? insets.right : 0 }]}>
+    <View style={[styles.container, { paddingTop: Platform.OS === 'ios' ? 16 : insets.top + 16, paddingBottom: insets.bottom }]}>
       {strip && <View pointerEvents="box-none" style={styles.stripClose}><StripBackSlot size={32} collapse>{closeButton}</StripBackSlot></View>}
       <StatusBar style="light" />
 

@@ -5,9 +5,9 @@ import * as SplashScreen from 'expo-splash-screen';
 import * as SystemUI from 'expo-system-ui';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { useEffect, useRef, useState } from 'react';
-import { View, DeviceEventEmitter, Platform } from 'react-native';
+import { View, DeviceEventEmitter, Platform, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { hasSideTabStrip } from '@/utils/tabBarLayout';
+import { hasSideTabStrip, hasStatusSideStrip } from '@/utils/tabBarLayout';
 import { StripTabBarHost } from '@/components/StripTabBarHost';
 import { observeCommunityPushes, observeSchedulePushes, observeTourPushes } from '@/services/push';
 import { communityNoticeDestination } from '@/features/community/notices';
@@ -39,6 +39,11 @@ function RootLayoutNav() {
   const { left, right } = useSafeAreaInsets();
   // 그런 기기는 상태표시가 오른쪽으로 가서 위쪽 여백이 거의 0 — 상단 바가 맨 위에 붙지 않게 살짝 띄움
   const side = { paddingLeft: left, paddingRight: right, paddingTop: hasSideTabStrip(right, Platform.OS) ? 12 : 0 };
+  // 접은 듀오: 아래에서 올라오는 시트가 오른쪽 여백(카메라)까지 덮어서 프로필을 다른 화면처럼 전체 화면으로 (닫기는 여백의 상태 표시 아래)
+  const { width: windowWidth } = useWindowDimensions();
+  const profileSheet = hasStatusSideStrip(right, windowWidth, Platform.OS)
+    ? { presentation: 'fullScreenModal' as const, contentStyle: { ...side, backgroundColor: '#144A84' } }
+    : { presentation: 'modal' as const, gestureEnabled: true, animation: 'default' as const, contentStyle: { backgroundColor: '#144A84' } };
   const segments = useSegments();
   const linkParams = useGlobalSearchParams<{ id?: string; filter?: string }>();
   useScheduleLinkResume({
@@ -122,14 +127,14 @@ function RootLayoutNav() {
           <Stack.Screen name="register" />
           <Stack.Screen name="(tabs)" />
           {/* 아래에서 올라오는 시트는 iOS가 이미 오른쪽 여백을 피해 놓으므로 여백 패딩을 넣지 않음 */}
-          <Stack.Screen name="profile" options={{ presentation: 'modal', gestureEnabled: true, animation: 'default', contentStyle: { backgroundColor: '#144A84' } }} />
+          <Stack.Screen name="profile" options={profileSheet} />
           <Stack.Screen name="profile-edit" options={{ presentation: 'fullScreenModal', contentStyle: { ...side, backgroundColor: '#144A84' } }} />
           <Stack.Screen name="cert-upload" options={{ gestureEnabled: true, contentStyle: { ...side, backgroundColor: '#144A84' } }} />
           <Stack.Screen name="cert-manage" options={{ gestureEnabled: true, contentStyle: { ...side, backgroundColor: '#144A84' } }} />
           <Stack.Screen name="schedule-daily" options={{ gestureEnabled: true }} />
           <Stack.Screen name="schedule-detail" options={{ gestureEnabled: true }} />
           <Stack.Screen name="schedule-add" options={{ gestureEnabled: true, headerBackButtonMenuEnabled: false }} />
-          <Stack.Screen name="profile-view" options={{ presentation: 'modal', gestureEnabled: true, animation: 'default', contentStyle: { backgroundColor: '#144A84' } }} />
+          <Stack.Screen name="profile-view" options={profileSheet} />
           <Stack.Screen name="achievement" options={{ gestureEnabled: true }} />
           <Stack.Screen name="debriefing" options={{ gestureEnabled: true }} />
           {/* 강사간 수강생 정보 공유: 아래 입력칸이 있어 왼쪽 끝 밀기로만 닫고, 쓰던 글이 있으면 나가기 전에 물음 */}

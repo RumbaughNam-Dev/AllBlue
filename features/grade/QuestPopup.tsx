@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { hasStatusSideStrip } from '@/utils/tabBarLayout';
 import { Ionicons } from '@expo/vector-icons';
 import Colors from '@/constants/Colors';
 import PopupBackdrop from '@/components/PopupBackdrop';
@@ -26,6 +27,9 @@ export default function QuestPopup() {
   const status = useQuestStatus();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { width: windowWidth } = useWindowDimensions();
+  // 접은 듀오만 오른쪽 여백(카메라)을 피함, 펼친 화면은 화면 가운데
+  const sideRight = hasStatusSideStrip(insets.right, windowWidth, Platform.OS) ? insets.right : 0;
   const { user } = useAuth();
   const [error, setError] = useState(false);
   const [now, setNow] = useState(Date.now());
@@ -69,7 +73,7 @@ export default function QuestPopup() {
     <Modal visible={open} transparent animationType="fade" onRequestClose={closeQuests} statusBarTranslucent>
       <Pressable style={StyleSheet.absoluteFill} onPress={closeQuests} accessibilityLabel="퀘스트 닫기"><PopupBackdrop /></Pressable>
       {/* 아이폰 듀오: 오른쪽 여백(안전 영역)을 피해 가운데 (닫기 버튼이 여백 밑으로 가지 않게) */}
-      <View style={[styles.center, { paddingLeft: 20 + insets.left, paddingRight: 20 + insets.right, paddingTop: 20 + insets.top, paddingBottom: 20 + insets.bottom }]} pointerEvents="box-none">
+      <View style={[styles.center, { paddingLeft: 20 + insets.left, paddingRight: 20 + sideRight, paddingTop: 20 + insets.top, paddingBottom: 20 + insets.bottom }]} pointerEvents="box-none">
         <View style={styles.card}>
           <View style={styles.header}>
             <Text style={styles.title}>퀘스트</Text>
