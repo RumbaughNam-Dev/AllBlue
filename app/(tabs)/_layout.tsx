@@ -83,15 +83,25 @@ export default function TabLayout() {
     <View style={[styles.root, { paddingTop: insets.top }]}>
       {/* Toolbar */}
       <View style={styles.toolbar}>
-        <View style={styles.toolbarLeft}>
+        {/* 왼쪽 로고를 누르면 홈 (2026-11-09, 2026-11-21 가운데→왼쪽). 홈은 아래 탭 바에 칸이 없고 앱을 열면 처음 보임 */}
+        <View pointerEvents="box-none" style={styles.toolbarLogo}>
+          <Pressable accessibilityRole="button" accessibilityLabel="홈" hitSlop={8} onPress={() => router.navigate('/')}
+            style={({ pressed }) => pressed && { opacity: 0.6 }}>
+            <Text style={styles.toolbarTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>all<Text style={{ color: '#00E5FF' }}>b</Text>lue</Text>
+          </Pressable>
+        </View>
+
+        <View style={styles.toolbarActions}>
           <Pressable
             style={({ pressed }) => [styles.profileButton, pressed && { opacity: 0.6 }]}
             onPress={() => router.push('/profile')}
           >
-            {/* 홈 왼쪽 위 프로필 사진: 자격증 배지 없이 (2026-11-08), admin은 처리할 건수, 활동 등급 테두리 · 레벨 (2026-11-20) */}
+            {/* 프로필 사진: 퀘스트 왼쪽 (2026-11-21, 그 전엔 왼쪽 위), 자격증 배지 없이 (2026-11-08), admin은 처리할 건수, 활동 등급 테두리 · 레벨 (2026-11-20) */}
             <View ref={avatarRef} collapsable={false}><ProfileAvatar userId={user?.id} profileImage={user?.profileImage} nickname={user?.nickname} showLevel={false} count={adminBadgeText(adminTotal)} /></View>
           </Pressable>
-          {/* 프로필 사진 오른쪽 게임 아이콘 → 게임 고르기 팝업. 새 게임은 팝업을 한 번 열 때까지 NEW */}
+          {/* 종 왼쪽 퀘스트 아이콘 (2026-11-20) */}
+          {user && <QuestButton />}
+          {/* 게임 아이콘: 퀘스트와 종 사이 (2026-11-21, 그 전엔 프로필 사진 오른쪽) → 게임 고르기 팝업. 새 게임은 팝업을 한 번 열 때까지 NEW */}
           {showGames && <Pressable
             accessibilityRole="button"
             accessibilityLabel={newGame.isNew ? '게임, 새 게임 있음' : '게임'}
@@ -103,19 +113,6 @@ export default function TabLayout() {
             </GlassCircle>
             {newGame.isNew ? <View style={styles.newBadge}><Text style={styles.newBadgeText}>NEW</Text></View> : null}
           </Pressable>}
-        </View>
-
-        {/* 가운데 로고를 누르면 홈 (2026-11-09). 홈은 아래 탭 바에 칸이 없고 앱을 열면 처음 보임 */}
-        <View pointerEvents="box-none" style={styles.toolbarLogo}>
-          <Pressable accessibilityRole="button" accessibilityLabel="홈" hitSlop={8} onPress={() => router.navigate('/')}
-            style={({ pressed }) => pressed && { opacity: 0.6 }}>
-            <Text style={styles.toolbarTitle}>all<Text style={{ color: '#00E5FF' }}>b</Text>lue</Text>
-          </Pressable>
-        </View>
-
-        <View style={styles.toolbarActions}>
-          {/* 종 왼쪽 퀘스트 아이콘 (2026-11-20) */}
-          {user && <QuestButton />}
           <NotificationBell key={user?.id} />
           <Pressable
             style={({ pressed }) => pressed && { opacity: 0.6 }}
@@ -286,21 +283,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
   },
-  toolbarLeft: { flexDirection: 'row', alignItems: 'center', gap: 14 }, // 프로필 오른쪽 위 레벨 알약 자리
-  profileButton: { width: 40, height: 40 },
+  profileButton: { width: 40, height: 40, marginRight: 8 }, // 오른쪽 위 레벨 알약이 퀘스트 아이콘에 닿지 않게
   gameButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   gameIcon: { width: 38, height: 38, alignItems: 'center', justifyContent: 'center' },
   // 알림 종의 건수 배지와 같은 빨강
   newBadge: { position: 'absolute', right: -6, top: 0, height: 16, paddingHorizontal: 4, borderRadius: 8, backgroundColor: '#EF4444', alignItems: 'center', justifyContent: 'center' },
   newBadgeText: { color: 'white', fontSize: 9, fontWeight: '800', letterSpacing: 0.3 },
+  // 로고는 왼쪽에, 아래 화면 내용과 같은 줄(툴바 왼쪽 여백 20)에서 시작 (2026-11-21, 아이콘은 모두 오른쪽)
   toolbarLogo: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-    alignItems: 'center',
+    flex: 1,
+    alignSelf: 'stretch',
+    alignItems: 'flex-start',
     justifyContent: 'center',
+    marginRight: 8,
   },
   toolbarTitle: {
     fontFamily: 'SUIT-Regular',

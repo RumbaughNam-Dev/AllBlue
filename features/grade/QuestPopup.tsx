@@ -79,7 +79,8 @@ export default function QuestPopup() {
               {error ? <Text style={styles.muted}>퀘스트를 불러오지 못했어요. 인터넷 연결을 확인해 주세요.</Text> : <ActivityIndicator color="white" />}
             </View>
           ) : (
-            <ScrollView contentContainerStyle={{ paddingBottom: 6 }} showsVerticalScrollIndicator={false}>
+            <>
+              {/* 위: 프로필 · 경험치는 고정 */}
               <View style={styles.me}>
                 <ProfileAvatar userId={user?.id} profileImage={user?.profileImage} nickname={user?.nickname} showLevel={false} />
                 <View style={{ flex: 1 }}>
@@ -97,16 +98,20 @@ export default function QuestPopup() {
                 </View>
               ) : (
                 <>
-                  <Text style={styles.section}>일간 퀘스트 · 초기화까지 {remain(status.daily.resetAt, now)}</Text>
-                  {status.daily.quests.map(q => row(q))}
-                  {row(status.daily.bonus, true)}
-                  <Text style={styles.section}>주간 퀘스트 · 월요일 0시 초기화</Text>
-                  {status.weekly.quests.map(q => row(q))}
-                  {row(status.weekly.bonus, true)}
-                  <Text style={styles.hint}>출석체크는 커뮤니티 출석인사에 한마디 남기면 돼요. 남의 글 좋아요는 서로 다른 글 3개예요.</Text>
+                  {/* 가운데: 일간 · 주간 퀘스트만 스크롤 */}
+                  <ScrollView style={styles.list} contentContainerStyle={{ paddingBottom: 2 }} showsVerticalScrollIndicator={false}>
+                    <Text style={[styles.section, { marginTop: 4 }]}>일간 퀘스트 · 초기화까지 {remain(status.daily.resetAt, now)}</Text>
+                    {status.daily.quests.map(q => row(q))}
+                    {row(status.daily.bonus, true)}
+                    <Text style={styles.section}>주간 퀘스트 · 월요일 0시 초기화</Text>
+                    {status.weekly.quests.map(q => row(q))}
+                    {row(status.weekly.bonus, true)}
+                  </ScrollView>
+                  {/* 아래: 안내는 고정 */}
+                  <Text style={styles.hint}>{'출석체크는 커뮤니티 출석인사에 한마디 남기면 돼요.\n남의 글 좋아요는 서로 다른 글 3개예요.'}</Text>
                 </>
               )}
-            </ScrollView>
+            </>
           )}
         </View>
       </View>
@@ -140,7 +145,8 @@ const styles = StyleSheet.create({
   go: { backgroundColor: 'rgba(255,212,59,0.18)', borderRadius: 12, paddingHorizontal: 9, paddingVertical: 5 },
   goText: { fontFamily: 'SUIT-Bold', fontSize: 12, color: '#FFD43B' },
   muted: { fontFamily: 'SUIT-Medium', fontSize: 12, color: 'rgba(255,255,255,0.6)' },
-  hint: { fontFamily: 'SUIT-Medium', fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 8, lineHeight: 17 },
+  list: { flexGrow: 0, flexShrink: 1, marginTop: 6 },
+  hint: { fontFamily: 'SUIT-Medium', fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 10, lineHeight: 17 },
   maxed: { alignItems: 'center', paddingVertical: 28, gap: 8 },
   maxedTitle: { fontFamily: 'SUIT-Bold', fontSize: 20, color: '#40C057' },
 });
