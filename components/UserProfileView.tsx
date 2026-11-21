@@ -17,6 +17,8 @@ import ProfileTours from '@/features/tour/ProfileTours';
 import { useUserGrade } from '@/features/grade/store';
 import { gradeColor } from '@/features/grade/grade';
 import GradePill from '@/features/grade/GradePill';
+import StripBackSlot from '@/components/StripBackSlot';
+import { hasSideTabStrip } from '@/utils/tabBarLayout';
 
 // Main actions stay white (prominent glass) so the navy label keeps its contrast.
 const PROMINENT_TINT = 'rgba(255,255,255,0.85)';
@@ -32,6 +34,14 @@ type Props = { userId: string; onClose: () => void; onOpenLog?: (params: Profile
 
 export default function UserProfileView({ userId, onClose, onOpenLog }: Props) {
   const insets = useSafeAreaInsets();
+  // 아이폰 듀오: 시트가 오른쪽 여백까지 덮어서 닫기 버튼이 카메라 밑으로 감 → 내용은 여백을 피하고, 닫기는 여백의 상태 표시 아래 (뒤로가기 자리)
+  const strip = hasSideTabStrip(insets.right, Platform.OS);
+  const closeButton = (
+    <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="프로필 닫기" hitSlop={8}
+      style={({ pressed }) => pressed && { opacity: 0.6 }}>
+      <GlassCircle size={32}><Text style={styles.closeX}>✕</Text></GlassCircle>
+    </Pressable>
+  );
 
   const { user: me } = useAuth();
   const [certifications, setCertifications] = useState<Certification[]>([]);
@@ -71,12 +81,13 @@ export default function UserProfileView({ userId, onClose, onOpenLog }: Props) {
 
 
   return (
-    <View style={[styles.container, { paddingTop: Platform.OS === 'ios' ? 16 : insets.top + 16, paddingBottom: insets.bottom }]}>
+    <View style={[styles.container, { paddingTop: Platform.OS === 'ios' ? 16 : insets.top + 16, paddingBottom: insets.bottom, paddingRight: strip ? insets.right : 0 }]}>
+      {strip && <View pointerEvents="box-none" style={styles.stripClose}><StripBackSlot size={32} collapse>{closeButton}</StripBackSlot></View>}
       <StatusBar style="light" />
 
       {loading || error ? (
         <View style={styles.loadingArea}>
-          <Pressable style={styles.loadingClose} onPress={onClose} accessibilityRole="button" accessibilityLabel="프로필 닫기"><GlassCircle size={32}><Text style={styles.closeX}>✕</Text></GlassCircle></Pressable>
+          {!strip && <Pressable style={styles.loadingClose} onPress={onClose} accessibilityRole="button" accessibilityLabel="프로필 닫기"><GlassCircle size={32}><Text style={styles.closeX}>✕</Text></GlassCircle></Pressable>}
           {loading ? <Spinner /> : <>
             <Text style={styles.bioText}>프로필을 불러오지 못했습니다.</Text>
             <Pressable onPress={() => setRetry(value => value + 1)} accessibilityRole="button"><Text style={styles.bioText}>다시 시도</Text></Pressable>
@@ -111,13 +122,13 @@ export default function UserProfileView({ userId, onClose, onOpenLog }: Props) {
                 </View>
               )) : <Text style={styles.role}>보유 자격증 없음</Text>}
             </View>
-            <Pressable
+            {!strip && <Pressable
               style={({ pressed }) => [styles.closeButton, glassClear, pressed && { opacity: 0.6 }]}
               onPress={onClose} accessibilityRole="button" accessibilityLabel="프로필 닫기"
             >
               <GlassBackground radius={16} interactive />
               <Text style={styles.closeX}>✕</Text>
-            </Pressable>
+            </Pressable>}
           </View>
 
           {/* Organization */}
@@ -227,6 +238,7 @@ export default function UserProfileView({ userId, onClose, onOpenLog }: Props) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.brand.primary },
   loadingArea: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16 },
+  stripClose: { position: 'absolute', top: 0, left: 0, zIndex: 10 }, // 자리 기준점 (버튼은 StripBackSlot이 여백으로 옮김; 오른쪽 끝에 두면 화면 밖으로 재져서 안 그려짐)
   loadingClose: { position: 'absolute', top: 0, right: 24, padding: 10 },
   scrollContent: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 16 }, // 위 12: 사진 오른쪽 위 등급 알약이 잘리지 않게
   profileRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 20 },

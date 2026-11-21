@@ -19,6 +19,8 @@ import ProfileTours from '@/features/tour/ProfileTours';
 import { useUserGrade } from '@/features/grade/store';
 import { gradeColor } from '@/features/grade/grade';
 import GradePill from '@/features/grade/GradePill';
+import StripBackSlot from '@/components/StripBackSlot';
+import { hasSideTabStrip } from '@/utils/tabBarLayout';
 
 function formatRecord(val: number | null, unit?: string): string {
   if (val === null || val === undefined) return '--';
@@ -27,6 +29,8 @@ function formatRecord(val: number | null, unit?: string): string {
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
+  // 아이폰 듀오: 시트가 오른쪽 여백까지 덮어서 닫기 버튼이 카메라 밑으로 감 → 내용은 여백을 피하고, 닫기는 여백의 상태 표시 아래 (뒤로가기 자리)
+  const strip = hasSideTabStrip(insets.right, Platform.OS);
   const router = useRouter();
   const { user, updateUser } = useAuth();
   const myGrade = useUserGrade(user?.id);
@@ -96,7 +100,14 @@ export default function ProfileScreen() {
   );
 
   return (
-    <View style={[styles.container, { paddingTop: Platform.OS === 'ios' ? 16 : insets.top + 16, paddingBottom: insets.bottom }]}>
+    <View style={[styles.container, { paddingTop: Platform.OS === 'ios' ? 16 : insets.top + 16, paddingBottom: insets.bottom, paddingRight: strip ? insets.right : 0 }]}>
+      {strip && <View pointerEvents="box-none" style={styles.stripClose}><StripBackSlot size={32} collapse>
+        <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="프로필 닫기" hitSlop={8}
+          style={({ pressed }) => [styles.closeButton, glassClear, pressed && { opacity: 0.6 }]}>
+          <GlassBackground radius={16} interactive />
+          <Text style={styles.closeX}>✕</Text>
+        </Pressable>
+      </StripBackSlot></View>}
       <StatusBar style="light" />
       {certificateImage && <CertificateImageViewer key={certificateImage} imageUrl={certificateImage} onClose={() => setCertificateImage(null)} />}
       <BottomSheet
@@ -144,13 +155,13 @@ export default function ProfileScreen() {
                   </View>
                 )) : <Text style={styles.role}>보유 자격증 없음</Text>}
               </View>
-              <Pressable
+              {!strip && <Pressable
                 style={({ pressed }) => [styles.closeButton, glassClear, pressed && { opacity: 0.6 }]}
                 onPress={() => router.back()}
               >
                 <GlassBackground radius={16} interactive />
                 <Text style={styles.closeX}>✕</Text>
-              </Pressable>
+              </Pressable>}
             </View>
 
             {/* Organization */}
@@ -382,6 +393,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: 'rgba(255,255,255,0.55)',
   },
+  stripClose: { position: 'absolute', top: 0, left: 0, zIndex: 10 }, // 자리 기준점 (버튼은 StripBackSlot이 여백으로 옮김; 오른쪽 끝에 두면 화면 밖으로 재져서 안 그려짐)
   closeButton: {
     width: 32,
     height: 32,
