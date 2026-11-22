@@ -39,3 +39,6 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# 로컬 네이티브 모듈 빌드 결과물
+modules/*/android/build/

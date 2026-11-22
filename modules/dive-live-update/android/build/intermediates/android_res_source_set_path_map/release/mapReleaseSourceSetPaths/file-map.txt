@@ -1,9 +1,0 @@
-expo.modules.divelive.dive-live-update-pngs-0 /Users/rumbaughnam/Projects/AllBlue-community/modules/dive-live-update/android/build/generated/res/pngs/release
-expo.modules.divelive.dive-live-update-updated_navigation_xml-1 /Users/rumbaughnam/Projects/AllBlue-community/modules/dive-live-update/android/build/generated/updated_navigation_xml/release
-expo.modules.divelive.dive-live-update-mergeReleaseResources-2 /Users/rumbaughnam/Projects/AllBlue-community/modules/dive-live-update/android/build/intermediates/incremental/release/mergeReleaseResources/merged.dir
-expo.modules.divelive.dive-live-update-mergeReleaseResources-3 /Users/rumbaughnam/Projects/AllBlue-community/modules/dive-live-update/android/build/intermediates/incremental/release/mergeReleaseResources/stripped.dir
-expo.modules.divelive.dive-live-update-release-4 /Users/rumbaughnam/Projects/AllBlue-community/modules/dive-live-update/android/build/intermediates/merged_res/release/mergeReleaseResources
-expo.modules.divelive.dive-live-update-release-5 /Users/rumbaughnam/Projects/AllBlue-community/modules/dive-live-update/android/build/intermediates/packaged_res/release/packageReleaseResources
-expo.modules.divelive.dive-live-update-main-6 /Users/rumbaughnam/Projects/AllBlue-community/modules/dive-live-update/android/src/main/res
-expo.modules.divelive.dive-live-update-release-7 /Users/rumbaughnam/Projects/AllBlue-community/modules/dive-live-update/android/src/release/res
-gradleHome-0 /Users/rumbaughnam/.gradle
