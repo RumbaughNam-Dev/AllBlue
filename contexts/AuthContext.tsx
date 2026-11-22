@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useRef, useCallb
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { setSessionExpiredHandler } from '@/services/api';
 import { registerForPushNotifications, unregisterPushToken } from '@/services/push';
+import { syncDiveActivity } from '@/features/liveActivity/sync';
 
 type User = {
   demo?: boolean;
@@ -64,6 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await AsyncStorage.multiRemove(['authToken', 'user', 'pushToken']);
     setUser(null);
     setLoggedIn(false);
+    void syncDiveActivity([]); // 다가오는 다이빙 라이브 액티비티 내림
     // Revoke the device registration using the old credentials, without delaying logout.
     if (token && pushToken) void unregisterPushToken(pushToken, token);
   }, []);

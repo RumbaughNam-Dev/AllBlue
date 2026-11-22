@@ -17,9 +17,10 @@ import { timeAgo } from '@/features/community/ui';
 import { DUO_SYSTEM_TABS } from '@/utils/foldable';
 import { getScheduleMarkerColor } from '@/utils/scheduleMarker';
 import { getSideStripBottomGap, getTabBarContentClearance, hasSideTabStrip } from '@/utils/tabBarLayout';
+import { syncDiveActivity } from '@/features/liveActivity/sync';
 
 // 앱 홈 (2026-11-09): 앱을 열면 처음 보이고, 위쪽 가운데 로고를 누르면 돌아옴 (아래 탭 5개는 그대로).
-// 인사 → 다가오는 다이빙 3 → 각종 요청 3 → 최근 등록된 투어 3 → 최근 한 달 인기 에세이 3.
+// 인사 → 다가오는 다이빙 3 → 각종 요청 3 → 최근 등록된 투어 3 → 최근 한 달 인기 에세이 3. 다이빙 · 요청 · 투어는 없으면 숨김.
 // 카드 · 글자 · 여백은 다이빙 목록 · 투어 홈 · 커뮤니티 홈과 같게
 const SIDE = 20;
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
@@ -89,6 +90,7 @@ export default function HomeScreen() {
       if (id !== requestId.current) return;
       setHome(data);
       setState('ready');
+      void syncDiveActivity(data.upcoming); // 다가오는 다이빙 라이브 액티비티
     } catch {
       if (id === requestId.current) setState(prev => (prev === 'ready' ? prev : 'error'));
     } finally {
@@ -135,23 +137,28 @@ export default function HomeScreen() {
           showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void load('refresh')} tintColor="rgba(255,255,255,0.6)" />}
         >
-          <Greeting nickname={user?.nickname} />
+          <Greeting nickname={user?.nickname} hasInfo={home.upcoming.length > 0 || home.requests.items.length > 0} />
 
-          <SectionHeader title="다가오는 다이빙" onSeeAll={() => router.navigate('/b')} />
+          {/* 다이빙 · 요청 · 투어는 보여 줄 게 없으면 칸째 숨김 (2026-11-22 사용자) */}
           {home.upcoming.length ? (
-            <View style={styles.list}>
-              {home.upcoming.map(s => <ScheduleCard key={s.id} schedule={s} onPress={() => openSchedule(s)} />)}
-            </View>
-          ) : <Text style={styles.rowEmpty}>다가오는 다이빙 일정이 없어요.</Text>}
+            <>
+              <SectionHeader title="다가오는 다이빙" onSeeAll={() => router.navigate('/b')} />
+              <View style={styles.list}>
+                {home.upcoming.map(s => <ScheduleCard key={s.id} schedule={s} onPress={() => openSchedule(s)} />)}
+              </View>
+            </>
+          ) : null}
 
-          <SectionHeader title="각종 요청" count={home.requests.total} />
           {home.requests.items.length ? (
-            <View style={styles.list}>
-              {home.requests.items.map(r => <RequestRow key={r.id} request={r} onPress={() => openRequest(r)} />)}
-            </View>
-          ) : <Text style={styles.rowEmpty}>처리할 요청이 없어요.</Text>}
+            <>
+              <SectionHeader title="각종 요청" count={home.requests.total} />
+              <View style={styles.list}>
+                {home.requests.items.map(r => <RequestRow key={r.id} request={r} onPress={() => openRequest(r)} />)}
+              </View>
+            </>
+          ) : null}
 
-          <SectionHeader title="최근 등록된 투어" onSeeAll={() => router.navigate('/tour')} />
+          {home.tours.length ? <SectionHeader title="최근 등록된 투어" onSeeAll={() => router.navigate('/tour')} /> : null}
           {home.tours.length && cardWidth ? (
             <FlatList
               data={home.tours}
@@ -161,7 +168,7 @@ export default function HomeScreen() {
               contentContainerStyle={styles.cardList}
               renderItem={({ item }) => <TourPhotoCard tour={item} width={cardWidth} onPress={() => openTour(item.id)} />}
             />
-          ) : <Text style={styles.rowEmpty}>지금 모집 중인 투어가 없어요.</Text>}
+          ) : null}
 
           <SectionHeader title="최근 한 달 인기 에세이" onSeeAll={() => router.push({ pathname: '/community-posts', params: { board: 'ESSAY' } })} />
           {home.essays.length && cardWidth ? (
@@ -180,7 +187,8 @@ export default function HomeScreen() {
   );
 }
 
-function Greeting({ nickname }: { nickname?: string }) {
+// 안내 문구는 다가오는 다이빙이나 처리할 요청이 있을 때만 (2026-11-22 사용자)
+function Greeting({ nickname, hasInfo }: { nickname?: string; hasInfo: boolean }) {
   const now = new Date();
   return (
     <View style={styles.greeting}>
@@ -188,7 +196,7 @@ function Greeting({ nickname }: { nickname?: string }) {
       <Text style={styles.greetingTitle}>
         안녕하세요!{nickname ? <> <Text style={styles.greetingName}>{nickname}</Text> 님!</> : null}
       </Text>
-      <Text style={styles.greetingText}>금일 다이빙 정보 안내해 드릴게요!</Text>
+      {hasInfo ? <Text style={styles.greetingText}>금일 다이빙 정보 안내해 드릴게요!</Text> : null}
     </View>
   );
 }

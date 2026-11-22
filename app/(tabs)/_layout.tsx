@@ -26,6 +26,7 @@ import QuestButton from '@/features/grade/QuestButton';
 import QuestPopup from '@/features/grade/QuestPopup';
 import GradeStartup from '@/features/grade/GradeStartup';
 import { registerAvatarTarget, useGamePickerRequests } from '@/features/grade/store';
+import { refreshDiveActivity } from '@/features/liveActivity/sync';
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
@@ -73,7 +74,7 @@ export default function TabLayout() {
     void refresh();
     void reloadAdminCounts();
     const subscription = AppState.addEventListener('change', state => {
-      if (state === 'active') { void refresh(); void reloadAdminCounts(); }
+      if (state === 'active') { void refresh(); void reloadAdminCounts(); refreshDiveActivity(); }
     });
     return () => { active = false; subscription.remove(); };
   }, [user?.id, reloadAdminCounts]));

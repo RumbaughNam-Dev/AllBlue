@@ -1,0 +1,13 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="expo.modules.divelive" >
+4
+5    <uses-sdk android:minSdkVersion="24" />
+5-->INJECTED
+5-->INJECTED
+6    <!-- 안드로이드 16 Live Update(상태바 칩 · 잠금화면 맨 위)로 올려 달라고 요청하는 데 필요 (일반 권한, 사용자에게 묻지 않음) -->
+7    <uses-permission android:name="android.permission.POST_PROMOTED_NOTIFICATIONS" />
+7-->/Users/rumbaughnam/Projects/AllBlue-community/modules/dive-live-update/android/src/main/AndroidManifest.xml:3:3-84
+7-->/Users/rumbaughnam/Projects/AllBlue-community/modules/dive-live-update/android/src/main/AndroidManifest.xml:3:20-81
+8
+9</manifest>

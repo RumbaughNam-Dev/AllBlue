@@ -52,6 +52,9 @@ const QUEST_PATHS = [
 ];
 let questActionHandler: (() => void) | null = null;
 export function setQuestActionHandler(fn: (() => void) | null) { questActionHandler = fn; }
+// 일정을 만들거나 · 고치거나 · 지우거나 · 초대에 답하면 (다가오는 다이빙 라이브 액티비티를 다시 맞춤, features/liveActivity)
+let scheduleChangedHandler: (() => void) | null = null;
+export function setScheduleChangedHandler(fn: (() => void) | null) { scheduleChangedHandler = fn; }
 
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const { authToken, ignoreUnauthorized = false, ...fetchOptions } = options;
@@ -70,6 +73,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     });
     const data = await parseResponse<T>(res.status, await res.text(), token, ignoreUnauthorized);
     if (fetchOptions.method === 'POST' && QUEST_PATHS.some(re => re.test(path))) questActionHandler?.();
+    if (fetchOptions.method && fetchOptions.method !== 'GET' && /^\/schedule(\/\d+(\/invitation\/respond)?)?$/.test(path)) scheduleChangedHandler?.();
     return data;
   } catch (error) {
     if (controller.signal.aborted) {

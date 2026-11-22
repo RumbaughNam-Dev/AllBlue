@@ -2,7 +2,7 @@
   "expo": {
     "name": "AllBlue",
     "slug": "allblue",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "allblue",
@@ -63,7 +63,13 @@
       "expo-asset",
       "expo-image",
       "expo-web-browser",
-      "expo-notifications",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/notification-icon.png",
+          "color": "#144A84"
+        }
+      ],
       "expo-font",
       "expo-status-bar",
       "@react-native-firebase/app",
@@ -96,6 +102,13 @@
         "expo-screen-orientation",
         {
           "initialOrientation": "PORTRAIT_UP"
+        }
+      ],
+      [
+        "expo-widgets",
+        {
+          "bundleIdentifier": "com.rumbaugh.allblue.ExpoWidgetsTarget",
+          "groupIdentifier": "group.com.rumbaugh.allblue"
         }
       ]
     ],
