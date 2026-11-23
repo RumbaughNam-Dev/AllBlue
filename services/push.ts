@@ -125,6 +125,27 @@ export function observeTourPushes(onOpen: (code: string, tourId: number, notific
   return () => { active = false; response.remove(); };
 }
 
+// 버디 찾기 알림 푸시(신청 · 승인 · 거절 · 마감)를 누르면 그 모집 글로 (type 'buddy')
+const handledBuddyResponses = new Set<string>();
+export function observeBuddyPushes(onOpen: (postId: number, notificationId?: number) => void) {
+  if (!Notifications) return () => {};
+  let active = true;
+  const handle = (response: any) => {
+    if (!active || !response?.notification) return;
+    const request = response.notification.request;
+    const data = request.content?.data;
+    const postId = Number(data?.buddyPostId);
+    if (data?.type !== 'buddy' || !Number.isSafeInteger(postId) || postId < 1 || handledBuddyResponses.has(request.identifier)) return;
+    handledBuddyResponses.add(request.identifier);
+    if (handledBuddyResponses.size > 100) handledBuddyResponses.delete(handledBuddyResponses.values().next().value!);
+    const notificationId = Number(data.notificationId);
+    onOpen(postId, Number.isSafeInteger(notificationId) && notificationId > 0 ? notificationId : undefined);
+  };
+  const response = Notifications.addNotificationResponseReceivedListener(handle);
+  Notifications.getLastNotificationResponseAsync().then(handle).catch(() => {});
+  return () => { active = false; response.remove(); };
+}
+
 // 커뮤니티 알림 푸시(태그 · 댓글 · 답글 · 내림 · 신고)를 누르면 알림 코드로 갈 화면을 정함 (일정 푸시와 같은 방식)
 const handledCommunityResponses = new Set<string>();
 export function observeCommunityPushes(onOpen: (code: string, postId: number | null, notificationId?: number, date?: string) => void) {

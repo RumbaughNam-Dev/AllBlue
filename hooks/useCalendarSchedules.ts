@@ -7,8 +7,11 @@ import { getScheduleMarkerColor } from '@/utils/scheduleMarker';
 
 type EventItem = { date: string; title: string; color: string; requested?: boolean };
 type FriendGroup = { id: number; name: string; memberCount: number };
+export const BUDDY_MARKER_COLOR = '#00B4D8';
 const toEvents = (schedules: Schedule[]): EventItem[] => schedules.map((s) => ({
-  date: s.scheduleDate, title: s.invitationStatus === 'pending' ? `일정등록 요청 · ${s.title}` : s.title, requested: s.invitationStatus === 'pending',
+  date: s.scheduleDate,
+  title: s.invitationStatus === 'pending' ? `일정등록 요청 · ${s.title}` : s.invitationStatus === 'applied' ? `참가 신청 · ${s.title}` : s.title,
+  requested: s.invitationStatus === 'pending' || s.invitationStatus === 'applied',
   color: getScheduleMarkerColor(s),
 }));
 
@@ -27,6 +30,8 @@ export function useCalendarSchedules() {
   const adCache = useRef(new Map<string, CalendarEvent[]>());
   const filterOptions = useMemo(() => [
     { key: 'mine', label: '내 일정' },
+    { key: 'training', label: '트레이닝' },
+    { key: 'buddy', label: '버디 찾기' },
     { key: 'instructor', label: '강사 일정' },
     { key: 'closeFriend', label: '친한친구 일정' },
     ...groups.map((g) => ({ key: `group_${g.id}`, label: g.name })),
@@ -37,9 +42,15 @@ export function useCalendarSchedules() {
     const existing = pending.current.get(key);
     if (existing) return existing;
     const version = epoch.current;
-    const task = api.getMonthlySchedules(year, month + 1, filter)
-      .then((res) => {
-        const items = toEvents(res.schedules ?? []);
+    // 버디 찾기는 다이빙 일정이 아닌 모집 글을 그 날짜 칸에 보여 줌 (내가 신청한 글은 '참가 신청 ·'으로)
+    const load: Promise<EventItem[]> = filter === 'buddy'
+      ? api.getBuddyMonthly(year, month + 1).then((res) => (res.posts ?? []).map((p) => ({
+          date: p.diveDate, title: p.myStatus === 'APPLIED' ? `참가 신청 · ${p.title}` : p.title,
+          requested: p.myStatus === 'APPLIED', color: BUDDY_MARKER_COLOR,
+        })))
+      : api.getMonthlySchedules(year, month + 1, filter).then((res) => toEvents(res.schedules ?? []));
+    const task = load
+      .then((items) => {
         if (epoch.current === version) cache.current.set(key, items);
         return items;
       })

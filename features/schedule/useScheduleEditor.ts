@@ -1,6 +1,6 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { hasInstructorAccess } from '@/utils/userRole';
-import { maskPhone } from '@/utils/format';
+import { maskPhone, formatWon, formatDigits } from '@/utils/format';
 import { useState, useEffect, useRef } from 'react';
 import { TextInput, ScrollView, Alert, Keyboard } from 'react-native';
 import { useLocalSearchParams, useRouter, usePreventRemove } from 'expo-router';
@@ -75,6 +75,12 @@ export function useScheduleEditor() {
   });
   const [categoryCode, setCategoryCode] = useState('');
   const [visibility, setVisibility] = useState<'public' | 'private'>('private');
+  // 트레이닝 (강사만): 최대 참가 인원을 넣으면 캘린더 '트레이닝'에 올라가 참가 신청을 받음. 비용은 원(쉼표 포함 문자열로 보관)
+  const [participationFee, setParticipationFeeText] = useState('');
+  const [maxParticipants, setMaxParticipantsText] = useState('');
+  const setParticipationFee = (text: string) => setParticipationFeeText(formatDigits(text));
+  const setMaxParticipants = (text: string) => setMaxParticipantsText(text.replace(/\D/g, '').replace(/^0+/, '').slice(0, 3));
+  const canOpenTraining = categoryCode === 'TRAINING' && hasInstructorAccess(user?.level);
 
   // Confirmed participants
   const [participants, setParticipants] = useState<ParticipantEntry[]>([]);
@@ -250,6 +256,10 @@ export function useScheduleEditor() {
             setMinute(s.startMinute);
             setCategoryCode(s.categoryCode);
             setVisibility((s.visibility as 'public' | 'private') || 'private');
+            if (s.training) {
+              setMaxParticipantsText(String(s.training.maxParticipants));
+              setParticipationFeeText(formatDigits(String(s.training.participationFee)));
+            }
             if (s.customLocation) {
               setSelectedPool(CUSTOM_LOCATION_POOL);
               setCustomLocation(s.customLocation);
@@ -258,7 +268,8 @@ export function useScheduleEditor() {
               if (found) setSelectedPool(found);
             }
             setParticipants(
-              s.participants.map((p) => ({
+              // 트레이닝 신청(대기 · 거절)은 상세에서 승인/거절하므로 편집 목록에서 뺌 (서버도 그대로 둠)
+              s.participants.filter((p) => p.invitationStatus !== 'applied' && p.invitationStatus !== 'denied').map((p) => ({
                 user: { id: p.id, userId: p.userId, nickname: p.nickname, profileImage: p.profileImage, name: p.name, phone: '', level: p.level, badgeLevel: p.badgeLevel, isGuest: p.isGuest, isTemporary: p.isTemporary },
                 categoryCode: p.categoryCode || s.categoryCode,
                 selectedLicenseIds: (p.participantLicenses || []).map((l) => l.userLicenseId),
@@ -317,6 +328,7 @@ export function useScheduleEditor() {
   const handleNextStep = () => {
     if (!title.trim()) { Alert.alert('알림', '제목을 입력해주세요.'); return; }
     if (!categoryCode) { Alert.alert('알림', '분류를 선택해주세요.'); return; }
+    if (canOpenTraining && maxParticipants && !participationFee) { Alert.alert('알림', '참가 비용을 입력해주세요. (무료면 0)'); return; }
     setCurrentCategory(categoryCode);
     setStep('participant');
     fetchCloseFriends();
@@ -539,8 +551,14 @@ export function useScheduleEditor() {
     setSearchQuery('');
   };
 
+  // 강사의 트레이닝일 때만 보냄 (안 보내면 서버가 저장된 값을 그대로 둠). 인원을 비우면 신청을 받지 않는 개인 일정
+  const trainingPayload: { maxParticipants?: number | null; participationFee?: number | null } = canOpenTraining
+    ? { maxParticipants: maxParticipants ? Number(maxParticipants) : null, participationFee: maxParticipants && participationFee ? Number(participationFee.replace(/,/g, '')) : null }
+    : {};
+
   const handleSave = () => {
     if (creatingTemporaryRef.current) return;
+    if (canOpenTraining && maxParticipants && !participationFee) { Alert.alert('알림', '참가 비용을 입력해주세요. (무료면 0)'); return; }
     if (isCustomLocation && !customLocation.trim()) {
       Alert.alert('장소를 입력해주세요', '어디에서 다이빙하는지 입력해주세요.');
       return;
@@ -552,6 +570,8 @@ export function useScheduleEditor() {
       allParticipants.push(buildCurrentEntry()!);
     }
 
+    const trainingSummary = trainingPayload.maxParticipants
+      ? `\n참가 비용 ${formatWon(trainingPayload.participationFee)} · 최대 ${trainingPayload.maxParticipants}명` : '';
     const dateStr = `${dateObj.getFullYear()}년 ${month}월 ${day}일 ${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
     const catLabel = getCategoryLabel(categoryCode);
     const participantSummary = allParticipants.length > 0
@@ -560,7 +580,7 @@ export function useScheduleEditor() {
 
     Alert.alert(
       isEditMode ? '다이빙을 수정하시겠어요?' : '다이빙을 등록하시겠어요?',
-      `${title.trim()}\n${dateStr}\n${catLabel}${locationLabel ? ` · ${locationLabel}` : ''}\n\n${participantLabel} ${allParticipants.length}명\n${participantSummary}`,
+      `${title.trim()}\n${dateStr}\n${catLabel}${locationLabel ? ` · ${locationLabel}` : ''}${trainingSummary}\n\n${participantLabel} ${allParticipants.length}명\n${participantSummary}`,
       [
         { text: '취소', style: 'cancel' },
         { text: isEditMode ? '수정할게요' : '등록할게요', onPress: () => doSave(allParticipants) },
@@ -578,6 +598,7 @@ export function useScheduleEditor() {
       customLocation: isCustomLocation ? customLocation.trim() : null,
       categoryCode,
       visibility,
+      ...trainingPayload,
       participants: allParticipants.map((p) => ({
         userId: p.user.id,
         categoryCode: p.categoryCode,
@@ -612,12 +633,13 @@ export function useScheduleEditor() {
   // --- Render ---
 
   return {
-    categories, insets, id, isEditMode, step,
+    categories, insets, id, isEditMode, step, setStep,
     scheduleDate, setScheduleDate, dateObj, month,
     day, title, setTitle, selectedPool, customLocation, setCustomLocation, isCustomLocation,
     setSelectedPool, pools, hour, setHour,
     minute, setMinute, categoryCode, setCategoryCode,
     visibility, setVisibility, participants, currentUser,
+    canOpenTraining, participationFee, setParticipationFee, maxParticipants, setMaxParticipants,
     currentCategory, currentSelectedLicenseIds, currentNewLicenses, inProgressLicenses,
     licensesLoading, participantScrollRef, searchQuery,
     participantBottomPadding, handleParticipantLayout, handleNewParticipantLayout,

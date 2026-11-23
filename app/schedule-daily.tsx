@@ -10,7 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import Colors from '@/constants/Colors';
 import { useLatestRequest } from '@/hooks/useLatestRequest';
-import { api, CalendarEvent, Schedule } from '@/services/api';
+import { api, CalendarEvent, Schedule, type BuddyPostSummary } from '@/services/api';
 import Spinner from '@/components/Spinner';
 import LevelBadge from '@/components/LevelBadge';
 import FloatingActionButton from '@/components/FloatingActionButton';
@@ -25,8 +25,11 @@ export default function ScheduleDailyScreen() {
   const inPane = useIsInPane();
   const showAddButton = !(DUO_SYSTEM_TABS && inPane);
   const { date, filter = 'mine', sourceLabel } = useScreenParams<{ date: string; filter?: string; sourceLabel?: string }>();
-  const source = sourceLabel ?? (filter === 'instructor' ? '강사 일정' : filter === 'closeFriend' ? '친한친구 일정' : filter.startsWith('group_') ? '그룹 일정' : '내 일정');
+  const source = sourceLabel ?? (filter === 'training' ? '트레이닝' : filter === 'buddy' ? '버디 찾기' : filter === 'instructor' ? '강사 일정' : filter === 'closeFriend' ? '친한친구 일정' : filter.startsWith('group_') ? '그룹 일정' : '내 일정');
   const [schedules, setSchedules] = useState<Schedule[]>([]);
+  // 캘린더 '버디 찾기': 이 날짜의 모집 글 (다이빙 일정 대신)
+  const isBuddy = filter === 'buddy';
+  const [buddyPosts, setBuddyPosts] = useState<BuddyPostSummary[]>([]);
   const [adEvents, setAdEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -42,6 +45,7 @@ export default function ScheduleDailyScreen() {
       const isCurrent = request.start();
       setLoading(true);
       setSchedules([]);
+      setBuddyPosts([]);
       setAdEvents([]);
       setError(false);
       const [y, m] = date.split('-').map(Number);
@@ -49,8 +53,9 @@ export default function ScheduleDailyScreen() {
       api.getCalendarEvents(y, m)
         .then((res) => { if (isCurrent()) setAdEvents((res.events ?? []).filter((e) => e.startDate <= date && date <= e.endDate)); })
         .catch(() => {});
-      api.getDailySchedules(date, filter)
-        .then((res) => { if (isCurrent()) setSchedules(res.schedules ?? []); })
+      (filter === 'buddy'
+        ? api.getBuddyMonthly(y, m).then((res) => { if (isCurrent()) setBuddyPosts((res.posts ?? []).filter((p) => p.diveDate === date)); })
+        : api.getDailySchedules(date, filter).then((res) => { if (isCurrent()) setSchedules(res.schedules ?? []); }))
         .catch(() => { if (isCurrent()) setError(true); })
         .finally(() => { if (isCurrent()) setLoading(false); });
       return () => request.invalidate();
@@ -63,9 +68,9 @@ export default function ScheduleDailyScreen() {
 
   // 일정 있는 시간 슬롯만 생성
   const buildTimelineSlots = () => {
-    const slotMap = new Map<string, Schedule[]>();
+    const slotMap = new Map<string, (Schedule | BuddyPostSummary)[]>();
 
-    schedules.forEach((s) => {
+    [...schedules, ...buddyPosts].forEach((s) => {
       const key = formatTime(s.startHour, s.startMinute);
       if (!slotMap.has(key)) {
         slotMap.set(key, []);
@@ -110,9 +115,9 @@ export default function ScheduleDailyScreen() {
         <View style={styles.emptyArea}>
           <Text style={styles.emptyMessage}>일정을 불러오지 못했습니다. 잠시 후 다시 열어주세요.</Text>
         </View>
-      ) : schedules.length === 0 && adEvents.length === 0 ? (
+      ) : schedules.length === 0 && buddyPosts.length === 0 && adEvents.length === 0 ? (
         <View style={styles.emptyArea}>
-          <Text style={styles.emptyMessage}>예정된 일정이 없습니다.</Text>
+          <Text style={styles.emptyMessage}>{isBuddy ? '이 날 버디를 찾는 모집이 없어요.' : '예정된 일정이 없습니다.'}</Text>
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -176,7 +181,21 @@ export default function ScheduleDailyScreen() {
                 </View>
 
                 <View style={styles.timelineContent}>
-                  {items.map((item) => (
+                  {items.map((entry) => 'diveDate' in entry ? (
+                    <Pressable
+                      key={`buddy-${entry.id}`}
+                      style={({ pressed }) => [styles.scheduleCard, pressed && { opacity: 0.7 }]}
+                      onPress={() => router.push({ pathname: '/buddy-detail', params: { id: String(entry.id) } })}
+                    >
+                      {entry.myStatus === 'APPLIED' && <Text style={{ color: '#FFD166', fontWeight: '700', marginBottom: 6 }}>참가 신청을 보냈어요</Text>}
+                      <Text style={styles.scheduleTitle}>
+                        {entry.title}{' '}<Text style={styles.scheduleSource}>({source})</Text>
+                      </Text>
+                      <Text style={styles.scheduleDetail}>• 장소 : {entry.place || '-'}</Text>
+                      <Text style={styles.scheduleDetail}>• 만든 사람 : {entry.isMine ? '나' : entry.authorNickname}</Text>
+                      <Text style={styles.scheduleDetail}>• 모집 : {entry.acceptedCount} / {entry.maxMembers}명</Text>
+                    </Pressable>
+                  ) : ((item: Schedule) => (
                     <Pressable
                       key={item.id}
                       style={({ pressed }) => [styles.scheduleCard, pressed && { opacity: 0.7 }]}
@@ -204,7 +223,7 @@ export default function ScheduleDailyScreen() {
                         <Text style={styles.scheduleParticipants}>  - {item.participantNames.join(', ')}</Text>
                       ) : null}
                     </Pressable>
-                  ))}
+                  ))(entry))}
                 </View>
               </View>
             </View>
@@ -216,8 +235,8 @@ export default function ScheduleDailyScreen() {
       {showAddButton && (
         <View style={styles.bottomArea}>
           <FloatingActionButton
-            label="다이빙 만들기"
-            onPress={() => router.push({ pathname: '/schedule-add', params: { date: date ?? '' } })}
+            label={isBuddy ? '버디 찾기 만들기' : '다이빙 만들기'}
+            onPress={() => router.push({ pathname: isBuddy ? '/buddy-edit' : '/schedule-add', params: { date: date ?? '' } })}
             fallbackStyle={styles.addButton}
             fallbackPressedStyle={styles.addButtonPressed}
             fallbackTextStyle={styles.addButtonText}

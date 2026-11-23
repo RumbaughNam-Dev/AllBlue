@@ -61,6 +61,8 @@ export const styles = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
   },
   visibilityText: { fontFamily: 'SUIT-SemiBold', fontSize: 15, color: Colors.brand.white },
+  trainingRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  trainingInput: { flex: 1 },
   visibilityDesc: {
     fontFamily: 'SUIT-Regular', fontSize: 12, color: 'rgba(255,255,255,0.35)',
     marginTop: 6, paddingHorizontal: 4,
@@ -108,12 +110,10 @@ export const styles = StyleSheet.create({
 
   // Added participants
   addedSection: {
-    padding: 16, borderRadius: 16, marginBottom: 20,
-    backgroundColor: 'rgba(0,0,0,0.14)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+    paddingVertical: 8, marginBottom: 20,
   },
   newParticipantSection: {
-    padding: 16, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.04)',
-    borderWidth: 1, borderColor: 'rgba(0,180,216,0.65)',
+    paddingVertical: 8,
   },
   participantSectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12 },
   participantSectionTitle: { fontFamily: 'SUIT-Bold', fontSize: 16, color: Colors.brand.white, flexShrink: 1 },

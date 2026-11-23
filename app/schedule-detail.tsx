@@ -24,6 +24,9 @@ import { groupProfileCertifications } from '@/utils/profileCertifications';
 import GlassCircle from '@/components/GlassCircle';
 import StripBackSlot from '@/components/StripBackSlot';
 import { NOTE_CATEGORIES, STUDENT_NOTES_CHANGED, type StudentNotesChanged } from '@/features/schedule/studentNotes';
+import TrainingInviteSheet from '@/features/schedule/TrainingInviteSheet';
+import LinksPopup from '@/components/LinksPopup';
+import { formatWon } from '@/utils/format';
 
 const STUDENT_CATEGORIES = ['EXPERIENCE', 'CERTIFICATION', 'LECTURE'];
 const DOCUMENT_CATEGORIES = ['EXPERIENCE', 'CERTIFICATION', 'TRAINING'];
@@ -40,7 +43,8 @@ export default function ScheduleDetailScreen() {
   const router = useAppRouter();
   const isPaneRoot = useIsPaneRoot();
   const { id, filter = 'mine', sourceLabel } = useScreenParams<{ id: string; filter?: string; sourceLabel?: string }>();
-  const scheduleSource = filter === 'instructor' ? '강사 공개 일정'
+  const scheduleSource = filter === 'training' ? '트레이닝'
+    : filter === 'instructor' ? '강사 공개 일정'
     : filter === 'closeFriend' ? '친한친구 일정'
     : filter.startsWith('group_') ? (sourceLabel ?? '그룹 일정') : '내 일정';
   const request = useLatestRequest();
@@ -52,6 +56,10 @@ export default function ScheduleDetailScreen() {
   const [linkVisible, setLinkVisible] = useState(false);
   const [linkSource, setLinkSource] = useState<{ id: number; nickname: string } | null>(null);
   const [unlinkBusy, setUnlinkBusy] = useState(false);
+  // 캘린더 '트레이닝': 참가 신청 · 승인/거절 · 참가자 추가 요청 · 정원이 찼을 때 '추가 참가 문의'(만든 사람 프로필 링크)
+  const [trainingBusy, setTrainingBusy] = useState(false);
+  const [inviteVisible, setInviteVisible] = useState(false);
+  const [contactVisible, setContactVisible] = useState(false);
 
   const fetchDetail = useCallback((showLoading = true) => {
     if (!id || !user) return;
@@ -185,6 +193,55 @@ export default function ScheduleDetailScreen() {
     } finally { setInvitationBusy(false); }
   };
 
+  const training = schedule?.training ?? null;
+  const runTraining = async (task: () => Promise<unknown>, failTitle: string) => {
+    if (trainingBusy) return;
+    setTrainingBusy(true);
+    try { await task(); fetchDetail(false); }
+    catch (e: any) {
+      if (!e._handled) Alert.alert(failTitle, e.message ?? '잠시 후 다시 시도해주세요.');
+      fetchDetail(false);
+    } finally { setTrainingBusy(false); }
+  };
+  const applyTraining = () => {
+    if (!schedule || !training) return;
+    Alert.alert('참가 신청', `${schedule.title}\n참가 비용 ${formatWon(training.participationFee)}\n\n참가를 신청할까요? 만든 사람이 승인하면 참가가 확정돼요.`, [
+      { text: '취소', style: 'cancel' },
+      { text: '신청할게요', onPress: () => runTraining(() => api.applyTraining(schedule.id), '신청 실패') },
+    ]);
+  };
+  const cancelTraining = () => {
+    if (!schedule) return;
+    Alert.alert('신청 취소', '참가 신청을 취소할까요?', [
+      { text: '아니요', style: 'cancel' },
+      { text: '취소할게요', style: 'destructive', onPress: () => runTraining(() => api.cancelTrainingApplication(schedule.id), '취소 실패') },
+    ]);
+  };
+  const decideTraining = (participantId: number, action: 'accept' | 'deny') => {
+    if (!schedule) return;
+    if (action === 'accept') return runTraining(() => api.decideTrainingApplication(schedule.id, participantId, action), '요청 처리 실패');
+    Alert.alert('신청 거절', '이 참가 신청을 거절할까요?', [
+      { text: '취소', style: 'cancel' },
+      { text: '거절', style: 'destructive', onPress: () => runTraining(() => api.decideTrainingApplication(schedule.id, participantId, action), '요청 처리 실패') },
+    ]);
+  };
+  const openContact = () => {
+    if (!training?.contactLinks.length) {
+      Alert.alert('추가 참가 문의', '만든 사람이 프로필에 연락 링크를 등록하지 않았어요.');
+      return;
+    }
+    setContactVisible(true);
+  };
+  // 남이 만든 트레이닝의 아래쪽 버튼: 참가 신청 · 신청 취소 · 추가 참가 문의(정원 마감) · 지난 트레이닝 · 참가 불가
+  const trainingAction = !training || isOwner ? null
+    : training.myStatus === 'applied' ? { label: '신청 취소', onPress: cancelTraining, secondary: true }
+    : training.myStatus === 'denied' ? { label: '참가 불가', disabled: true }
+    : training.myStatus === 'accepted' || training.myStatus === 'pending' ? null
+    : training.canApply ? { label: '참가 신청', onPress: applyTraining }
+    : training.started ? { label: '지난 트레이닝', disabled: true }
+    : training.isFull ? { label: '추가 참가 문의', onPress: openContact }
+    : null;
+
   const openFormUrl = async (url: string) => {
     try {
       if (Platform.OS === 'ios') {
@@ -300,7 +357,7 @@ export default function ScheduleDetailScreen() {
           <View style={styles.infoSection}>
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>일정 구분</Text>
-              <Text style={styles.infoValue}>{scheduleSource}</Text>
+              <Text style={styles.infoValue}>{schedule.training && !isOwner && (filter === 'mine' || filter === 'notification') ? '트레이닝' : scheduleSource}</Text>
             </View>
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>장소</Text>
@@ -319,6 +376,20 @@ export default function ScheduleDetailScreen() {
                 })()}
               </Text>
             </View>
+            {training && (
+              <>
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>참가 비용</Text>
+                  <Text style={styles.infoValue}>{formatWon(training.participationFee)}</Text>
+                </View>
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>최대 인원</Text>
+                  <Text style={styles.infoValue}>
+                    {training.maxParticipants}명 (참가 {training.acceptedCount}명{training.isFull ? ' · 모집 마감' : ''})
+                  </Text>
+                </View>
+              </>
+            )}
           </View>
 
           <View style={styles.divider} />
@@ -326,9 +397,17 @@ export default function ScheduleDetailScreen() {
           {/* Participants */}
           <View style={styles.sectionRow}>
             <Text style={styles.sectionLabel}>{participantLabel}</Text>
-            <Pressable onPress={handleRefresh} disabled={refreshing} style={({ pressed }) => [styles.refreshButton, pressed && { opacity: 0.5 }]}>
-              <Text style={[styles.refreshIcon, refreshing && { opacity: 0.3 }]}>↻</Text>
-            </Pressable>
+            <View style={styles.sectionActions}>
+              {training && isOwner && (
+                <Pressable accessibilityRole="button" onPress={() => setInviteVisible(true)} style={({ pressed }) => [styles.addParticipantButton, pressed && { opacity: 0.6 }]}>
+                  <Ionicons name="person-add-outline" size={14} color={Colors.brand.warning} />
+                  <Text style={styles.addParticipantText}>참가자 추가</Text>
+                </Pressable>
+              )}
+              <Pressable onPress={handleRefresh} disabled={refreshing} style={({ pressed }) => [styles.refreshButton, pressed && { opacity: 0.5 }]}>
+                <Text style={[styles.refreshIcon, refreshing && { opacity: 0.3 }]}>↻</Text>
+              </Pressable>
+            </View>
           </View>
           {schedule.participants.length === 0 ? (
             <Text style={styles.emptyText}>{participantLabel}가 없습니다</Text>
@@ -382,13 +461,30 @@ export default function ScheduleDetailScreen() {
                 </Pressable>}
                 {p.invitationStatus === 'pending' && (isOwner || isMe) && (
                   <View style={[styles.cardSection, styles.invitationSection]}>
-                    <Text style={styles.invitationStatus}>{isOwner ? '일정등록 요청을 보냈어요!' : '일정 등록 요청'}</Text>
+                    <Text style={styles.invitationStatus}>{training
+                      ? (isOwner ? '추가 요청을 보냈어요!' : '추가 요청을 받았어요. 승낙하시겠어요?')
+                      : (isOwner ? '일정등록 요청을 보냈어요!' : '일정 등록 요청')}</Text>
                     {isMe && !isOwner && <View style={styles.invitationActions}>
                       {(['accept', 'reject'] as const).map(action => (
                         <Pressable key={action} accessibilityRole="button" disabled={invitationBusy}
                           style={({ pressed }) => [styles.actionButton, styles.invitationButton, action === 'accept' && styles.actionButtonDone, (pressed || invitationBusy) && { opacity: 0.5 }]}
                           onPress={() => handleInvitation(p.id, action, p.invitationToken)}>
-                          <Text style={[styles.actionButtonText, action === 'accept' && styles.actionButtonTextDone]}>{action === 'accept' ? '수락' : '거절'}</Text>
+                          <Text style={[styles.actionButtonText, action === 'accept' && styles.actionButtonTextDone]}>{action === 'accept' ? (training ? '승낙' : '수락') : (training ? '거부' : '거절')}</Text>
+                        </Pressable>
+                      ))}
+                    </View>}
+                  </View>
+                )}
+                {/* 트레이닝 참가 신청: 만든 사람은 승인/거절 (초대 수락 버튼과 같은 모양), 신청한 본인은 기다리는 중 */}
+                {p.invitationStatus === 'applied' && (isOwner || isMe) && (
+                  <View style={[styles.cardSection, styles.invitationSection]}>
+                    <Text style={styles.invitationStatus}>{isOwner ? '참가 신청이 왔어요!' : '참가 신청을 보냈어요. 승인을 기다리고 있어요.'}</Text>
+                    {isOwner && <View style={styles.invitationActions}>
+                      {(['accept', 'deny'] as const).map(action => (
+                        <Pressable key={action} accessibilityRole="button" disabled={trainingBusy}
+                          style={({ pressed }) => [styles.actionButton, styles.invitationButton, action === 'accept' && styles.actionButtonDone, (pressed || trainingBusy) && { opacity: 0.5 }]}
+                          onPress={() => decideTraining(p.id, action)}>
+                          <Text style={[styles.actionButtonText, action === 'accept' && styles.actionButtonTextDone]}>{action === 'accept' ? '신청 승인' : '신청 거절'}</Text>
                         </Pressable>
                       ))}
                     </View>}
@@ -396,7 +492,7 @@ export default function ScheduleDetailScreen() {
                 )}
                 {p.invitationStatus === 'rejected' && isOwner && (
                   <View style={[styles.cardSection, styles.invitationSection]}>
-                    <Text style={[styles.invitationStatus, { color: '#FF9292' }]}>일정등록 요청을 거부했어요. 😢</Text>
+                    <Text style={[styles.invitationStatus, { color: '#FF9292' }]}>{training ? '추가 요청을 거부했어요. 😢' : '일정등록 요청을 거부했어요. 😢'}</Text>
                     <View style={styles.invitationActions}>
                     {(['remove', 'resend'] as const).map(action => (
                       <Pressable key={action} disabled={invitationBusy} style={styles.actionButton} onPress={() => handleInvitation(p.id, action)}>
@@ -559,6 +655,25 @@ export default function ScheduleDetailScreen() {
         </View>
       )}
 
+      {trainingAction && !loading && (
+        <View style={styles.trainingBar}>
+          <Pressable accessibilityRole="button" disabled={trainingAction.disabled || trainingBusy} onPress={trainingAction.onPress}
+            style={({ pressed }) => [styles.trainingButton, trainingAction.secondary && styles.trainingButtonSecondary,
+              trainingAction.disabled && styles.trainingButtonDisabled, (pressed || trainingBusy) && { opacity: 0.6 }]}>
+            <Text style={[styles.trainingButtonText, (trainingAction.secondary || trainingAction.disabled) && styles.trainingButtonTextSecondary]}>{trainingAction.label}</Text>
+          </Pressable>
+        </View>
+      )}
+
+      {training && isOwner && schedule && (
+        <TrainingInviteSheet visible={inviteVisible} scheduleId={schedule.id}
+          excludeUserIds={[...(schedule.creator ? [schedule.creator.userId] : []), ...schedule.participants
+            .filter(p => p.userId && ['accepted', 'pending', 'applied'].includes(p.invitationStatus ?? 'accepted')).map(p => p.userId!)]}
+          onClose={() => setInviteVisible(false)} onInvited={() => { setInviteVisible(false); fetchDetail(false); }} />
+      )}
+      <LinksPopup visible={contactVisible} links={training?.contactLinks ?? []} onClose={() => setContactVisible(false)}
+        onOpen={(url) => { Linking.openURL(url).catch(() => Alert.alert('링크를 열 수 없어요', url)); }} />
+
       <TemporaryUserLinkModal visible={linkVisible} scheduleId={Number(id)} source={linkSource}
         onClose={() => setLinkVisible(false)} onLinked={() => { setLinkVisible(false); fetchDetail(false); }} />
 
@@ -693,6 +808,20 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontFamily: 'SUIT-SemiBold', fontSize: 14, color: 'rgba(255,255,255,0.5)',
   },
+  sectionActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  addParticipantButton: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: 'rgba(235,160,60,0.15)', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5,
+  },
+  addParticipantText: { fontFamily: 'SUIT-SemiBold', fontSize: 12, color: Colors.brand.warning },
+  trainingBar: { paddingHorizontal: 24, paddingTop: 10, paddingBottom: 10 },
+  trainingButton: {
+    backgroundColor: Colors.brand.white, borderRadius: 14, paddingVertical: 15, alignItems: 'center',
+  },
+  trainingButtonSecondary: { backgroundColor: 'rgba(255,255,255,0.12)' },
+  trainingButtonDisabled: { backgroundColor: 'rgba(255,255,255,0.06)' },
+  trainingButtonText: { fontFamily: 'SUIT-Bold', fontSize: 16, color: Colors.brand.primary },
+  trainingButtonTextSecondary: { color: 'rgba(255,255,255,0.75)' },
   refreshButton: {
     width: 28, height: 28, alignItems: 'center', justifyContent: 'center',
   },

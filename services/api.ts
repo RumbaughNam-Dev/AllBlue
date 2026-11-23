@@ -141,9 +141,10 @@ export type ScheduleParticipantSummary = {
   level?: string | number | null; badgeLevel?: string | number | null;
 };
 
-export type InvitationStatus = 'pending' | 'accepted' | 'rejected' | 'removed';
+// applied(트레이닝 참가 신청 대기) · denied(트레이닝 신청 거절)
+export type InvitationStatus = 'pending' | 'accepted' | 'rejected' | 'removed' | 'applied' | 'denied';
 // notificationType: SCHEDULE_INVITE(일정 초대) · 커뮤니티 알림 COMMUNITY_* (communityPostId와 함께) · 투어 알림 TOUR_* (tourId와 함께)
-export type AppNotification = { id: number; senderId: string; receiverId: string; notificationType?: string; scheduleId: number | null; communityPostId?: number | null; tourId?: number | null; title: string; body: string; readAt: string | null; createdAt: string };
+export type AppNotification = { id: number; senderId: string; receiverId: string; notificationType?: string; scheduleId: number | null; communityPostId?: number | null; tourId?: number | null; buddyPostId?: number | null; title: string; body: string; readAt: string | null; createdAt: string };
 
 export type Schedule = {
   invitationStatus?: InvitationStatus | null;
@@ -213,6 +214,8 @@ export type ScheduleDetail = {
   visibility?: string;
   isOwner: boolean;
   myParticipantId?: number;
+  // 캘린더 '트레이닝': 참가 신청을 받는 트레이닝일 때만 (아니면 null)
+  training?: ScheduleTraining | null;
   creator?: {
     id: number;
     userId: string;
@@ -223,6 +226,39 @@ export type ScheduleDetail = {
     certifications?: Certification[];
   };
   participants: ScheduleParticipant[];
+};
+
+export type ScheduleTraining = {
+  participationFee: number; // 원, 0 = 무료
+  maxParticipants: number; // 만든 사람 제외
+  acceptedCount: number;
+  applicationCount?: number; // 만든 사람에게만: 기다리는 신청 수
+  myStatus: InvitationStatus | null;
+  isFull: boolean;
+  started: boolean;
+  canApply: boolean;
+  contactLinks: { name: string; url: string }[]; // '추가 참가 문의': 만든 사람의 프로필 링크
+};
+
+// 캘린더 '버디 찾기' (2026-11-23): 다이빙 날짜에 함께 갈 버디(여러 명) 모집. 마감되면 펀다이빙 일정이 자동으로 생김
+export type BuddyApplicationStatus = 'APPLIED' | 'ACCEPTED' | 'DENIED' | 'CANCELED' | 'CLOSED';
+export type BuddyPerson = { id: number; userId: string; nickname: string; name?: string | null; profileImage?: string | null; level?: string | number | null; badgeLevel?: string | number | null };
+export type BuddyPostSummary = {
+  id: number; title: string; diveDate: string; startHour: number; startMinute: number; place: string | null;
+  authorNickname: string; isMine: boolean; maxMembers: number; acceptedCount: number; myStatus: BuddyApplicationStatus | null;
+};
+export type BuddyPostDetail = {
+  id: number; title: string; diveDate: string; startHour: number; startMinute: number;
+  place: string | null; poolId: number | null; customLocation: string | null;
+  maxMembers: number; content: string | null; status: 'OPEN' | 'CLOSED'; expired: boolean; isOwner: boolean;
+  acceptedCount: number; isFull: boolean; scheduleId: number | null;
+  author: BuddyPerson & { links: { name: string; url: string }[] };
+  myStatus: BuddyApplicationStatus | null; canApply: boolean; canInquire: boolean; canManage: boolean;
+  members: BuddyPerson[]; applications: (BuddyPerson & { appliedAt: string })[];
+};
+export type BuddyPostInput = {
+  title: string; diveDate: string; startHour: number; startMinute: number;
+  poolId: number | null; customLocation: string | null; maxMembers: number; content: string | null;
 };
 
 export type InProgressLicense = {
@@ -800,6 +836,7 @@ export const api = {
     for (const [key, value] of Object.entries(options)) if (value !== undefined) params.set(key, String(value));
     params.set('withCommunity', 'true'); // 커뮤니티 알림도 받음
     params.set('withTourV2', 'true'); // 새 투어 알림도 받음 (지운 예전 투어 앱이 보내던 withTours와 구분)
+    params.set('withBuddy', 'true'); // 버디 찾기 알림 BUDDY_* 도 받음 (버디 찾기 상세로 감)
     return request<{ items: AppNotification[]; hasMore: boolean; unreadCount: number }>(`/notifications?${params}`);
   },
   readNotification(id: number) { return request(`/notifications/${id}/read`, { method: 'PATCH' }); },
@@ -809,6 +846,33 @@ export const api = {
   },
   manageScheduleInvitation(id: number, participantId: number, action: 'remove' | 'resend') {
     return request(`/schedule/${id}/invitation/${participantId}`, { method: 'POST', body: JSON.stringify({ action }) });
+  },
+  // 캘린더 '버디 찾기'
+  getBuddyMonthly(year: number, month: number) {
+    return request<{ posts: BuddyPostSummary[] }>(`/buddy-posts/monthly?year=${year}&month=${month}`);
+  },
+  getBuddyPost(id: number) { return request<{ post: BuddyPostDetail }>(`/buddy-posts/${id}`); },
+  createBuddyPost(data: BuddyPostInput) { return request<{ success: boolean; id: number }>('/buddy-posts', { method: 'POST', body: JSON.stringify(data) }); },
+  updateBuddyPost(id: number, data: BuddyPostInput) { return request<{ success: boolean }>(`/buddy-posts/${id}`, { method: 'PUT', body: JSON.stringify(data) }); },
+  deleteBuddyPost(id: number) { return request<{ success: boolean }>(`/buddy-posts/${id}`, { method: 'DELETE' }); },
+  applyBuddy(id: number) { return request<{ success: boolean }>(`/buddy-posts/${id}/apply`, { method: 'POST' }); },
+  cancelBuddy(id: number) { return request<{ success: boolean }>(`/buddy-posts/${id}/apply`, { method: 'DELETE' }); },
+  decideBuddy(id: number, participantId: number, action: 'accept' | 'deny') {
+    return request<{ success: boolean; closed?: boolean; scheduleId?: number }>(`/buddy-posts/${id}/applications/${participantId}`, { method: 'POST', body: JSON.stringify({ action }) });
+  },
+  closeBuddy(id: number) { return request<{ success: boolean; scheduleId: number }>(`/buddy-posts/${id}/close`, { method: 'POST' }); },
+  // 캘린더 '트레이닝': 참가 신청 · 신청 취소 · 신청 승인/거절(만든 사람) · 참가자 추가 요청(만든 사람)
+  applyTraining(id: number) {
+    return request<{ success: boolean; status: InvitationStatus }>(`/schedule/${id}/training/apply`, { method: 'POST' });
+  },
+  cancelTrainingApplication(id: number) {
+    return request<{ success: boolean }>(`/schedule/${id}/training/apply`, { method: 'DELETE' });
+  },
+  decideTrainingApplication(id: number, participantId: number, action: 'accept' | 'deny') {
+    return request<{ success: boolean }>(`/schedule/${id}/training/applications/${participantId}`, { method: 'POST', body: JSON.stringify({ action }) });
+  },
+  inviteToTraining(id: number, userId: number) {
+    return request<{ success: boolean }>(`/schedule/${id}/training/invite`, { method: 'POST', body: JSON.stringify({ userId }) });
   },
 
   createSchedule(data: {
@@ -820,6 +884,8 @@ export const api = {
     customLocation?: string | null;
     categoryCode: string;
     visibility: 'public' | 'private';
+    participationFee?: number | null;
+    maxParticipants?: number | null;
     participants: {
       userId?: number;
       guestNickname?: string;
@@ -848,6 +914,8 @@ export const api = {
     customLocation?: string | null;
     categoryCode: string;
     visibility: 'public' | 'private';
+    participationFee?: number | null;
+    maxParticipants?: number | null;
     participants: {
       userId?: number;
       guestNickname?: string;

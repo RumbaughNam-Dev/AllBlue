@@ -9,7 +9,7 @@ import { View, DeviceEventEmitter, Platform, useWindowDimensions } from 'react-n
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { hasSideTabStrip, hasStatusSideStrip } from '@/utils/tabBarLayout';
 import { StripTabBarHost } from '@/components/StripTabBarHost';
-import { observeCommunityPushes, observeSchedulePushes, observeTourPushes } from '@/services/push';
+import { observeBuddyPushes, observeCommunityPushes, observeSchedulePushes, observeTourPushes } from '@/services/push';
 import { communityNoticeDestination } from '@/features/community/notices';
 import { tourNoticeDestination } from '@/features/tour/notices';
 import { api } from '@/services/api';
@@ -68,7 +68,7 @@ function RootLayoutNav() {
       router.replace('/onboarding');
     } else if (hasSeenOnboarding && !isLoggedIn && !inLogin && !inRegister) {
       router.replace('/login');
-    } else if (isLoggedIn && !inApp && !['notices','notice-detail','notice-edit','profile','profile-edit','profile-view','cert-upload','cert-manage','schedule-daily','schedule-detail','schedule-add','achievement','debriefing','student-notes','blocked-users','inquiry','inquiry-write','inquiry-detail','inquiry-manage','inquiry-answer','withdraw','schedule-settings','organization-register','organization-manage','organization-members','community-posts','community-post','community-essay-write','community-free-write','community-promo-edit','community-greetings','community-reports','tour-register','tour-detail','tour-list','tour-search','tour-mine','tour-applications','tour-propose','tour-proposals','tour-proposal','tour-requests','tour-reports','tour-banners','tour-banner-edit','game-freediving','game-apneatap','game-records'].includes(segments[0] as string)) {
+    } else if (isLoggedIn && !inApp && !['notices','notice-detail','notice-edit','profile','profile-edit','profile-view','cert-upload','cert-manage','schedule-daily','schedule-detail','schedule-add','achievement','debriefing','student-notes','blocked-users','inquiry','inquiry-write','inquiry-detail','inquiry-manage','inquiry-answer','withdraw','schedule-settings','organization-register','organization-manage','organization-members','community-posts','community-post','community-essay-write','community-free-write','community-promo-edit','community-greetings','community-reports','tour-register','tour-detail','tour-list','tour-search','tour-mine','tour-applications','tour-propose','tour-proposals','tour-proposal','tour-requests','tour-reports','tour-banners','tour-banner-edit','game-freediving','game-apneatap','game-records','buddy-detail','buddy-edit'].includes(segments[0] as string)) {
       router.replace('/(tabs)');
     }
 
@@ -93,6 +93,15 @@ function RootLayoutNav() {
       if (notificationId) void api.readNotification(notificationId).then(() => DeviceEventEmitter.emit('notificationsChanged')).catch(() => {});
       const destination = tourNoticeDestination(code, tourId);
       if (destination) routerRef.current.push(destination);
+    });
+  }, [isLoggedIn, isLoading, ready, splashDone]);
+
+  // 버디 찾기 알림 푸시: 그 모집 글로
+  useEffect(() => {
+    if (!isLoggedIn || isLoading || !ready || !splashDone) return;
+    return observeBuddyPushes((postId, notificationId) => {
+      if (notificationId) void api.readNotification(notificationId).then(() => DeviceEventEmitter.emit('notificationsChanged')).catch(() => {});
+      routerRef.current.push({ pathname: '/buddy-detail', params: { id: String(postId) } });
     });
   }, [isLoggedIn, isLoading, ready, splashDone]);
 
@@ -134,6 +143,8 @@ function RootLayoutNav() {
           <Stack.Screen name="schedule-daily" options={{ gestureEnabled: true }} />
           <Stack.Screen name="schedule-detail" options={{ gestureEnabled: true }} />
           <Stack.Screen name="schedule-add" options={{ gestureEnabled: true, headerBackButtonMenuEnabled: false }} />
+          <Stack.Screen name="buddy-detail" options={{ gestureEnabled: true }} />
+          <Stack.Screen name="buddy-edit" options={{ gestureEnabled: true }} />
           <Stack.Screen name="profile-view" options={profileSheet} />
           <Stack.Screen name="achievement" options={{ gestureEnabled: true }} />
           <Stack.Screen name="debriefing" options={{ gestureEnabled: true }} />

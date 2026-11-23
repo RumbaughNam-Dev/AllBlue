@@ -127,10 +127,12 @@ export default function NotificationBell() {
       const community = item.notificationType?.startsWith('COMMUNITY_') ? communityNoticeDestination(item.notificationType, item.communityPostId, koreaDay(item.createdAt)) : null;
       const isTour = !!item.notificationType?.startsWith('TOUR_');
       const tour = isTour ? tourNoticeDestination(item.notificationType, item.tourId) : null;
+      const isBuddy = !!item.notificationType?.startsWith('BUDDY_');
       if (community) router.push(community);
       else if (tour) router.push(tour);
+      else if (isBuddy) { if (item.buddyPostId) router.push({ pathname: '/buddy-detail', params: { id: String(item.buddyPostId) } }); }
       // 내려진 글 · 삭제된 투어 알림처럼 갈 곳이 없는 커뮤니티 · 투어 알림은 읽음 처리만
-      else if (!item.notificationType?.startsWith('COMMUNITY_') && !isTour) router.push({ pathname: '/schedule-detail', params: { id: String(item.scheduleId), filter: 'notification' } });
+      else if (!item.notificationType?.startsWith('COMMUNITY_') && !isTour && !isBuddy) router.push({ pathname: '/schedule-detail', params: { id: String(item.scheduleId), filter: 'notification' } });
     } catch { Alert.alert('알림', '알림을 열지 못했습니다. 다시 시도해주세요.'); }
     finally { moving.current = false; }
   };
@@ -216,7 +218,7 @@ export default function NotificationBell() {
                   style={({ pressed }) => [styles.rowContent, pressed && styles.pressed]} onPress={() => go(item)}>
                   <View style={styles.metaLine}>
                     <View style={styles.statusLine}>
-                      <Ionicons name={item.notificationType?.startsWith('COMMUNITY_') ? 'chatbubbles-outline' : item.notificationType?.startsWith('TOUR_') ? 'airplane-outline' : 'calendar-outline'} size={13} color={item.readAt ? '#8FA9C4' : '#92DDEB'} />
+                      <Ionicons name={item.notificationType?.startsWith('COMMUNITY_') ? 'chatbubbles-outline' : item.notificationType?.startsWith('TOUR_') ? 'airplane-outline' : item.notificationType?.startsWith('BUDDY_') ? 'people-outline' : 'calendar-outline'} size={13} color={item.readAt ? '#8FA9C4' : '#92DDEB'} />
                       <Text style={[styles.statusText, !item.readAt && styles.newStatus]}>{item.readAt ? '확인한 소식' : '새로운 소식'}</Text>
                     </View>
                     <Text style={styles.date}>{formatNotificationDate(item.createdAt)}</Text>

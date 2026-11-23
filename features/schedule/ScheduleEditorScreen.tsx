@@ -2,8 +2,8 @@ import ScheduleCategorySelector from '@/components/ScheduleCategorySelector';
 import PopupBackdrop from '@/components/PopupBackdrop';
 import ProfileLink from '@/components/ProfileLink';
 import ProfileAvatar from '@/components/ProfileAvatar';
-import React from 'react';
-import { View, Modal, Text, TextInput, Pressable, ScrollView, Platform, KeyboardAvoidingView, ActivityIndicator, Keyboard, Switch } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Animated, Easing, View, Modal, Text, TextInput, Pressable, ScrollView, Platform, KeyboardAvoidingView, ActivityIndicator, Keyboard, Switch } from 'react-native';
 
 import { StatusBar } from 'expo-status-bar';
 import Colors from '@/constants/Colors';
@@ -14,6 +14,9 @@ import Spinner from '@/components/Spinner';
 
 import { useScheduleEditor, CATEGORIES, HOURS, MINUTES, CUSTOM_LOCATION_POOL } from './useScheduleEditor';
 import { styles } from './styles';
+import { DoneCard, EnteringCard, StepBadge, flowStyles } from './EditorFlow';
+import { useEditorFlow, type FlowKey } from './useEditorFlow';
+import { formatWon } from '@/utils/format';
 import GlassCircle from '@/components/GlassCircle';
 import GlassBackground, { glassClear } from '@/components/GlassBackground';
 import StripBackSlot from '@/components/StripBackSlot';
@@ -21,14 +24,20 @@ import StripBackSlot from '@/components/StripBackSlot';
 // Main actions stay white (prominent glass) so the navy label keeps its contrast.
 const PROMINENT_TINT = 'rgba(255,255,255,0.85)';
 
+const FIELD_LABELS: Record<FlowKey, string> = {
+  title: '제목', place: '장소', date: '날짜', time: '시간', category: '분류',
+  capacity: '최대 참가 인원', fee: '참가 비용', visibility: '공개여부', participants: '참석자',
+};
+
 export default function ScheduleEditorScreen() {
   const {
-    categories, insets, id, isEditMode, step,
+    categories, insets, id, isEditMode, step, setStep,
     scheduleDate, setScheduleDate, dateObj, month,
     day, title, setTitle, selectedPool, customLocation, setCustomLocation, isCustomLocation,
     setSelectedPool, pools, hour, setHour,
     minute, setMinute, categoryCode, setCategoryCode,
     visibility, setVisibility, participants, currentUser,
+    canOpenTraining, participationFee, setParticipationFee, maxParticipants, setMaxParticipants,
     currentCategory, currentSelectedLicenseIds, currentNewLicenses, inProgressLicenses,
     licensesLoading, participantScrollRef, searchQuery,
     participantBottomPadding, handleParticipantLayout, handleNewParticipantLayout,
@@ -48,6 +57,137 @@ export default function ScheduleEditorScreen() {
     handleSelectNewLicense, removeNewLicense, addParticipantAndContinue, removeParticipant,
     handleSave, maskPhone, getCategoryLabel, handleBack,
   } = useScheduleEditor();
+
+  const flow = useEditorFlow({
+    isEditMode, canOpenTraining, hasCapacity: !!maxParticipants, step, setStep,
+    enterParticipants: handleNextStep,
+    validate: (key: FlowKey) => {
+      if (key === 'title' && !title.trim()) return '제목을 입력해주세요.';
+      if (key === 'place' && isCustomLocation && !customLocation.trim()) return '어디에서 다이빙하는지 입력해주세요.';
+      if (key === 'category' && !categoryCode) return '분류를 선택해주세요.';
+      if (key === 'fee' && !participationFee) return '참가 비용을 입력해주세요. (무료면 0)';
+      return null;
+    },
+  });
+
+  // 참석자 화면도 위에서 내려오며 나타남
+  const participantEnter = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (step !== 'participant') return;
+    participantEnter.setValue(0);
+    Animated.timing(participantEnter, { toValue: 1, duration: 340, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
+  }, [step, participantEnter]);
+  const [doneHeight, setDoneHeight] = useState(0);
+
+  const valueOf = (key: FlowKey): string => {
+    switch (key) {
+      case 'title': return title.trim() || '-';
+      case 'place': return (isCustomLocation ? customLocation.trim() : selectedPool?.name) || '선택 안 함';
+      case 'date': return `${dateObj.getFullYear()}년 ${month}월 ${day}일`;
+      case 'time': return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+      case 'category': return getCategoryLabel(categoryCode) || '-';
+      case 'capacity': return maxParticipants ? `${maxParticipants}명` : '비움 (내 일정으로만 저장)';
+      case 'fee': return formatWon(Number(participationFee.replace(/,/g, '')) || 0);
+      case 'visibility': return visibility === 'public' ? '공개' : '비공개';
+      default: return '';
+    }
+  };
+  const doneCards = flow.doneKeys.map(key => (
+    <DoneCard key={`done-${key}`} label={FIELD_LABELS[key]} value={valueOf(key)}
+      index={flow.position(key)} total={flow.total} onPress={() => flow.edit(key)} />
+  ));
+
+  const renderActiveField = () => {
+    switch (flow.current) {
+      case 'title': return (
+        <TextInput style={styles.input} value={title} onChangeText={setTitle} autoFocus={!isEditMode}
+          placeholder="일정 제목을 입력해주세요" placeholderTextColor="rgba(255,255,255,0.25)"
+          returnKeyType="next" submitBehavior="submit" onSubmitEditing={flow.next} />
+      );
+      case 'place': return (
+        <>
+          <Pressable style={styles.pickerButton} onPress={() => { Keyboard.dismiss(); setShowPoolPicker(true); }}>
+            <Text style={[styles.pickerText, !selectedPool && styles.pickerPlaceholder]}>
+              {selectedPool?.name ?? '장소를 선택해주세요'}
+            </Text>
+            <Text style={styles.pickerArrow}>▼</Text>
+          </Pressable>
+          {isCustomLocation && (
+            <TextInput style={[styles.input, { marginTop: 8 }]} value={customLocation} onChangeText={setCustomLocation} autoFocus
+              placeholder="어디에서 다이빙하나요? (예: 제주 서귀포 문섬)" placeholderTextColor="rgba(255,255,255,0.25)" maxLength={100}
+              returnKeyType="next" submitBehavior="submit" onSubmitEditing={flow.next} />
+          )}
+        </>
+      );
+      case 'date': return (
+        <Pressable style={styles.dateInputRow} onPress={() => { Keyboard.dismiss(); setShowDatePicker(true); }}>
+          <Text style={styles.pickerText}>{dateObj.getFullYear()}년 {month}월 {day}일</Text>
+          <Text style={styles.calendarIcon}>📅</Text>
+        </Pressable>
+      );
+      case 'time': return (
+        <View style={styles.timeRow}>
+          <Pressable style={styles.timePickerButton} onPress={() => { Keyboard.dismiss(); setShowHourPicker(true); }}>
+            <Text style={styles.pickerText}>{String(hour).padStart(2, '0')}</Text>
+            <Text style={styles.pickerArrow}>▼</Text>
+          </Pressable>
+          <Text style={styles.timeLabel}>시</Text>
+          <Pressable style={styles.timePickerButton} onPress={() => { Keyboard.dismiss(); setShowMinutePicker(true); }}>
+            <Text style={styles.pickerText}>{String(minute).padStart(2, '0')}</Text>
+            <Text style={styles.pickerArrow}>▼</Text>
+          </Pressable>
+          <Text style={styles.timeLabel}>분</Text>
+        </View>
+      );
+      case 'category': return (
+        <ScheduleCategorySelector categories={categories} value={categoryCode} onChange={(code) => { setCategoryCode(code); flow.advanceSoon(); }} />
+      );
+      // 트레이닝 (강사만): 최대 참가 인원을 넣으면 캘린더 '트레이닝'에 올라가 다른 다이버가 참가 신청
+      case 'capacity': return (
+        <>
+          <View style={styles.trainingRow}>
+            <TextInput style={[styles.input, styles.trainingInput]} value={maxParticipants} onChangeText={setMaxParticipants} autoFocus
+              placeholder="예: 6" placeholderTextColor="rgba(255,255,255,0.25)" keyboardType="number-pad" maxLength={3}
+              accessibilityLabel="최대 참가 인원" />
+            <Text style={styles.timeLabel}>명</Text>
+          </View>
+          <Text style={flowStyles.hint}>
+            최대 참가 인원을 넣으면 캘린더 '트레이닝'에 올라가 다른 다이버가 참가 신청할 수 있어요. (공개여부와 관계없이 보여요. 비워 두면 내 일정으로만 저장돼요.)
+          </Text>
+        </>
+      );
+      case 'fee': return (
+        <View style={styles.trainingRow}>
+          <TextInput style={[styles.input, styles.trainingInput]} value={participationFee} onChangeText={setParticipationFee} autoFocus
+            placeholder="무료면 0" placeholderTextColor="rgba(255,255,255,0.25)" keyboardType="number-pad" maxLength={10}
+            accessibilityLabel="참가 비용(원)" />
+          <Text style={styles.timeLabel}>원</Text>
+        </View>
+      );
+      case 'visibility': return (
+        <>
+          <View style={styles.visibilityRow}>
+            <Text style={styles.visibilityText}>{visibility === 'public' ? '공개' : '비공개'}</Text>
+            <Switch
+              value={visibility === 'public'}
+              onValueChange={(v) => setVisibility(v ? 'public' : 'private')}
+              trackColor={{ false: 'rgba(255,255,255,0.15)', true: 'rgba(52,199,89,0.5)' }}
+              thumbColor={visibility === 'public' ? Colors.brand.success : 'rgba(255,255,255,0.6)'}
+              style={Platform.OS === 'android' ? { transform: [{ scaleX: 0.85 }, { scaleY: 0.85 }], marginVertical: -10 } : undefined}
+            />
+          </View>
+          <Text style={styles.visibilityDesc}>
+            {visibility === 'public' ? '모든 사용자가 이 일정을 볼 수 있습니다.' : '친한친구만 이 일정을 볼 수 있습니다.'}
+          </Text>
+          <Text style={styles.visibilityDesc}>
+            일정 공개여부 기본 설정은 홈 화면 우측 상단 메뉴 {'>'} 설정 {'>'} 일정에서 변경할 수 있습니다.
+          </Text>
+        </>
+      );
+      default: return null;
+    }
+  };
+
   return (
     <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       <StatusBar style="light" />
@@ -76,91 +216,25 @@ export default function ScheduleEditorScreen() {
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
 
-        {/* === Step 1: Info === */}
+        {/* === Step 1: Info — 한 항목씩: 지금 입력할 카드가 위에서 내려오고, 끝난 카드는 아래에서 어둡게 물러남 === */}
         {step === 'info' && (
           <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive">
-            <Text style={styles.label}>제목</Text>
-            <TextInput
-              style={styles.input}
-              value={title}
-              onChangeText={setTitle}
-              placeholder="일정 제목을 입력해주세요"
-              placeholderTextColor="rgba(255,255,255,0.25)"
-            />
-
-            <Text style={styles.label}>장소</Text>
-            <Pressable style={styles.pickerButton} onPress={() => { Keyboard.dismiss(); setShowPoolPicker(true); }}>
-              <Text style={[styles.pickerText, !selectedPool && styles.pickerPlaceholder]}>
-                {selectedPool?.name ?? '장소를 선택해주세요'}
-              </Text>
-              <Text style={styles.pickerArrow}>▼</Text>
-            </Pressable>
-            {isCustomLocation && (
-              <TextInput
-                style={[styles.input, { marginTop: 8 }]}
-                value={customLocation}
-                onChangeText={setCustomLocation}
-                placeholder="어디에서 다이빙하나요? (예: 제주 서귀포 문섬)"
-                placeholderTextColor="rgba(255,255,255,0.25)"
-                maxLength={100}
-              />
-            )}
-
-            {!isEditMode && (
-              <>
-                <Text style={styles.label}>날짜</Text>
-                <Pressable style={styles.dateInputRow} onPress={() => { Keyboard.dismiss(); setShowDatePicker(true); }}>
-                  <Text style={styles.pickerText}>{dateObj.getFullYear()}년 {month}월 {day}일</Text>
-                  <Text style={styles.calendarIcon}>📅</Text>
-                </Pressable>
-              </>
-            )}
-
-            <Text style={styles.label}>시간</Text>
-            <View style={styles.timeRow}>
-              <Pressable style={styles.timePickerButton} onPress={() => { Keyboard.dismiss(); setShowHourPicker(true); }}>
-                <Text style={styles.pickerText}>{String(hour).padStart(2, '0')}</Text>
-                <Text style={styles.pickerArrow}>▼</Text>
-              </Pressable>
-              <Text style={styles.timeLabel}>시</Text>
-              <Pressable style={styles.timePickerButton} onPress={() => { Keyboard.dismiss(); setShowMinutePicker(true); }}>
-                <Text style={styles.pickerText}>{String(minute).padStart(2, '0')}</Text>
-                <Text style={styles.pickerArrow}>▼</Text>
-              </Pressable>
-              <Text style={styles.timeLabel}>분</Text>
-            </View>
-
-            <Text style={styles.label}>분류</Text>
-            <ScheduleCategorySelector categories={categories} value={categoryCode} onChange={setCategoryCode} />
-
-            <Text style={styles.label}>공개여부</Text>
-            <View style={styles.visibilityRow}>
-              <Text style={styles.visibilityText}>
-                {visibility === 'public' ? '공개' : '비공개'}
-              </Text>
-              <Switch
-                value={visibility === 'public'}
-                onValueChange={(v) => setVisibility(v ? 'public' : 'private')}
-                trackColor={{ false: 'rgba(255,255,255,0.15)', true: 'rgba(52,199,89,0.5)' }}
-                thumbColor={visibility === 'public' ? Colors.brand.success : 'rgba(255,255,255,0.6)'}
-                style={Platform.OS === 'android' ? { transform: [{ scaleX: 0.85 }, { scaleY: 0.85 }], marginVertical: -10 } : undefined}
-              />
-            </View>
-            <Text style={styles.visibilityDesc}>
-              {visibility === 'public'
-                ? '모든 사용자가 이 일정을 볼 수 있습니다.'
-                : '친한친구만 이 일정을 볼 수 있습니다.'}
-            </Text>
-            <Text style={styles.visibilityDesc}>
-              일정 공개여부 기본 설정은 홈 화면 우측 상단 메뉴 {'>'} 설정 {'>'} 일정에서 변경할 수 있습니다.
-            </Text>
+            <EnteringCard key={`active-${flow.current}`} style={flowStyles.card}>
+              <View style={flowStyles.cardHeader}>
+                <Text style={flowStyles.cardTitle}>{FIELD_LABELS[flow.current]}</Text>
+                <StepBadge index={flow.position(flow.current)} total={flow.total} />
+              </View>
+              {renderActiveField()}
+            </EnteringCard>
+            {doneCards}
           </ScrollView>
         )}
 
         {/* === Step 2: Participant === */}
         {step === 'participant' && (
+          <Animated.View style={{ flex: 1, opacity: participantEnter, transform: [{ translateY: participantEnter.interpolate({ inputRange: [0, 1], outputRange: [-28, 0] }) }] }}>
           <ScrollView ref={participantScrollRef} onLayout={handleParticipantLayout} onContentSizeChange={scrollParticipantIntoView} onScrollBeginDrag={handleParticipantScrollBeginDrag}
-            style={{ flex: 1 }} contentContainerStyle={[styles.scrollContent, { paddingBottom: participantBottomPadding }]} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive">
+            style={{ flex: 1 }} contentContainerStyle={[styles.scrollContent, { paddingBottom: Math.max(40, participantBottomPadding - doneHeight) }]} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive">
 
             {/* Already added participants */}
               <View style={styles.addedSection}>
@@ -192,7 +266,8 @@ export default function ScheduleEditorScreen() {
             <View style={styles.newParticipantSection} onLayout={handleNewParticipantLayout}>
               <View style={styles.participantSectionHeader}>
                 <Text style={styles.participantSectionTitle}>{participantLabel} 추가</Text>
-                <Text style={styles.newParticipantMark}>＋</Text>
+                {/* 마지막 단계: 일정 정보에 이어 같은 흐름 (n / n) */}
+                <StepBadge index={flow.total} total={flow.total} />
               </View>
               <Text style={styles.participantSectionHint}>
                 {currentUser ? '분류를 확인한 뒤 목록에 추가해주세요.' : '사용자를 검색하거나 친한친구에서 선택해주세요.'}
@@ -395,7 +470,11 @@ export default function ScheduleEditorScreen() {
             )}
 
             </View>
+            <View onLayout={(e) => setDoneHeight(e.nativeEvent.layout.height)} style={{ marginTop: 24 }}>
+              {doneCards}
+            </View>
           </ScrollView>
+          </Animated.View>
         )}
 
         {/* Bottom buttons - always fixed, KeyboardAvoidingView pushes above keyboard */}
@@ -403,7 +482,7 @@ export default function ScheduleEditorScreen() {
           {step === 'info' ? (
             <Pressable
               style={({ pressed }) => [styles.primaryButton, glassClear, pressed && { opacity: 0.85 }]}
-              onPress={handleNextStep}
+              onPress={flow.next}
             >
               <GlassBackground radius={14} interactive tintColor={PROMINENT_TINT} />
               <Text style={styles.primaryButtonText}>다음</Text>
@@ -468,13 +547,13 @@ export default function ScheduleEditorScreen() {
         visible={showDatePicker}
         onClose={() => setShowDatePicker(false)}
         selectedDate={scheduleDate}
-        onSelect={(v) => setScheduleDate(v)}
+        onSelect={(v) => { setScheduleDate(v); if (flow.current === 'date') flow.advanceSoon(); }}
       />
       <BottomSheet
         visible={showPoolPicker} onClose={() => setShowPoolPicker(false)} title="장소 선택"
         items={pools.map((p) => ({ label: p.name, value: p }))}
         pinnedItems={[{ label: CUSTOM_LOCATION_POOL.name, value: CUSTOM_LOCATION_POOL }]}
-        onSelect={(v) => setSelectedPool(v)} selectedValue={selectedPool} searchable
+        onSelect={(v) => { setSelectedPool(v); if (flow.current === 'place' && v.id !== CUSTOM_LOCATION_POOL.id) flow.advanceSoon(); }} selectedValue={selectedPool} searchable
       />
       <BottomSheet
         visible={showHourPicker} onClose={() => setShowHourPicker(false)} title="시"

@@ -46,6 +46,8 @@ type Props = {
 
 const DEFAULT_FILTERS: FilterOption[] = [
   { key: 'mine', label: '내 일정' },
+  { key: 'training', label: '트레이닝' },
+  { key: 'buddy', label: '버디 찾기' },
   { key: 'instructor', label: '강사 일정' },
   { key: 'closeFriend', label: '친한친구 일정' },
 ];
